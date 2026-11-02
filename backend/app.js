@@ -4,6 +4,9 @@ const { createAdministradorRepository } = require("./repositories/administrador.
 const { createAuthService } = require("./services/auth.service");
 const { createAutenticacionMiddleware } = require("./middleware/autenticacion");
 const { createAuthRouter } = require("./routes/auth.routes");
+const { createResultadosRepository } = require("./repositories/resultados.repository");
+const { createResultadosService } = require("./services/resultados.service");
+const { createResultadosRouter } = require("./routes/resultados.routes");
 
 function createApp({ pool, jwtSecret }) {
   const app = express();
@@ -25,6 +28,8 @@ function createApp({ pool, jwtSecret }) {
     }
   });
   app.use("/api/auth", createAuthRouter({ authService, autenticarAdministrador }));
+  const resultadosService = createResultadosService(createResultadosRepository(pool));
+  app.use("/api/resultados", createResultadosRouter({ resultadosService, autenticarAdministrador }));
   app.use((error, req, res, next) => {
     if (error.type === "entity.parse.failed" || error.type === "entity.too.large") {
       return res.status(error.status).json({ mensaje: "El cuerpo de la solicitud no es válido." });
