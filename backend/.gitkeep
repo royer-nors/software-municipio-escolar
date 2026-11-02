@@ -1,0 +1,15 @@
+
+# Dependencias de Node.js
+**/node_modules/
+
+# Archivos generados
+**/dist/
+**/build/
+
+# Contraseñas y variables de entorno
+.env
+.env.*
+!.env.example
+
+# Archivos temporales
+*.log
