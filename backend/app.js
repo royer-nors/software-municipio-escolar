@@ -4,12 +4,17 @@ const { createAdministradorRepository } = require("./repositories/administrador.
 const { createAuthService } = require("./services/auth.service");
 const { createAutenticacionMiddleware } = require("./middleware/autenticacion");
 const { createAuthRouter } = require("./routes/auth.routes");
+const { createEstudianteRepository } = require("./repositories/estudiante.repository");
+const { createEstudianteAuthService } = require("./services/estudiante-auth.service");
 
-function createApp({ pool, jwtSecret }) {
+function createApp({ pool, jwtSecret, limitesAcceso }) {
   const app = express();
   const administradorRepository = createAdministradorRepository(pool);
   const authService = createAuthService({ administradorRepository, jwtSecret });
   const autenticarAdministrador = createAutenticacionMiddleware(jwtSecret);
+  const estudianteAuthService = createEstudianteAuthService({
+    estudianteRepository: createEstudianteRepository(pool), jwtSecret,
+  });
   app.use(cors());
   app.use(express.json({ limit: "10kb" }));
   app.get("/api/estado", (req, res) => {
@@ -24,7 +29,7 @@ function createApp({ pool, jwtSecret }) {
       res.status(500).json({ mensaje: "Error al conectar con PostgreSQL" });
     }
   });
-  app.use("/api/auth", createAuthRouter({ authService, autenticarAdministrador }));
+  app.use("/api/auth", createAuthRouter({ authService, estudianteAuthService, autenticarAdministrador, limitesAcceso }));
   app.use((error, req, res, next) => {
     if (error.type === "entity.parse.failed" || error.type === "entity.too.large") {
       return res.status(error.status).json({ mensaje: "El cuerpo de la solicitud no es válido." });
