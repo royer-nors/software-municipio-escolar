@@ -18,6 +18,8 @@ Copia el valor generado en `JWT_SECRET` dentro de `.env` y completa las variable
 npm run dev
 ```
 
+Antes de iniciar una instalación nueva, ejecuta `npm run db:migrate` con las variables `DB_*` configuradas. Consulta [la guía de base de datos](../database/README.md). El servidor no crea ni actualiza tablas automáticamente.
+
 El servidor escucha en `http://localhost:3000`. La autenticación necesita la tabla `administradores` con `id`, `usuario` y `password_hash`, conforme al esquema publicado actualmente en `main`. El hash debe ser bcrypt; no se crean usuarios ni tablas desde este módulo. La integración con PostgreSQL se hará con la responsable de la base de datos.
 
 ## Endpoints
@@ -68,11 +70,11 @@ Ejemplo de `resumen`, usando los valores de referencia de Figma:
 }
 ```
 
-Los valores se calculan desde la base de datos; el ejemplo no se guarda como resultado real. Cada elemento de `listas` contiene `nombre`, `votos`, `porcentaje` y `posicion`. Se suman los votos de los candidatos que comparten `candidatos.lista`, incluyendo listas sin votos. La posición se ordena por votos descendentes; los empates comparten posición y se presentan por nombre. No se cambia el nombre de las listas.
+Los valores se calculan desde la base de datos; el ejemplo no se guarda como resultado real. Cada elemento de `listas` contiene `nombre`, `votos`, `porcentaje` y `posicion`. Se cuentan los votos de cada `lista_id`, incluyendo listas sin votos. La posición se ordena por votos descendentes; los empates comparten posición y se presentan por nombre. No se cambia el nombre de las listas.
 
 Los porcentajes por lista usan los **votos válidos**, mientras que la participación usa los **votos emitidos / estudiantes habilitados**. Se redondean a un decimal y son cero cuando el denominador es cero. Sin votos válidos, la posición de las listas es `null`. Por el redondeo, los porcentajes de algunas distribuciones pueden sumar 99,9 o 100,1.
 
-Contrato provisional con el esquema actual de `main`: cada fila de `votos` representa un voto; `candidato_id = NULL` se interpreta como voto en blanco. El esquema actual no representa votos nulos, por lo que esa categoría responde cero. Esta interpretación debe coordinarse con la responsable de la base de datos antes de la integración real. No se crean ni modifican tablas, usuarios o votos.
+Con las migraciones actuales, cada fila de `votos` representa un voto de lista; `lista_id = NULL` representa voto en blanco. El esquema no representa votos nulos, por lo que esa categoría responde cero. Las consultas HTTP son de solo lectura; la instalación del esquema es un comando separado.
 
 Si hay más votos que estudiantes, votos sin una lista definida o conteos inconsistentes, la API responde `503` y no entrega un reporte engañoso. Los resultados no incluyen códigos, nombres ni identificadores de votantes. El frontend utilizará estos datos para el gráfico, los colores, los retratos y la impresión del diseño de Figma.
 
@@ -100,4 +102,4 @@ Cada IP dispone de 10 intentos fallidos de administrador o 20 de estudiante en u
 
 La respuesta `200` tiene la forma `{"listas": [{"nombre": "Unidos por el cambio", "candidatos": [{"id": 1, "nombre": "Candidato"}]}]}`. Los candidatos se agrupan por el nombre de su lista, con orden alfabético de listas y por identificador de candidato. Se conservan los nombres registrados; no se crean números ni identificadores ficticios de listas. Sin candidatos, responde `{"listas": []}`.
 
-Se reutiliza el campo `candidatos.lista` del esquema actual. Las fotografías, logos, cargos y demás datos que todavía no aparecen en el esquema quedan pendientes de su contrato con la responsable de base de datos. Esta consulta prepara los datos de la tarjeta completa del diseño sin modificar el frontend. El registro del voto por lista se implementará cuando esté definido cómo almacenarlo; este endpoint no registra votos.
+La consulta usa la relación `candidatos.lista_id` con `listas`. Las migraciones incorporan columnas para URL del logo, fotografía, cargo y propuestas; la carga y exposición de esos archivos sigue pendiente. Esta consulta prepara los datos de la tarjeta completa del diseño sin modificar el frontend. El esquema ya incluye la función atómica `registrar_voto`, pero este endpoint no registra votos.
