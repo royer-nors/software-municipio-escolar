@@ -23,7 +23,7 @@ El antiguo `schema.sql`, que comenzaba borrando las tablas, se reemplazó por `m
 | `administradores` | Usuario único y hash de contraseña para el acceso administrativo existente. |
 | `esquema_migraciones` | Versiones aplicadas y sus checksums. |
 
-Las URLs son referencias a archivos; la base no incorpora fotos ni logos de ejemplo. El padrón se cargará masivamente desde Excel; esta migración no implementa un alta individual de votantes ni crea usuarios o estudiantes ficticios.
+Las URLs son referencias a archivos; la base no incorpora fotos ni logos de ejemplo. El padrón se carga masivamente desde Excel mediante `POST /api/padron/importar`; esta migración no crea usuarios o estudiantes ficticios y el backend no ofrece un alta individual de votantes.
 
 ## Conservar los datos del esquema anterior
 
@@ -41,7 +41,13 @@ SELECT registrar_voto($1, $2);
 
 El backend enviará como parámetros el identificador del estudiante autenticado y el identificador de la lista elegida. El segundo parámetro puede ser `NULL` para un voto en blanco. La función marca al estudiante y crea el voto en una misma sentencia. Si ya votó o no existe, rechaza la operación; si la lista no existe, el fallo también revierte la marca. La actualización condicional protege frente a reintentos concurrentes del mismo estudiante.
 
-La tabla de votos no registra quién eligió cada lista. El endpoint `POST /api/votos` utiliza esta función con el identificador del estudiante obtenido del token y con `listaId` seleccionado; `null` representa voto en blanco. Esta separación no sustituye los controles de acceso, configuración y auditoría de la aplicación. La importación de Excel y las reglas de horarios y habilitación de voto en blanco son pasos posteriores. También quedan pendientes el modelo de múltiples elecciones y su historial; este primer esquema cubre un proceso electoral.
+La tabla de votos no registra quién eligió cada lista. El endpoint `POST /api/votos` utiliza esta función con el identificador del estudiante obtenido del token y con `listaId` seleccionado; `null` representa voto en blanco. Esta separación no sustituye los controles de acceso, configuración y auditoría de la aplicación. Las reglas de horarios y habilitación de voto en blanco son pasos posteriores. También quedan pendientes el modelo de múltiples elecciones y su historial; este esquema cubre un proceso electoral.
+
+## Reemplazo del padrón por Excel
+
+`POST /api/padron/importar` requiere autorización de administrador. Valida el `.xlsx` completo antes de iniciar la transacción; después bloquea `estudiantes` y `votos`, comprueba que no haya votos ni marcas `ya_voto`, elimina el padrón anterior e inserta todas las filas mediante una consulta parametrizada. No altera listas, candidatos ni administradores. Un fallo revierte la operación completa.
+
+El bloqueo toma las tablas en el mismo orden que el registro del voto para coordinar ambas operaciones. Después del primer voto se rechaza el reemplazo con `409`. Los identificadores de estudiantes no se reinician; las sesiones emitidas para registros eliminados no pasan a identificar a otro estudiante. Este proceso es un reemplazo completo, no una actualización parcial por DNI.
 
 ## Pruebas
 
