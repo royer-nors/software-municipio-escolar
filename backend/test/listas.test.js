@@ -10,9 +10,9 @@ let consultas = 0, lastValues;
 let papeleta = {
   estudiante: { yaVoto: false },
   candidatos: [
-    { id: 4, nombre: "Candidata B", lista: "Unidos por el cambio" },
-    { id: 2, nombre: "Candidato A", lista: "Unidos por el cambio" },
-    { id: 3, nombre: "Candidata C", lista: "Ideas que transforman" },
+    { id: 4, nombre: "Candidata B", lista: "Unidos por el cambio", listaId: 20 },
+    { id: 2, nombre: "Candidato A", lista: "Unidos por el cambio", listaId: 20 },
+    { id: 3, nombre: "Candidata C", lista: "Ideas que transforman", listaId: 10 },
   ],
 };
 const pool = { async query(sql, values) { consultas++; lastValues = values; return { rows: [papeleta] }; } };
@@ -50,8 +50,8 @@ test("devuelve listas completas sin mezclar candidatos ni inventar datos", async
   assert.equal(result.response.headers.get("cache-control"), "no-store");
   assert.deepEqual(lastValues, [8]);
   assert.deepEqual(result.body, { listas: [
-    { nombre: "Ideas que transforman", candidatos: [{ id: 3, nombre: "Candidata C" }] },
-    { nombre: "Unidos por el cambio", candidatos: [{ id: 2, nombre: "Candidato A" }, { id: 4, nombre: "Candidata B" }] },
+    { id: 10, nombre: "Ideas que transforman", candidatos: [{ id: 3, nombre: "Candidata C" }] },
+    { id: 20, nombre: "Unidos por el cambio", candidatos: [{ id: 2, nombre: "Candidato A" }, { id: 4, nombre: "Candidata B" }] },
   ] });
 });
 
