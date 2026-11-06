@@ -1,17 +1,22 @@
 import { useEffect, useState } from "react";
 import MarcoPantalla from "../components/MarcoPantalla";
 import TarjetaLista from "../components/TarjetaLista";
-import { obtenerListas } from "../api/estudiantes";
+import ConfirmarVoto from "../components/ConfirmarVoto";
+import VotoRegistrado from "../components/VotoRegistrado";
+import { obtenerListas, registrarVoto } from "../api/estudiantes";
 
 const COLORES = ["azul", "verde", "morado", "naranja"];
 
-// Pantalla "Elecciones Municipio Escolar": tarjetas de listas + voto en blanco.
-// onVotar recibe { tipo: "lista", nombre } o { tipo: "blanco" }.
-// Registrar el voto lo hace quien implemente el diálogo de confirmación y el endpoint.
-export default function ListasCandidatos({ token, estudiante, onVotar, onSalir }) {
+// Pantalla "Elecciones Municipio Escolar": tarjetas de listas + voto en blanco,
+// con los diálogos de confirmar y de voto registrado.
+// onFinalizar se llama al pulsar "Finalizar" (el padre cierra la sesión del estudiante).
+export default function ListasCandidatos({ token, estudiante, onFinalizar, onSalir }) {
   const [listas, setListas] = useState(null);
   const [error, setError] = useState("");
-  const [seleccion, setSeleccion] = useState(null);
+  const [seleccion, setSeleccion] = useState(null); // { tipo: "lista", nombre } | { tipo: "blanco" }
+  const [dialogo, setDialogo] = useState(null); // null | "confirmar" | "registrado"
+  const [enviando, setEnviando] = useState(false);
+  const [errorVoto, setErrorVoto] = useState("");
 
   useEffect(() => {
     let activo = true;
@@ -24,6 +29,24 @@ export default function ListasCandidatos({ token, estudiante, onVotar, onSalir }
   }, [token]);
 
   const esLista = (nombre) => seleccion?.tipo === "lista" && seleccion.nombre === nombre;
+
+  function abrirConfirmacion() {
+    setErrorVoto("");
+    setDialogo("confirmar");
+  }
+
+  async function confirmar() {
+    setEnviando(true);
+    setErrorVoto("");
+    try {
+      await registrarVoto(token, seleccion);
+      setDialogo("registrado");
+    } catch (e) {
+      setErrorVoto(e.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
 
   return (
     <MarcoPantalla onSalir={onSalir}>
@@ -52,7 +75,9 @@ export default function ListasCandidatos({ token, estudiante, onVotar, onSalir }
               lista={lista}
               color={COLORES[i % COLORES.length]}
               seleccionada={esLista(lista.nombre)}
-              onElegir={() => setSeleccion({ tipo: "lista", nombre: lista.nombre })}
+              onElegir={() =>
+                setSeleccion({ tipo: "lista", nombre: lista.nombre, numero: lista.numero })
+              }
             />
           ))}
         </div>
@@ -75,11 +100,22 @@ export default function ListasCandidatos({ token, estudiante, onVotar, onSalir }
           type="button"
           className="btn-verde"
           disabled={!seleccion}
-          onClick={() => onVotar(seleccion)}
+          onClick={abrirConfirmacion}
         >
           Votar
         </button>
       </div>
+
+      {dialogo === "confirmar" && (
+        <ConfirmarVoto
+          seleccion={seleccion}
+          enviando={enviando}
+          error={errorVoto}
+          onConfirmar={confirmar}
+          onCancelar={() => setDialogo(null)}
+        />
+      )}
+      {dialogo === "registrado" && <VotoRegistrado onFinalizar={onFinalizar} />}
     </MarcoPantalla>
   );
 }

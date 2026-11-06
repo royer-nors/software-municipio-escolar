@@ -15,6 +15,7 @@ const MENSAJES = {
   401: "Este DNI no está en el padrón.",
   409: "Este estudiante ya votó.",
   429: "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+  501: "El registro de votos aún no está disponible en el servidor.",
   503: "El servicio no está disponible. Avisa al encargado.",
 };
 const MENSAJE_SESION = "La sesión venció. Vuelve a ingresar tu DNI.";
@@ -85,6 +86,15 @@ async function listasMock(token) {
   return LISTAS_MOCK;
 }
 
+async function registrarVotoMock(token, seleccion) {
+  await esperar(600);
+  if (token !== TOKEN_MOCK) throw new ErrorApi(401, MENSAJE_SESION);
+  if (!seleccion || !["lista", "blanco"].includes(seleccion.tipo)) {
+    throw new ErrorApi(400, "La selección no es válida.");
+  }
+  return { registrado: true };
+}
+
 // ---------- Funciones que usan las pantallas ----------
 
 // El DNI se envía como texto para conservar los ceros iniciales.
@@ -106,6 +116,20 @@ export async function obtenerListas(token) {
     return datos.listas;
   } catch (e) {
     // En este endpoint, un 401 significa que el token venció o no es válido.
+    if (e.status === 401) throw new ErrorApi(401, MENSAJE_SESION);
+    throw e;
+  }
+}
+
+// seleccion = { tipo: "lista", nombre } o { tipo: "blanco" }
+export async function registrarVoto(token, seleccion) {
+  try {
+    if (USAR_MOCK) return await registrarVotoMock(token, seleccion);
+    // PENDIENTE: el backend todavía no tiene un endpoint para registrar votos
+    // (la base de datos ya tiene la función registrar_voto). Cuando exista, reemplaza la
+    // línea de abajo por la llamada real con pedir(...), enviando el token en Authorization.
+    throw new ErrorApi(501, MENSAJES[501]);
+  } catch (e) {
     if (e.status === 401) throw new ErrorApi(401, MENSAJE_SESION);
     throw e;
   }
