@@ -1,0 +1,129 @@
+/* Anula los estilos de la plantilla de Vite que centran y limitan #root. */
+#root { width: 100%; max-width: none; margin: 0; padding: 0; border: 0; text-align: left; display: block; }
+
+.marco {
+  --azul-noche: #0c2d6b; --azul: #1558c0; --verde: #168a50; --verde-osc: #0f6e3e;
+  --fondo: #e4eaf3; --panel: #f3f7fc; --borde: #c6d4e8; --tinta: #12305f; --ok: #e1f3e8;
+  min-height: 100vh; display: flex; flex-direction: column;
+  background: var(--fondo); color: var(--tinta);
+  font-family: Inter, "Segoe UI", system-ui, sans-serif; font-size: 15px;
+}
+.marco h1, .marco h2, .marco p { margin: 0; font-family: inherit; letter-spacing: normal; }
+.marco h1, .marco h2 { color: inherit; }
+/* Encabezado */
+.marco-cabecera {
+  display: flex; align-items: center; gap: 18px; padding: 16px 28px; color: #fff;
+  background: linear-gradient(90deg, #0b3a8f, #1658c7);
+}
+.marco-logo { width: 64px; height: 72px; object-fit: contain; }
+.marco-colegio h1 { font-size: 22px; font-style: italic; font-weight: 600; }
+.marco-colegio p { font-size: 13px; opacity: .8; margin-top: 4px; }
+.marco-lema {
+  margin-left: auto; max-width: 230px; text-align: center; font-size: 17px; font-style: italic;
+  font-family: "Segoe Script", "Comic Sans MS", cursive;
+}
+.marco-marca { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.marco-marca strong { font-size: 20px; }
+.marco-marca span { font-size: 11px; opacity: .9; }
+
+.marco-contenido { flex: 1; padding: 20px 28px; }
+
+/* Pie */
+.marco-pie {
+  display: flex; align-items: center; gap: 28px; padding: 14px 28px;
+  background: var(--azul-noche); color: #fff;
+}
+.marco-hora { margin-left: auto; }
+.btn-salir {
+  background: #6f9ad6; color: #fff; border: 0; border-radius: 8px;
+  padding: 10px 22px; font-size: 15px; cursor: pointer;
+}
+.btn-salir:hover { background: #82a9de; }
+
+/* Paneles */
+.panel { background: var(--panel); border: 1px solid var(--borde); border-radius: 10px; padding: 18px; }
+.panel h2 { font-size: 17px; font-weight: 600; }
+.panel p { font-size: 13px; }
+.id-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 16px; }
+.panel-cabecera { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.icono-caja {
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px;
+  background: var(--azul); color: #fff; font-size: 22px;
+}
+.etiqueta { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+.campo-dni {
+  display: flex; justify-content: space-between; align-items: center; background: #fff;
+  border: 1px solid var(--borde); border-radius: 6px; padding: 12px 14px; font-size: 18px; margin: 6px 0;
+}
+.check { color: var(--verde); font-weight: 700; }
+.aviso-ok { background: var(--ok); color: #1b6b43; padding: 6px 10px; border-radius: 6px; }
+.votante-card {
+  display: flex; align-items: center; gap: 14px; background: #fff;
+  border: 1px solid var(--borde); border-radius: 8px; padding: 14px; margin-top: 14px;
+}
+.votante-datos { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.insignia { background: var(--ok); color: #1b6b43; padding: 4px 14px; border-radius: 999px; font-size: 13px; }
+.nota { margin-top: 12px; color: #4a638a; }
+.pasos { list-style: none; margin: 14px 0; padding: 0; }
+.pasos li { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
+.paso-num {
+  display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--azul); color: #fff; font-size: 12px;
+}
+.listo { background: var(--ok); border: 1px solid #a8d5b9; border-radius: 8px; padding: 12px; margin: 16px 0; }
+
+/* Botones */
+.btn-verde {
+  width: 100%; background: var(--verde); color: #fff; border: 0; border-radius: 6px;
+  padding: 13px 18px; font-size: 16px; cursor: pointer;
+}
+.btn-verde:hover:not(:disabled) { background: var(--verde-osc); }
+.btn-verde:disabled { opacity: .5; cursor: not-allowed; }
+.btn-salir:focus-visible, .btn-verde:focus-visible, .btn-blanco:focus-visible, .tarjeta:focus-visible {
+  outline: 3px solid var(--azul); outline-offset: 2px;
+}
+
+/* Listas */
+.lista-cabecera {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  background: var(--panel); border: 1px solid var(--borde); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px;
+}
+.lista-cabecera h2 { font-size: 16px; font-weight: 600; }
+.lista-cabecera p { font-size: 12px; }
+.lista-votante {
+  display: flex; flex-direction: column; background: #fff; border: 1px solid var(--borde);
+  border-radius: 6px; padding: 6px 10px; font-size: 12px;
+}
+.tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+.tarjeta {
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 18px;
+  min-height: 230px; padding: 22px 14px 16px; border: 2px solid var(--c-borde); border-radius: 10px;
+  background: var(--c-fondo); cursor: pointer; font: inherit; color: inherit;
+}
+.tarjeta-azul { --c: #1b5fae; --c-fondo: #e8f1fb; --c-borde: #9fbfe6; }
+.tarjeta-verde { --c: #1e8a55; --c-fondo: #e6f4ea; --c-borde: #9ccfb0; }
+.tarjeta-morado { --c: #7447b8; --c-fondo: #ede8f8; --c-borde: #bfa9e3; }
+.tarjeta-naranja { --c: #d9770f; --c-fondo: #fdf1de; --c-borde: #f0c78c; }
+.tarjeta-activa { outline: 4px solid var(--c); outline-offset: 2px; }
+.tarjeta-retratos { display: flex; gap: 14px; }
+.tarjeta-nombre {
+  width: 100%; padding: 14px 12px; border-radius: 6px; background: var(--c);
+  color: #fff; font-size: 15px; font-weight: 500; text-align: center;
+}
+.barra-votar { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 12px; align-items: center; margin-top: 14px; }
+.btn-blanco {
+  background: #fff; border: 2px solid var(--borde); border-radius: 6px;
+  padding: 13px 18px; font-size: 15px; cursor: pointer; color: inherit;
+}
+.btn-blanco[aria-checked="true"] { border-color: var(--azul); outline: 3px solid var(--azul); }
+.cuadro-info {
+  background: var(--panel); border: 1px solid var(--borde); border-radius: 6px;
+  padding: 8px 12px; font-size: 12px;
+}
+.estado { text-align: center; padding: 40px 0; }
+.estado-error { color: #9b1c1c; }
+
+@media (max-width: 760px) {
+  .id-grid, .barra-votar { grid-template-columns: 1fr; }
+  .marco-lema { display: none; }
+}

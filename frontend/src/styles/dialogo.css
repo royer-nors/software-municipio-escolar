@@ -1,0 +1,39 @@
+/* Diálogos "Confirmar voto" y "Voto registrado". Los selectores llevan el prefijo
+   .dialogo para ganarle a las reglas generales de .marco (h2, p). */
+.dialogo {
+  width: min(440px, 92vw); padding: 0; border: 0; border-radius: 8px; overflow: hidden;
+  background: #fff; color: #12305f; box-shadow: 0 20px 50px rgba(0, 0, 0, .35);
+  font-family: Inter, "Segoe UI", system-ui, sans-serif; font-size: 15px;
+}
+.dialogo::backdrop { background: rgba(8, 20, 50, .62); }
+
+.dialogo .dialogo-barra {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 18px; background: #0c2d6b; color: #fff;
+}
+.dialogo .dialogo-barra h2 { margin: 0; font-family: inherit; font-size: 15px; font-weight: 500; color: #fff; }
+.dialogo .dialogo-x {
+  padding: 0 4px; background: none; border: 0; color: #fff; font-size: 24px; line-height: 1; cursor: pointer;
+}
+.dialogo .dialogo-cuerpo { padding: 18px 20px 20px; }
+
+.dialogo .dialogo-pregunta { margin: 0; font-size: 16px; }
+.dialogo .dialogo-opcion { margin: 12px 0 0; font-size: 16px; color: #1558c0; }
+.dialogo .dialogo-aviso { margin: 18px 0 0; font-size: 12px; }
+.dialogo .dialogo-exito { margin: 0; font-size: 17px; color: #168a50; }
+.dialogo .dialogo-error {
+  margin: 14px 0 0; padding: 8px 10px; border-radius: 6px; background: #fde4e4; color: #9b1c1c; font-size: 13px;
+}
+
+.dialogo .dialogo-botones { display: flex; gap: 12px; margin-top: 18px; }
+.dialogo .dialogo-botones > button { flex: 1; width: auto; }
+.dialogo .dialogo-centro { display: flex; justify-content: center; margin-top: 36px; }
+.dialogo .dialogo-centro .btn-verde { width: auto; min-width: 190px; }
+
+.btn-claro {
+  padding: 13px 18px; background: #e3edf8; border: 0; border-radius: 6px;
+  color: #12305f; font: inherit; font-size: 15px; cursor: pointer;
+}
+.btn-claro:hover:not(:disabled) { background: #d3e2f3; }
+.btn-claro:disabled { opacity: .5; cursor: not-allowed; }
+.btn-claro:focus-visible, .dialogo .dialogo-x:focus-visible { outline: 3px solid #1558c0; outline-offset: 2px; }
