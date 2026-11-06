@@ -33,6 +33,7 @@ El servidor escucha en `http://localhost:3000`. La autenticación necesita la ta
 | GET | `/api/resultados` | Consultar el resumen y los resultados por lista; requiere token del administrador. |
 | POST | `/api/auth/estudiante` | Identificar y habilitar al estudiante usando únicamente su DNI. |
 | GET | `/api/listas` | Consultar las listas completas; requiere un token de estudiante habilitado. |
+| POST | `/api/votos` | Registrar la lista completa elegida o el voto en blanco; requiere token del estudiante. |
 
 El cuerpo del login es JSON:
 
@@ -100,6 +101,14 @@ Cada IP dispone de 10 intentos fallidos de administrador o 20 de estudiante en u
 
 `GET /api/listas` utiliza `Authorization: Bearer <token del estudiante>`. Vuelve a comprobar en la base de datos que el estudiante exista y no haya votado, aunque conserve un token emitido anteriormente. Los administradores no pueden utilizar su token en este endpoint. Un estudiante que ya votó recibe `409`.
 
-La respuesta `200` tiene la forma `{"listas": [{"nombre": "Unidos por el cambio", "candidatos": [{"id": 1, "nombre": "Candidato"}]}]}`. Los candidatos se agrupan por el nombre de su lista, con orden alfabético de listas y por identificador de candidato. Se conservan los nombres registrados; no se crean números ni identificadores ficticios de listas. Sin candidatos, responde `{"listas": []}`.
+La respuesta `200` tiene la forma `{"listas": [{"id": 10, "nombre": "Unidos por el cambio", "candidatos": [{"id": 101, "nombre": "Candidato"}]}]}`. El `id` de la lista es su identificador real en PostgreSQL y es diferente del identificador del candidato. Los candidatos se agrupan por lista, con orden alfabético de listas y por identificador de candidato. Sin candidatos, responde `{"listas": []}`.
 
-La consulta usa la relación `candidatos.lista_id` con `listas`. Las migraciones incorporan columnas para URL del logo, fotografía, cargo y propuestas; la carga y exposición de esos archivos sigue pendiente. Esta consulta prepara los datos de la tarjeta completa del diseño sin modificar el frontend. El esquema ya incluye la función atómica `registrar_voto`, pero este endpoint no registra votos.
+La consulta usa la relación `candidatos.lista_id` con `listas`. Las migraciones incorporan columnas para URL del logo, fotografía, cargo y propuestas; la carga y exposición de esos archivos sigue pendiente.
+
+## Registrar el voto confirmado
+
+Después de que el usuario confirme la tarjeta elegida, enviar `POST /api/votos` con `Authorization: Bearer <token del estudiante>` y `{"listaId": 10}`. Para voto en blanco se debe enviar explícitamente `{"listaId": null}`; omitir el campo nunca equivale a votar en blanco.
+
+El estudiante se obtiene del token, aunque el cliente intente enviar otro identificador. La función SQL existente marca `ya_voto` y registra la lista completa atómicamente. El endpoint no guarda ni devuelve un vínculo entre el estudiante y la lista elegida.
+
+Respuestas: `201` con `{"mensaje": "Voto registrado correctamente.", "sesionFinalizada": true}`; `400` para selección inválida o lista inexistente; `401` para token inválido o de otro rol; `409` si el estudiante ya votó o dejó de estar habilitado; `503` si no se puede completar la operación. Tras un fallo de red, se debe comprobar la habilitación antes de reintentar. El cliente debe cerrar la sesión al recibir `201`; cualquier reintento de voto y consulta de papeleta vuelve a comprobar el padrón y queda bloqueado después de votar.

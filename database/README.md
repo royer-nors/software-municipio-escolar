@@ -41,7 +41,7 @@ SELECT registrar_voto($1, $2);
 
 El backend enviará como parámetros el identificador del estudiante autenticado y el identificador de la lista elegida. El segundo parámetro puede ser `NULL` para un voto en blanco. La función marca al estudiante y crea el voto en una misma sentencia. Si ya votó o no existe, rechaza la operación; si la lista no existe, el fallo también revierte la marca. La actualización condicional protege frente a reintentos concurrentes del mismo estudiante.
 
-La tabla de votos no registra quién eligió cada lista. Esta separación no sustituye los controles de acceso, configuración y auditoría de la aplicación. El endpoint HTTP de registro, la importación de Excel y las reglas de horarios y habilitación de voto en blanco son pasos posteriores. También quedan pendientes el modelo de múltiples elecciones y su historial; este primer esquema cubre un proceso electoral.
+La tabla de votos no registra quién eligió cada lista. El endpoint `POST /api/votos` utiliza esta función con el identificador del estudiante obtenido del token y con `listaId` seleccionado; `null` representa voto en blanco. Esta separación no sustituye los controles de acceso, configuración y auditoría de la aplicación. La importación de Excel y las reglas de horarios y habilitación de voto en blanco son pasos posteriores. También quedan pendientes el modelo de múltiples elecciones y su historial; este primer esquema cubre un proceso electoral.
 
 ## Pruebas
 
