@@ -1,0 +1,53 @@
+/* Pantalla "Bienvenido". Reutiliza las variables de estudiante.css (.marco). */
+.bv-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 28px; align-items: center; min-height: 380px; }
+.bv-ilustracion {
+  display: grid; place-items: center; min-height: 340px; padding: 16px;
+  background: #edf2f9; border: 1px solid #d9e3f1; border-radius: 14px;
+}
+.bv-ilustracion img { max-width: 100%; max-height: 340px; object-fit: contain; }
+.bv-svg { width: 100%; max-height: 340px; }
+
+.bv-derecha { display: flex; flex-direction: column; gap: 40px; }
+.marco .bv-titulo {
+  text-align: center; color: #1b3a8a; font-weight: 400; font-style: italic; line-height: 1.1;
+  font-size: clamp(40px, 6vw, 68px);
+  font-family: "Segoe Script", "Brush Script MT", "Lucida Handwriting", cursive;
+}
+
+.bv-votar {
+  display: flex; align-items: center; gap: 16px; width: 100%; padding: 14px 18px;
+  background: var(--panel); border: 1px solid var(--borde); border-radius: 10px;
+  color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.bv-votar:hover { background: #e9f0fa; }
+.bv-votar:focus-visible, .bv-ayuda:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+.bv-votar-icono {
+  display: grid; place-items: center; flex: none; width: 56px; height: 56px;
+  border-radius: 12px; background: #4f5be8; color: #fff;
+}
+.bv-votar-texto { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.bv-votar-texto strong { font-size: 16px; font-weight: 500; }
+.bv-votar-texto span { font-size: 12px; color: #4a638a; }
+.bv-flecha { font-size: 30px; line-height: 1; color: #4a638a; }
+
+/* Pie claro de esta pantalla (distinto al pie azul de las demás) */
+.bv-pie {
+  display: flex; align-items: center; gap: 12px; margin: 0 28px 22px; padding: 12px 16px;
+  background: var(--panel); border: 1px solid var(--borde); border-radius: 8px;
+}
+.bv-fecha { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+.bv-ayuda {
+  display: flex; align-items: center; gap: 8px; padding: 10px 22px;
+  background: #dfe6f0; border: 0; border-radius: 8px; color: inherit; font: inherit; cursor: pointer;
+}
+.bv-ayuda:hover { background: #d2dcea; }
+.bv-ayuda-icono {
+  display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--azul); color: #fff; font-size: 12px; font-weight: 700;
+}
+.bv-salir { display: flex; align-items: center; gap: 8px; }
+
+@media (max-width: 760px) {
+  .bv-grid { grid-template-columns: 1fr; }
+  .bv-pie { flex-wrap: wrap; margin: 0 12px 16px; }
+}
