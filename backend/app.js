@@ -15,6 +15,9 @@ const { createListasRouter } = require("./routes/listas.routes");
 const { createVotosRepository } = require("./repositories/votos.repository");
 const { createVotosService } = require("./services/votos.service");
 const { createVotosRouter } = require("./routes/votos.routes");
+const { createPadronRepository } = require("./repositories/padron.repository");
+const { createPadronService } = require("./services/padron.service");
+const { createPadronRouter } = require("./routes/padron.routes");
 
 function createApp({ pool, jwtSecret, limitesAcceso }) {
   const app = express();
@@ -46,6 +49,8 @@ function createApp({ pool, jwtSecret, limitesAcceso }) {
   app.use("/api/listas", createListasRouter({ listasService, autenticarEstudiante }));
   const votosService = createVotosService(createVotosRepository(pool));
   app.use("/api/votos", createVotosRouter({ votosService, autenticarEstudiante }));
+  const padronService = createPadronService(createPadronRepository(pool));
+  app.use("/api/padron", createPadronRouter({ padronService, autenticarAdministrador }));
   app.use((error, req, res, next) => {
     if (error.type === "entity.parse.failed" || error.type === "entity.too.large") {
       return res.status(error.status).json({ mensaje: "El cuerpo de la solicitud no es válido." });
