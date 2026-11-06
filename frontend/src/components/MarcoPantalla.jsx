@@ -30,7 +30,7 @@ export default function MarcoPantalla({ children, onSalir, mostrarMarca = true, 
         {/* Coloca el escudo en frontend/public/logo-ie.png */}
         <img
           className="marco-logo"
-          src="/logo-ie.png"
+          src="logoo.png"
           alt="Escudo de la institución"
           onError={(e) => (e.currentTarget.style.visibility = "hidden")}
         />

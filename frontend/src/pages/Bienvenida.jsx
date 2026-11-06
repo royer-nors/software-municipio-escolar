@@ -63,7 +63,7 @@ export default function Bienvenida({ onVotar, onAyuda, onSalir }) {
         <div className="bv-ilustracion">
           {hayImagen ? (
             <img
-              src="/bienvenida.png"
+              src="/icono.png"
               alt="Estudiantes depositando su voto"
               onError={() => setHayImagen(false)}
             />
