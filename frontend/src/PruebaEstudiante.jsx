@@ -1,50 +1,47 @@
 import { useState } from "react";
-import { loginEstudiante } from "./api/estudiantes";
+import Bienvenida from "./pages/Bienvenida";
+import AutenticarVotante from "./pages/AutenticarVotante";
 import VotanteIdentificado from "./pages/VotanteIdentificado";
 import ListasCandidatos from "./pages/ListasCandidatos";
 
-// PRUEBA TEMPORAL: sustituye al login real mientras se integra la rama login-menu.
+// PRUEBA TEMPORAL: encadena las pantallas del estudiante para verlas juntas.
+// Se reemplazará por la navegación real del proyecto (rama login-menu).
 export default function PruebaEstudiante() {
-  const [dni, setDni] = useState("");
-  const [error, setError] = useState("");
+  const [paso, setPaso] = useState("bienvenida"); // bienvenida | dni | identificado | listas
   const [sesion, setSesion] = useState(null);
-  const [pantalla, setPantalla] = useState("identificado");
-
-  async function entrar(e) {
-    e.preventDefault();
-    setError("");
-    try {
-      const datos = await loginEstudiante(dni);
-      setSesion({ token: datos.token, estudiante: datos.estudiante });
-      setPantalla("identificado");
-    } catch (err) {
-      setError(err.message);
-    }
-  }
 
   function salir() {
     setSesion(null);
-    setDni("");
+    setPaso("bienvenida");
   }
 
-  if (!sesion) {
+  if (paso === "bienvenida") {
     return (
-      <form onSubmit={entrar} style={{ padding: 24 }}>
-        <label>
-          DNI de prueba:{" "}
-          <input value={dni} onChange={(e) => setDni(e.target.value)} maxLength={8} />
-        </label>{" "}
-        <button type="submit">Entrar</button>
-        {error && <p style={{ color: "crimson" }}>{error}</p>}
-      </form>
+      <Bienvenida
+        onVotar={() => setPaso("dni")}
+        onAyuda={() => alert("Pide ayuda al encargado del proceso.")}
+        onSalir={salir}
+      />
     );
   }
 
-  if (pantalla === "identificado") {
+  if (paso === "dni") {
+    return (
+      <AutenticarVotante
+        onAutenticado={(datos) => {
+          setSesion(datos);
+          setPaso("identificado");
+        }}
+        onSalir={salir}
+      />
+    );
+  }
+
+  if (paso === "identificado") {
     return (
       <VotanteIdentificado
         estudiante={sesion.estudiante}
-        onVotar={() => setPantalla("listas")}
+        onVotar={() => setPaso("listas")}
         onSalir={salir}
       />
     );
@@ -54,7 +51,7 @@ export default function PruebaEstudiante() {
     <ListasCandidatos
       token={sesion.token}
       estudiante={sesion.estudiante}
-      onVotar={(sel) => alert(`Selección: ${JSON.stringify(sel)}\n(El endpoint para registrar el voto aún no existe.)`)}
+      onFinalizar={salir}
       onSalir={salir}
     />
   );

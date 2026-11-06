@@ -16,8 +16,10 @@ function useAhora() {
   return ahora;
 }
 
-// Encabezado y pie comunes a todas las pantallas del diseño.
-export default function MarcoPantalla({ children, onSalir }) {
+// Encabezado y pie comunes a las pantallas del diseño.
+//  - mostrarMarca: false oculta "MUNICIPIO ESCOLAR" (la pantalla de bienvenida no lo lleva).
+//  - pie: función ({ fecha, hora }) => JSX que reemplaza el pie azul por defecto.
+export default function MarcoPantalla({ children, onSalir, mostrarMarca = true, pie }) {
   const ahora = useAhora();
   const fecha = `${DIAS[ahora.getDay()]}, ${ahora.getDate()} de ${MESES[ahora.getMonth()]} de ${ahora.getFullYear()}`;
   const hora = ahora.toLocaleTimeString("es-PE", { hour: "numeric", minute: "2-digit", hour12: true });
@@ -37,19 +39,25 @@ export default function MarcoPantalla({ children, onSalir }) {
           <p>Tamburco - Abancay - Apurímac</p>
         </div>
         <p className="marco-lema">Tu voz también construye una mejor institución</p>
-        <div className="marco-marca">
-          <strong>MUNICIPIO ESCOLAR</strong>
-          <span>Participa • Propón • Construye</span>
-        </div>
+        {mostrarMarca && (
+          <div className="marco-marca">
+            <strong>MUNICIPIO ESCOLAR</strong>
+            <span>Participa • Propón • Construye</span>
+          </div>
+        )}
       </header>
 
       <main className="marco-contenido">{children}</main>
 
-      <footer className="marco-pie">
-        <span className="marco-fecha">{fecha}</span>
-        <span className="marco-hora">{hora}</span>
-        <button type="button" className="btn-salir" onClick={onSalir}>Salir</button>
-      </footer>
+      {pie ? (
+        pie({ fecha, hora })
+      ) : (
+        <footer className="marco-pie">
+          <span className="marco-fecha">{fecha}</span>
+          <span className="marco-hora">{hora}</span>
+          <button type="button" className="btn-salir" onClick={onSalir}>Salir</button>
+        </footer>
+      )}
     </div>
   );
 }

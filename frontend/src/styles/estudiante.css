@@ -9,7 +9,7 @@
   font-family: Inter, "Segoe UI", system-ui, sans-serif; font-size: 15px;
 }
 .marco h1, .marco h2, .marco p { margin: 0; font-family: inherit; letter-spacing: normal; }
-
+.marco h1, .marco h2 { color: inherit; }
 /* Encabezado */
 .marco-cabecera {
   display: flex; align-items: center; gap: 18px; padding: 16px 28px; color: #fff;
