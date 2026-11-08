@@ -134,8 +134,8 @@ test("la papeleta real usa los nombres de listas y candidatos del nuevo modelo",
   const result = await service.obtenerListas(1);
   assert.equal(result.estado, "habilitado");
   assert.deepEqual(result.listas, [
-    { nombre: "Juntos por un mejor futuro", candidatos: [{ id: 1, nombre: "Candidato A" }] },
-    { nombre: "Unidos por el cambio", candidatos: [{ id: 2, nombre: "Candidata B" }] },
+    { id: 1, nombre: "Juntos por un mejor futuro", candidatos: [{ id: 1, nombre: "Candidato A" }] },
+    { id: 2, nombre: "Unidos por el cambio", candidatos: [{ id: 2, nombre: "Candidata B" }] },
   ]);
   await db.query("SELECT registrar_voto($1, $2)", [1, 1]);
   assert.equal((await service.obtenerListas(1)).estado, "ya_voto");
