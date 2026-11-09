@@ -88,6 +88,11 @@ test("un Excel real reemplaza todo el padrón y permite ingresar solo con DNI", 
   assert.equal(login.status, 200);
   assert.equal(session.estudiante.nombre, "Ana María Torres Quispe");
   assert.notEqual(session.estudiante.id, 1);
+  await db.query(`
+  UPDATE configuracion_votacion
+  SET votacion_abierta = TRUE
+  WHERE id = 1
+ `);
   const vote = await fetch(`${url}/api/votos`, {
     method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` }, body: JSON.stringify({ listaId: 10 }),
   });
@@ -157,6 +162,11 @@ test("limita el número de filas del padrón antes de modificar datos", async ()
 });
 
 test("después del primer voto el padrón no puede reemplazarse", async () => {
+  await db.query(`
+  UPDATE configuracion_votacion
+  SET votacion_abierta = TRUE
+  WHERE id = 1
+  `);
   await db.query("SELECT registrar_voto($1, $2)", [1, 10]);
   const result = await importar(await excel(filasValidas));
   assert.equal(result.response.status, 409);
