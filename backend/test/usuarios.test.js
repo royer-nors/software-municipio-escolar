@@ -142,6 +142,11 @@ test("el estudiante y el visitante no pueden gestionar usuarios ni cambiar contr
 });
 test("el primer voto bloquea alta, edición y desactivación del padrón", async () => {
   await request("/api/estudiantes", "POST", alumno);
+  await db.query(`
+  UPDATE configuracion_votacion
+  SET votacion_abierta = TRUE
+  WHERE id = 1
+  `);
   await db.query("SELECT registrar_voto($1, $2)", [1, null]);
   assert.equal((await request("/api/estudiantes", "POST", { ...alumno, dni: "12345678" })).status, 409);
   assert.equal((await request("/api/estudiantes/1", "PATCH", { nombre: "Otro" })).status, 409);
