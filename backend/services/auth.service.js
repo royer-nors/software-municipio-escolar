@@ -7,11 +7,11 @@ function createAuthService({ administradorRepository, jwtSecret }) {
   return {
     async login(usuario, password) {
       const administrador = await administradorRepository.findByUsuario(usuario);
-      if (!administrador || !(await bcrypt.compare(password, administrador.password_hash))) {
+      if (!administrador || !administrador.activo || !(await bcrypt.compare(password, administrador.password_hash))) {
         return null;
       }
       const token = jwt.sign(
-        { usuario: administrador.usuario, rol: "administrador" },
+        { usuario: administrador.usuario, rol: "administrador", version_token: administrador.version_token },
         secret,
         {
           algorithm: "HS256",

@@ -8,7 +8,7 @@ const { createListasService } = require("../services/listas.service");
 const secret = "secreto-para-pruebas-de-listas-no-usar-en-produccion";
 let consultas = 0, lastValues;
 let papeleta = {
-  estudiante: { yaVoto: false },
+  estudiante: { yaVoto: false, activo: true },
   candidatos: [
     { id: 4, nombre: "Candidata B", lista: "Unidos por el cambio", listaId: 20 },
     { id: 2, nombre: "Candidato A", lista: "Unidos por el cambio", listaId: 20 },
@@ -58,7 +58,7 @@ test("devuelve listas completas sin mezclar candidatos ni inventar datos", async
 test("un token emitido antes de votar deja de habilitar la papeleta tras el voto", async () => {
   const original = papeleta;
   try {
-    papeleta = { ...original, estudiante: { yaVoto: true } };
+    papeleta = { ...original, estudiante: { yaVoto: true, activo: true } };
     assert.equal((await consultar()).response.status, 409);
     papeleta = { ...original, estudiante: null };
     assert.equal((await consultar()).response.status, 401);
@@ -72,7 +72,7 @@ test("el token del estudiante no permite consultar los resultados del administra
 });
 
 test("una elección sin candidatos devuelve listas vacías", async () => {
-  const service = createListasService({ async obtenerPapeleta() { return { estudiante: { yaVoto: false }, candidatos: [] }; } });
+  const service = createListasService({ async obtenerPapeleta() { return { estudiante: { yaVoto: false, activo: true }, candidatos: [] }; } });
   assert.deepEqual(await service.obtenerListas(8), { estado: "habilitado", listas: [] });
 });
 

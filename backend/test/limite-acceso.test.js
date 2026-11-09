@@ -8,7 +8,7 @@ async function comprobar(run) {
   let consultas = 0;
   const pool = { async query(sql, values) {
     consultas++;
-    return { rows: values[0] === "01234567" ? [{ id: 1, dni: values[0], nombre: "Estudiante", ya_voto: false }] : [] };
+    return { rows: values[0] === "01234567" ? [{ id: 1, dni: values[0], nombre: "Estudiante", ya_voto: false, activo: true }] : [] };
   } };
   const server = createApp({ pool, jwtSecret: secret, limitesAcceso: { estudiante: { limit: 2 } } }).listen(0, "127.0.0.1");
   await once(server, "listening");

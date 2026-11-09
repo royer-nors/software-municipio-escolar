@@ -20,7 +20,7 @@ const pool = {
   },
 };
 function token(rol = "administrador") {
-  return jwt.sign({ rol, ...(rol === "administrador" ? { usuario: "admin" } : {}) }, secret, {
+  return jwt.sign({ rol, ...(rol === "administrador" ? { usuario: "admin", version_token: 0 } : {}) }, secret, {
     algorithm: "HS256", subject: "1", issuer: JWT_ISSUER,
     audience: rol === "administrador" ? JWT_AUDIENCE : STUDENT_JWT_AUDIENCE, expiresIn: 900,
   });
@@ -30,6 +30,7 @@ const filasValidas = [["DNI", "Nombres", "Grado", "Sección"], ["01234567", "Est
 before(async () => {
   db = await PGlite.create();
   await migrar(pool);
+  await db.query("INSERT INTO administradores (usuario, password_hash) VALUES ($1, $2)", ["admin", "hash-no-usado-en-estas-pruebas"]);
   server = createApp({ pool, jwtSecret: secret }).listen(0, "127.0.0.1");
   await once(server, "listening");
   url = `http://127.0.0.1:${server.address().port}`;
