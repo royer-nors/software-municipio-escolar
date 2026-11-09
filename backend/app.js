@@ -12,12 +12,28 @@ const { createEstudianteAuthService } = require("./services/estudiante-auth.serv
 const { createListasRepository } = require("./repositories/listas.repository");
 const { createListasService } = require("./services/listas.service");
 const { createListasRouter } = require("./routes/listas.routes");
+const { createVotosRepository } = require("./repositories/votos.repository");
+const { createVotosService } = require("./services/votos.service");
+const { createVotosRouter } = require("./routes/votos.routes");
+const { createPadronRepository } = require("./repositories/padron.repository");
+const { createPadronService } = require("./services/padron.service");
+const { createPadronRouter } = require("./routes/padron.routes");
+const { createAdministradoresService } = require("./services/administradores.service");
+const { createEstudiantesService } = require("./services/estudiantes.service");
+const { createUsuariosRouter } = require("./routes/usuarios.routes");
+const { createVotacionConfiguracionRepository } = require("./repositories/votacion-configuracion.repository");
+const { createVotacionConfiguracionService } = require("./services/votacion-configuracion.service");
+const { createVotacionConfiguracionRouter } = require("./routes/votacion-configuracion.routes");
 
 function createApp({ pool, jwtSecret, limitesAcceso }) {
   const app = express();
   const administradorRepository = createAdministradorRepository(pool);
   const authService = createAuthService({ administradorRepository, jwtSecret });
-  const autenticarAdministrador = createAutenticacionMiddleware(jwtSecret);
+  const autenticarAdministrador = createAutenticacionMiddleware(jwtSecret, administradorRepository);
+  const votacionConfiguracionRepository = createVotacionConfiguracionRepository(pool);
+  const votacionConfiguracionService = createVotacionConfiguracionService(votacionConfiguracionRepository);
+  const administradoresService = createAdministradoresService(administradorRepository);
+  const estudiantesService = createEstudiantesService(createEstudianteRepository(pool));
   const estudianteAuthService = createEstudianteAuthService({
     estudianteRepository: createEstudianteRepository(pool), jwtSecret,
   });
@@ -35,12 +51,25 @@ function createApp({ pool, jwtSecret, limitesAcceso }) {
       res.status(500).json({ mensaje: "Error al conectar con PostgreSQL" });
     }
   });
-  app.use("/api/auth", createAuthRouter({ authService, estudianteAuthService, autenticarAdministrador, limitesAcceso }));
+  app.use("/api/auth", createAuthRouter({ authService, estudianteAuthService, administradoresService, autenticarAdministrador, limitesAcceso }));
+  app.use("/api/administradores", createUsuariosRouter({ service: administradoresService, autenticarAdministrador, entidad: "administrador" }));
+  app.use("/api/estudiantes", createUsuariosRouter({ service: estudiantesService, autenticarAdministrador, entidad: "estudiante" }));
   const resultadosService = createResultadosService(createResultadosRepository(pool));
   app.use("/api/resultados", createResultadosRouter({ resultadosService, autenticarAdministrador }));
   const listasService = createListasService(createListasRepository(pool));
   const autenticarEstudiante = createAutenticacionEstudianteMiddleware(jwtSecret);
   app.use("/api/listas", createListasRouter({ listasService, autenticarEstudiante }));
+  const votosService = createVotosService(createVotosRepository(pool));
+  app.use("/api/votos", createVotosRouter({ votosService, autenticarEstudiante }));
+  const padronService = createPadronService(createPadronRepository(pool));
+  app.use("/api/padron", createPadronRouter({ padronService, autenticarAdministrador }));
+  app.use(
+  "/api/votacion/configuracion",
+  createVotacionConfiguracionRouter({
+    votacionConfiguracionService,
+    autenticarAdministrador,
+  })
+);
   app.use((error, req, res, next) => {
     if (error.type === "entity.parse.failed" || error.type === "entity.too.large") {
       return res.status(error.status).json({ mensaje: "El cuerpo de la solicitud no es válido." });

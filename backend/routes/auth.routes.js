@@ -1,9 +1,12 @@
 const { Router } = require("express");
 const bcrypt = require("bcryptjs");
 const { createLimiteAcceso } = require("../middleware/limite-acceso");
+const { operacionUsuarios } = require("./usuarios.routes");
 
-function createAuthRouter({ authService, estudianteAuthService, autenticarAdministrador, limitesAcceso = {} }) {
+function createAuthRouter({ authService, estudianteAuthService, administradoresService, autenticarAdministrador, limitesAcceso = {} }) {
   const router = Router();
+  router.patch("/password", autenticarAdministrador, createLimiteAcceso(limitesAcceso.administrador),
+    operacionUsuarios(req => administradoresService.cambiarPassword(req.administrador.id, req.body)));
   router.post("/login", createLimiteAcceso(limitesAcceso.administrador), async (req, res) => {
     const { usuario, password } = req.body ?? {};
     if (

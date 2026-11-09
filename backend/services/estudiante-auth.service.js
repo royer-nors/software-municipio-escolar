@@ -8,7 +8,7 @@ function createEstudianteAuthService({ estudianteRepository, jwtSecret }) {
   return {
     async identificar(dni) {
       const estudiante = await estudianteRepository.findByDni(dni);
-      if (!estudiante) return null;
+      if (!estudiante || !estudiante.activo) return null;
       if (estudiante.ya_voto) return { estado: "ya_voto" };
 
       const token = jwt.sign({ rol: "estudiante" }, secret, {

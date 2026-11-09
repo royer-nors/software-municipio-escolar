@@ -40,6 +40,14 @@ async function cargarEsquemaAnterior() {
 
 async function prepararVotacion() {
   await migrar(pool);
+
+  await db.query(`
+    UPDATE configuracion_votacion
+    SET votacion_abierta = TRUE,
+        voto_blanco_habilitado = TRUE
+    WHERE id = 1
+  `);
+
   await db.exec(`
     INSERT INTO estudiantes (codigo, nombre) VALUES ('01234567', 'Estudiante A'), ('12345678', 'Estudiante B');
     INSERT INTO listas (nombre) VALUES ('Juntos por un mejor futuro'), ('Unidos por el cambio');
@@ -48,10 +56,18 @@ async function prepararVotacion() {
 }
 
 test("instala una base vacía y repetir las migraciones no duplica el esquema", async () => {
-  assert.equal((await migrar(pool)).length, 2);
+  assert.equal((await migrar(pool)).length, 4);
   assert.deepEqual(await migrar(pool), []);
   const tables = await db.query("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename");
-  assert.deepEqual(tables.rows.map(row => row.tablename), ["administradores", "candidatos", "esquema_migraciones", "estudiantes", "listas", "votos"]);
+  assert.deepEqual(tables.rows.map(row => row.tablename), [
+  "administradores",
+  "candidatos",
+  "configuracion_votacion",
+  "esquema_migraciones",
+  "estudiantes",
+  "listas",
+  "votos",
+  ]);
   assert.equal((await db.query("SELECT COUNT(*)::int AS total FROM estudiantes")).rows[0].total, 0);
 });
 
@@ -125,7 +141,7 @@ test("impide volver a aplicar una migración cuyo checksum no coincide", async (
   await migrar(pool);
   await db.query("UPDATE esquema_migraciones SET checksum = $1 WHERE version = $2", ["alterado", "001_estructura_inicial.sql"]);
   await assert.rejects(migrar(pool), /cambió después de aplicarse/);
-  assert.equal((await db.query("SELECT COUNT(*)::int AS total FROM esquema_migraciones")).rows[0].total, 2);
+  assert.equal((await db.query("SELECT COUNT(*)::int AS total FROM esquema_migraciones")).rows[0].total, 4);
 });
 
 test("la papeleta real usa los nombres de listas y candidatos del nuevo modelo", async () => {
@@ -134,8 +150,8 @@ test("la papeleta real usa los nombres de listas y candidatos del nuevo modelo",
   const result = await service.obtenerListas(1);
   assert.equal(result.estado, "habilitado");
   assert.deepEqual(result.listas, [
-    { nombre: "Juntos por un mejor futuro", candidatos: [{ id: 1, nombre: "Candidato A" }] },
-    { nombre: "Unidos por el cambio", candidatos: [{ id: 2, nombre: "Candidata B" }] },
+    { id: 1, nombre: "Juntos por un mejor futuro", candidatos: [{ id: 1, nombre: "Candidato A" }] },
+    { id: 2, nombre: "Unidos por el cambio", candidatos: [{ id: 2, nombre: "Candidata B" }] },
   ]);
   await db.query("SELECT registrar_voto($1, $2)", [1, 1]);
   assert.equal((await service.obtenerListas(1)).estado, "ya_voto");
