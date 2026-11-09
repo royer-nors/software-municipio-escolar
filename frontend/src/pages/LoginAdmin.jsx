@@ -3,7 +3,7 @@ import { useState } from "react";
 
 // Modo de prueba: funciona sin backend.
 // Cambiar a false cuando se conecte la autenticación real.
-const MODO_PRUEBA = import.meta.env.DEV;
+const MODO_PRUEBA = false;
 
 export default function LoginAdmin({ onLogin }) {
   const [usuario, setUsuario] = useState("");
