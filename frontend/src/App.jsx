@@ -2,13 +2,37 @@ import React, { useState } from 'react';
 import AgregarVotante from './components/AgregarVotante';
 import AgregarCandidatos from './components/AgregarCandidatos';
 import MarcoPantalla from './components/MarcoPantalla';
+import LoginAdmin from './pages/LoginAdmin';
 
 function App() {
   const [vistaActual, setVistaActual] = useState('menu');
+  const [sesion, setSesion] = useState(null);
+  if (!sesion) {
+  return <LoginAdmin onLogin={setSesion} />;
+}
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#eef2f6' }}>
       <MarcoPantalla>
+        <div style={{ textAlign: 'right', padding: '10px 20px' }}>
+  <button
+    type="button"
+    onClick={() => {
+      setSesion(null);
+      setVistaActual('menu');
+    }}
+    style={{
+      background: '#dc3545',
+      color: 'white',
+      padding: '10px 20px',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer'
+    }}
+  >
+    Cerrar sesión
+  </button>
+</div>
         {vistaActual === 'menu' && (
           <div style={{ display: 'flex', gap: '20px', padding: '20px', minHeight: 'calc(100vh - 140px)', boxSizing: 'border-box' }}>
             
