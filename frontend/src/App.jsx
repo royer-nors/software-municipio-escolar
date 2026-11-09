@@ -1,209 +1,279 @@
 
-import { useEffect, useState } from "react";
-import AgregarVotante from "./components/AgregarVotante";
-import AgregarCandidatos from "./components/AgregarCandidatos";
+import { useState } from "react";
 import MarcoPantalla from "./components/MarcoPantalla";
 import LoginAdmin from "./pages/LoginAdmin";
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+import AgregarVotante from "./components/AgregarVotante";
+import AgregarCandidatos from "./components/AgregarCandidatos";
 
 const opciones = [
-  { id: "configuracion", nombre: "Configuración", icono: "⚙️" },
-  { id: "estudiantes", nombre: "Gestión de estudiantes", icono: "👥" },
-  { id: "listas", nombre: "Listas y candidatos", icono: "📋" },
-  { id: "votacion", nombre: "Votación", icono: "🗳️" },
-  { id: "resultados", nombre: "Resultados electorales", icono: "📊" },
+  ["centro", "🏫", "Configurar centro educativo",
+    "Datos de la I.E., año electoral y parámetros generales."],
+  ["padron", "👥", "Cargar padrón desde Excel",
+    "Importar el padrón completo de estudiantes habilitados."],
+  ["candidatos", "👤", "Agregar candidatos",
+    "Registra los candidatos de cada lista."],
+  ["blanco", "☑️", "Configurar voto en blanco",
+    "Activa o desactiva la opción de voto en blanco."],
+  ["seguridad", "🔒", "Seguridad",
+    "Cambia contraseñas y controla accesos al sistema."],
+  ["borrar", "🗑️", "Borrar datos",
+    "Elimina toda la información del proceso electoral."]
 ];
 
-export default function App() {
-  const [sesion, setSesion] = useState(null);
-  const [verificando, setVerificando] = useState(true);
-  const [vistaActual, setVistaActual] = useState("menu");
-  const [aviso, setAviso] = useState("");
+const azul = "#0759b8";
 
-  function cerrarSesion() {
+const tarjeta = {
+  background: "#edf5fd",
+  border: "1px solid #c0d6ef",
+  borderRadius: 7,
+  padding: 20
+};
+
+const boton = {
+  background: azul,
+  color: "#fff",
+  border: "none",
+  borderRadius: 9,
+  padding: "12px 23px",
+  cursor: "pointer",
+  fontSize: 15
+};
+
+export default function App() {
+  const [vista, setVista] = useState("inicio");
+  const [destino, setDestino] = useState(null);
+  const [sesion, setSesion] = useState(null);
+  const [mensaje, setMensaje] = useState("");
+
+  function ir(v) {
+    setMensaje("");
+    setVista(v);
+  }
+
+  function salir() {
     sessionStorage.removeItem("admin_token");
     setSesion(null);
-    setVistaActual("menu");
-    setAviso("");
+    setDestino(null);
+    ir("inicio");
   }
 
-  useEffect(() => {
-    const token = sessionStorage.getItem("admin_token");
-
-    if (!token) {
-      setVerificando(false);
-      return;
+  function entrarA(modulo) {
+    if (sesion?.token) {
+      ir(modulo);
+    } else {
+      setDestino(modulo);
+      ir("acceso");
     }
+  }
 
-    fetch(`${API}/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(async (respuesta) => {
-        if (!respuesta.ok) throw new Error("Sesión no válida");
-        return respuesta.json();
-      })
-      .then((datos) => {
-        setSesion({
-          token,
-          administrador: datos.administrador
-        });
-      })
-      .catch(() => {
-        sessionStorage.removeItem("admin_token");
-      })
-      .finally(() => setVerificando(false));
-  }, []);
-
-  function iniciarSesion(datos) {
+  function loginCorrecto(datos) {
     if (!datos?.token || !datos?.administrador) {
-      throw new Error("El servidor no devolvió una sesión válida");
+      throw new Error("El backend no devolvió una sesión válida.");
     }
-
     sessionStorage.setItem("admin_token", datos.token);
     setSesion(datos);
-    setVistaActual("menu");
+    ir(destino || "inicio");
   }
 
-  async function solicitudProtegida(ruta, opcionesFetch = {}) {
-    const respuesta = await fetch(`${API}${ruta}`, {
-      ...opcionesFetch,
-      headers: {
-        ...opcionesFetch.headers,
-        Authorization: `Bearer ${sesion.token}`
-      }
-    });
+  function seleccionarOpcion(id) {
+    if (id === "borrar") return;
+    if (id === "candidatos") return ir("candidatos");
+    if (id === "padron") return ir("padron");
 
-    if (respuesta.status === 401) {
-      cerrarSesion();
-      throw new Error("La sesión expiró. Inicia sesión nuevamente.");
-    }
-
-    return respuesta;
+    setMensaje("Esta opción está pendiente de integración.");
   }
 
-  function navegar(id) {
-    setAviso("");
-    setVistaActual(id);
-  }
-
-  const boton = {
-    border: "1px solid #dbe3ef",
-    borderRadius: 10,
-    padding: "15px",
-    background: "white",
-    color: "#123568",
-    cursor: "pointer",
-    textAlign: "left",
-    fontSize: 15,
-    fontWeight: 600
-  };
-
-  if (verificando) {
-    return <p style={{ padding: 30 }}>Verificando sesión...</p>;
-  }
-
-  if (!sesion) {
-    return <LoginAdmin onLogin={iniciarSesion} />;
+  // LoginAdmin conserva la conexión real al backend.
+  // Solo aparece después de elegir un módulo protegido.
+  if (vista === "acceso") {
+    return (
+      <div>
+        <button
+          onClick={() => ir("inicio")}
+          style={{ ...boton, margin: 15 }}
+        >
+          ← Volver al inicio
+        </button>
+        <LoginAdmin onLogin={loginCorrecto} />
+      </div>
+    );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#e5ebf4" }}>
-      <MarcoPantalla>
+    <div style={{ background: "#dce6f2", minHeight: "100vh" }}>
+      <MarcoPantalla
+        mostrarMarca={vista !== "inicio"}
+        onSalir={salir}
+      >
         <div style={{
-          padding: "20px 5%",
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap"
+          maxWidth: 1050,
+          margin: "auto",
+          padding: "18px 12px 30px"
         }}>
-          <div>
-            <strong>Panel administrativo</strong>
-            <p>Usuario: {sesion.administrador.usuario}</p>
-          </div>
 
-          <button
-            onClick={cerrarSesion}
-            style={{ ...boton, background: "#dc3545", color: "white" }}
-          >
-            Cerrar sesión
-          </button>
-        </div>
-
-        <main style={{ padding: "15px 5% 40px" }}>
-          {vistaActual !== "menu" && (
-            <button
-              onClick={() => navegar("menu")}
-              style={{ ...boton, marginBottom: 20 }}
-            >
-              ← Volver al menú
-            </button>
-          )}
-
-          {vistaActual === "menu" && (
-            <section style={{
-              background: "white",
-              borderRadius: 15,
-              padding: 25
-            }}>
-              <h2>🏫 Menú principal</h2>
-              <p>Selecciona el módulo que deseas utilizar.</p>
+          {vista === "inicio" && (
+            <section style={{ textAlign: "center" }}>
+              <div style={{
+                padding: "55px 12px 45px",
+                background: "#e8f0fa",
+                borderRadius: 8
+              }}>
+                <h1 style={{
+                  fontSize: "clamp(36px, 6vw, 55px)",
+                  color: "#5175b5",
+                  marginBottom: 10
+                }}>
+                  ¡Bienvenido!
+                </h1>
+                <p style={{ fontSize: 20, color: "#334155" }}>
+                  «Gestiona el proceso electoral escolar»
+                </p>
+              </div>
 
               <div style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
-                gap: 15,
-                marginTop: 25
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(240px, 1fr))",
+                gap: 25,
+                marginTop: 18
               }}>
-                {opciones.map((opcion) => (
-                  <button
-                    key={opcion.id}
-                    style={boton}
-                    onClick={() => navegar(opcion.id)}
-                  >
-                    <span style={{ marginRight: 10 }}>
-                      {opcion.icono}
-                    </span>
-                    {opcion.nombre}
-                  </button>
-                ))}
+                <button
+                  style={{
+                    ...tarjeta,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 15
+                  }}
+                  onClick={() => entrarA("resultados")}
+                >
+                  <span style={{ fontSize: 42 }}>📊</span>
+                  <span>
+                    <strong>Ver resultados</strong>
+                    <small style={{ display: "block", marginTop: 5 }}>
+                      Conoce los resultados oficiales
+                    </small>
+                  </span>
+                  <span style={{ marginLeft: "auto" }}>❯</span>
+                </button>
+
+                <button
+                  style={{
+                    ...tarjeta,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 15
+                  }}
+                  onClick={() => entrarA("configuracion")}
+                >
+                  <span style={{ fontSize: 42 }}>⚙️</span>
+                  <span>
+                    <strong>Configurar</strong>
+                    <small style={{ display: "block", marginTop: 5 }}>
+                      Parámetros del sistema
+                    </small>
+                  </span>
+                  <span style={{ marginLeft: "auto" }}>❯</span>
+                </button>
               </div>
             </section>
           )}
 
-          {vistaActual === "configuracion" && (
-            <section style={{ background: "white", padding: 25, borderRadius: 15 }}>
-              <h2>⚙️ Configuración</h2>
-              <p>Opciones administrativas del sistema electoral.</p>
-              <p>Centro educativo, apertura electoral y seguridad: pendientes de integración.</p>
+          {vista === "configuracion" && (
+            <section style={tarjeta}>
+              <h2 style={{ color: azul, marginTop: 0 }}>
+                ⚙️ Configurar Sistema de Votación
+              </h2>
+              <p>Selecciona la opción que deseas configurar.</p>
+
+              {opciones.map(([id, icono, nombre, descripcion]) => (
+                <button
+                  key={id}
+                  disabled={id === "borrar"}
+                  onClick={() => seleccionarOpcion(id)}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    background: "white",
+                    border: "1px solid #c5d7eb",
+                    borderRadius: 7,
+                    padding: 12,
+                    marginBottom: 7,
+                    textAlign: "left",
+                    cursor: id === "borrar" ? "not-allowed" : "pointer",
+                    opacity: id === "borrar" ? 0.45 : 1
+                  }}
+                >
+                  <span style={{ fontSize: 25 }}>{icono}</span>
+                  <span style={{ flex: 1 }}>
+                    <strong style={{ color: azul }}>{nombre}</strong>
+                    <small style={{
+                      display: "block",
+                      color: "#64748b",
+                      marginTop: 3
+                    }}>
+                      {descripcion}
+                    </small>
+                  </span>
+                  {id !== "borrar" && <span>❯</span>}
+                </button>
+              ))}
+
+              {mensaje && (
+                <p role="status" style={{
+                  padding: 12,
+                  background: "#fff3cd",
+                  borderRadius: 7
+                }}>
+                  {mensaje}
+                </p>
+              )}
             </section>
           )}
 
-          {vistaActual === "estudiantes" && (
-            <AgregarVotante onVolver={() => navegar("menu")} />
+          {vista === "padron" && (
+            <AgregarVotante
+              onVolver={() => ir("configuracion")}
+            />
           )}
 
-          {vistaActual === "listas" && (
-            <AgregarCandidatos onVolver={() => navegar("menu")} />
+          {vista === "candidatos" && (
+            <AgregarCandidatos
+              onVolver={() => ir("configuracion")}
+            />
           )}
 
-          {vistaActual === "votacion" && (
-            <section style={{ background: "white", padding: 25, borderRadius: 15 }}>
-              <h2>🗳️ Votación estudiantil</h2>
-              <p>El estudiante debe identificarse mediante su propio flujo de acceso.</p>
-              <p>Pendiente de integrar la pantalla de identificación y votación.</p>
+          {vista === "resultados" && (
+            <section style={tarjeta}>
+              <h2 style={{ color: azul }}>
+                📊 RESULTADOS DE LA ELECCIÓN
+              </h2>
+              <p>
+                Aquí se mostrarán los votos y porcentajes
+                reales de cada lista electoral.
+              </p>
+              <p>
+                Pendiente de conectar con el módulo de
+                resultados del backend.
+              </p>
             </section>
           )}
 
-          {vistaActual === "resultados" && (
-            <section style={{ background: "white", padding: 25, borderRadius: 15 }}>
-              <h2>📊 Resultados electorales</h2>
-              <p>Pendiente de integrar el conteo y los porcentajes desde el backend.</p>
-            </section>
+          {vista !== "inicio" && (
+            <button
+              style={{ ...boton, marginTop: 20 }}
+              onClick={() => ir("inicio")}
+            >
+              ← Volver al inicio
+            </button>
           )}
 
-          {aviso && <p role="alert">{aviso}</p>}
-        </main>
+        </div>
       </MarcoPantalla>
     </div>
   );
