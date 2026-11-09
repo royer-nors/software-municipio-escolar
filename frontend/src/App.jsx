@@ -1,9 +1,15 @@
 
 import { useEffect, useState } from "react";
+
 import AgregarVotante from "./components/AgregarVotante";
 import AgregarCandidatos from "./components/AgregarCandidatos";
 import MarcoPantalla from "./components/MarcoPantalla";
 import LoginAdmin from "./pages/LoginAdmin";
+
+import AutenticarVotante from "./pages/AutenticarVotante";
+import VotanteIdentificado from "./pages/VotanteIdentificado";
+import ListasCandidatos from "./pages/ListasCandidatos";
+import Resultados from "./pages/Resultados";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -16,16 +22,18 @@ const opciones = [
 ];
 
 export default function App() {
-  const [sesion, setSesion] = useState(null);
+  const [sesionAdmin, setSesionAdmin] = useState(null);
   const [verificando, setVerificando] = useState(true);
   const [vistaActual, setVistaActual] = useState("menu");
-  const [aviso, setAviso] = useState("");
 
-  function cerrarSesion() {
+  const [pasoVotacion, setPasoVotacion] = useState("autenticar");
+  const [sesionEstudiante, setSesionEstudiante] = useState(null);
+
+  function cerrarSesionAdmin() {
     sessionStorage.removeItem("admin_token");
-    setSesion(null);
+    finalizarVotacion();
+    setSesionAdmin(null);
     setVistaActual("menu");
-    setAviso("");
   }
 
   useEffect(() => {
@@ -37,14 +45,19 @@ export default function App() {
     }
 
     fetch(`${API}/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
     })
       .then(async (respuesta) => {
-        if (!respuesta.ok) throw new Error("Sesión no válida");
+        if (!respuesta.ok) {
+          throw new Error("Sesión no válida");
+        }
+
         return respuesta.json();
       })
       .then((datos) => {
-        setSesion({
+        setSesionAdmin({
           token,
           administrador: datos.administrador
         });
@@ -52,39 +65,43 @@ export default function App() {
       .catch(() => {
         sessionStorage.removeItem("admin_token");
       })
-      .finally(() => setVerificando(false));
+      .finally(() => {
+        setVerificando(false);
+      });
   }, []);
 
-  function iniciarSesion(datos) {
+  function iniciarSesionAdmin(datos) {
     if (!datos?.token || !datos?.administrador) {
       throw new Error("El servidor no devolvió una sesión válida");
     }
 
     sessionStorage.setItem("admin_token", datos.token);
-    setSesion(datos);
+    setSesionAdmin(datos);
     setVistaActual("menu");
   }
 
-  async function solicitudProtegida(ruta, opcionesFetch = {}) {
-    const respuesta = await fetch(`${API}${ruta}`, {
-      ...opcionesFetch,
-      headers: {
-        ...opcionesFetch.headers,
-        Authorization: `Bearer ${sesion.token}`
-      }
-    });
-
-    if (respuesta.status === 401) {
-      cerrarSesion();
-      throw new Error("La sesión expiró. Inicia sesión nuevamente.");
+  function navegar(id) {
+    if (id !== "votacion") {
+      finalizarVotacion();
     }
 
-    return respuesta;
+    if (id === "votacion") {
+      finalizarVotacion();
+    }
+
+    setVistaActual(id);
   }
 
-  function navegar(id) {
-    setAviso("");
-    setVistaActual(id);
+  function estudianteAutenticado(datos) {
+    setSesionEstudiante(datos);
+    setPasoVotacion("identificado");
+  }
+
+  function finalizarVotacion() {
+    localStorage.removeItem("tokenEstudiante");
+    sessionStorage.removeItem("tokenEstudiante");
+    setSesionEstudiante(null);
+    setPasoVotacion("autenticar");
   }
 
   const boton = {
@@ -100,70 +117,117 @@ export default function App() {
   };
 
   if (verificando) {
-    return <p style={{ padding: 30 }}>Verificando sesión...</p>;
+    return (
+      <p style={{ padding: 30 }}>
+        Verificando sesión...
+      </p>
+    );
   }
 
-  if (!sesion) {
-    return <LoginAdmin onLogin={iniciarSesion} />;
+  if (!sesionAdmin) {
+    return (
+      <LoginAdmin onLogin={iniciarSesionAdmin} />
+    );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#e5ebf4" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#e5ebf4"
+      }}
+    >
       <MarcoPantalla>
-        <div style={{
-          padding: "20px 5%",
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap"
-        }}>
+
+        {/* ENCABEZADO ADMINISTRATIVO */}
+
+        <div
+          style={{
+            padding: "20px 5%",
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap"
+          }}
+        >
           <div>
             <strong>Panel administrativo</strong>
-            <p>Usuario: {sesion.administrador.usuario}</p>
+            <p>
+              Usuario: {sesionAdmin.administrador.usuario}
+            </p>
           </div>
 
           <button
-            onClick={cerrarSesion}
-            style={{ ...boton, background: "#dc3545", color: "white" }}
+            onClick={cerrarSesionAdmin}
+            style={{
+              ...boton,
+              background: "#dc3545",
+              color: "white"
+            }}
           >
             Cerrar sesión
           </button>
         </div>
 
-        <main style={{ padding: "15px 5% 40px" }}>
+        <main
+          style={{
+            padding: "15px 5% 40px"
+          }}
+        >
+
+          {/* BOTÓN VOLVER */}
+
           {vistaActual !== "menu" && (
             <button
               onClick={() => navegar("menu")}
-              style={{ ...boton, marginBottom: 20 }}
+              style={{
+                ...boton,
+                marginBottom: 20
+              }}
             >
               ← Volver al menú
             </button>
           )}
 
-          {vistaActual === "menu" && (
-            <section style={{
-              background: "white",
-              borderRadius: 15,
-              padding: 25
-            }}>
-              <h2>🏫 Menú principal</h2>
-              <p>Selecciona el módulo que deseas utilizar.</p>
+          {/* MENÚ PRINCIPAL */}
 
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
-                gap: 15,
-                marginTop: 25
-              }}>
+          {vistaActual === "menu" && (
+            <section
+              style={{
+                background: "white",
+                borderRadius: 15,
+                padding: 25
+              }}
+            >
+              <h2>🏫 Menú principal</h2>
+
+              <p>
+                Selecciona el módulo que deseas utilizar.
+              </p>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(230px, 1fr))",
+                  gap: 15,
+                  marginTop: 25
+                }}
+              >
                 {opciones.map((opcion) => (
                   <button
                     key={opcion.id}
                     style={boton}
                     onClick={() => navegar(opcion.id)}
                   >
-                    <span style={{ marginRight: 10 }}>
+                    <span
+                      style={{
+                        marginRight: 10
+                      }}
+                    >
                       {opcion.icono}
                     </span>
+
                     {opcion.nombre}
                   </button>
                 ))}
@@ -171,38 +235,99 @@ export default function App() {
             </section>
           )}
 
+          {/* CONFIGURACIÓN */}
+
           {vistaActual === "configuracion" && (
-            <section style={{ background: "white", padding: 25, borderRadius: 15 }}>
+            <section
+              style={{
+                background: "white",
+                padding: 25,
+                borderRadius: 15
+              }}
+            >
               <h2>⚙️ Configuración</h2>
-              <p>Opciones administrativas del sistema electoral.</p>
-              <p>Centro educativo, apertura electoral y seguridad: pendientes de integración.</p>
+
+              <p>
+                Opciones administrativas del sistema electoral.
+              </p>
+
+              <p>
+                Centro educativo, apertura electoral y seguridad:
+                pendientes de integración.
+              </p>
             </section>
           )}
+
+          {/* GESTIÓN DE ESTUDIANTES */}
 
           {vistaActual === "estudiantes" && (
-            <AgregarVotante onVolver={() => navegar("menu")} />
+            <AgregarVotante
+              onVolver={() => navegar("menu")}
+            />
           )}
+
+          {/* LISTAS Y CANDIDATOS */}
 
           {vistaActual === "listas" && (
-            <AgregarCandidatos onVolver={() => navegar("menu")} />
+            <AgregarCandidatos
+              onVolver={() => navegar("menu")}
+            />
           )}
+
+          {/* MÓDULO DE VOTACIÓN */}
 
           {vistaActual === "votacion" && (
-            <section style={{ background: "white", padding: 25, borderRadius: 15 }}>
-              <h2>🗳️ Votación estudiantil</h2>
-              <p>El estudiante debe identificarse mediante su propio flujo de acceso.</p>
-              <p>Pendiente de integrar la pantalla de identificación y votación.</p>
-            </section>
+            <div
+              style={{
+                background: "#eef2f6",
+                padding: 15
+              }}
+            >
+
+              {/* IDENTIFICAR ESTUDIANTE */}
+
+              {pasoVotacion === "autenticar" && (
+                <AutenticarVotante
+                  onAutenticado={estudianteAutenticado}
+                  onSalir={finalizarVotacion}
+                />
+              )}
+
+              {/* ESTUDIANTE IDENTIFICADO */}
+
+              {pasoVotacion === "identificado" &&
+                sesionEstudiante && (
+                  <VotanteIdentificado
+                    estudiante={sesionEstudiante.estudiante}
+                    onVotar={() =>
+                      setPasoVotacion("papeleta")
+                    }
+                    onSalir={finalizarVotacion}
+                  />
+                )}
+
+              {/* PAPELETA ELECTORAL */}
+
+              {pasoVotacion === "papeleta" &&
+                sesionEstudiante && (
+                  <ListasCandidatos
+                    token={sesionEstudiante.token}
+                    estudiante={sesionEstudiante.estudiante}
+                    onFinalizar={finalizarVotacion}
+                    onSalir={finalizarVotacion}
+                  />
+                )}
+            </div>
           )}
+
+          {/* RESULTADOS ELECTORALES */}
 
           {vistaActual === "resultados" && (
-            <section style={{ background: "white", padding: 25, borderRadius: 15 }}>
-              <h2>📊 Resultados electorales</h2>
-              <p>Pendiente de integrar el conteo y los porcentajes desde el backend.</p>
-            </section>
+            <Resultados
+              onSalir={() => navegar("menu")}
+            />
           )}
 
-          {aviso && <p role="alert">{aviso}</p>}
         </main>
       </MarcoPantalla>
     </div>

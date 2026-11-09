@@ -20,7 +20,7 @@ const pool = {
   },
 };
 function token(rol = "estudiante", options = {}) {
-  return jwt.sign({ rol, ...(rol === "administrador" ? { usuario: "admin" } : {}) }, secret, {
+  return jwt.sign({ rol, ...(rol === "administrador" ? { usuario: "admin", version_token: 0 } : {}) }, secret, {
     algorithm: "HS256", subject: "1", issuer: JWT_ISSUER,
     audience: rol === "estudiante" ? STUDENT_JWT_AUDIENCE : JWT_AUDIENCE,
     expiresIn: 900, ...options,
@@ -40,6 +40,12 @@ beforeEach(async () => {
     INSERT INTO estudiantes (codigo, nombre) VALUES ('01234567', 'Estudiante A'), ('12345678', 'Estudiante B');
     INSERT INTO listas (id, nombre) VALUES (10, 'Lista A'), (20, 'Lista B');
     INSERT INTO candidatos (id, nombre, lista_id) VALUES (101, 'Candidato A', 10), (102, 'Candidata A', 10), (201, 'Candidato B', 20);
+  `);
+    await db.query(`
+    UPDATE configuracion_votacion
+    SET votacion_abierta = TRUE,
+        voto_blanco_habilitado = TRUE
+    WHERE id = 1
   `);
 });
 after(async () => {
@@ -78,6 +84,46 @@ test("solo un null explícito registra el voto en blanco", async () => {
   const result = await votar({ listaId: null });
   assert.equal(result.response.status, 201);
   assert.equal((await db.query("SELECT lista_id FROM votos")).rows[0].lista_id, null);
+});
+
+test("no registra votos cuando la votación está cerrada", async () => {
+  await db.query(`
+    UPDATE configuracion_votacion
+    SET votacion_abierta = FALSE
+    WHERE id = 1
+  `);
+
+  const result = await votar({ listaId: 10 });
+
+  assert.equal(result.response.status, 409);
+  assert.match(result.body.mensaje, /votación está cerrada/i);
+
+  assert.equal(
+    (await db.query("SELECT ya_voto FROM estudiantes WHERE id = 1")).rows[0].ya_voto,
+    false
+  );
+
+  assert.equal(await totalVotos(), 0);
+});
+
+test("rechaza el voto en blanco cuando está deshabilitado sin marcar al estudiante", async () => {
+  await db.query(`
+    UPDATE configuracion_votacion
+    SET voto_blanco_habilitado = FALSE
+    WHERE id = 1
+  `);
+
+  const result = await votar({ listaId: null });
+
+  assert.equal(result.response.status, 409);
+  assert.match(result.body.mensaje, /voto en blanco está deshabilitado/i);
+
+  assert.equal(
+    (await db.query("SELECT ya_voto FROM estudiantes WHERE id = 1")).rows[0].ya_voto,
+    false
+  );
+
+  assert.equal(await totalVotos(), 0);
 });
 
 test("rechaza ausencia, alteración, expiración o rol incorrecto del token", async () => {
@@ -121,4 +167,53 @@ test("un fallo de conexión no expone detalles internos", async () => {
     assert.equal(JSON.stringify(result.body).includes("Detalle privado"), false);
   } finally { falloConexion = false; }
   assert.equal(await totalVotos(), 0);
+});
+
+test("permite consultar públicamente la configuración de votación", async () => {
+  const response = await fetch(`${url}/api/votacion/configuracion`);
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.equal(body.votacionAbierta, true);
+  assert.equal(body.votoBlancoHabilitado, true);
+});
+
+test("solo el administrador puede actualizar la configuración de votación", async () => {
+   
+  await db.query(`
+    INSERT INTO administradores (usuario, password_hash)
+    VALUES ('admin', 'hash-de-prueba')
+  `);
+  const sinAutorizacion = await fetch(`${url}/api/votacion/configuracion`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ votacionAbierta: false }),
+  });
+
+  assert.equal(sinAutorizacion.status, 401);
+
+  const response = await fetch(`${url}/api/votacion/configuracion`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token("administrador")}`,
+    },
+    body: JSON.stringify({
+      votacionAbierta: false,
+      votoBlancoHabilitado: false,
+    }),
+  });
+
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.configuracion.votacionAbierta, false);
+  assert.equal(body.configuracion.votoBlancoHabilitado, false);
+
+  const consulta = await fetch(`${url}/api/votacion/configuracion`);
+  const configuracion = await consulta.json();
+
+  assert.equal(configuracion.votacionAbierta, false);
+  assert.equal(configuracion.votoBlancoHabilitado, false);
 });
