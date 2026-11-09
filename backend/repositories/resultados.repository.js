@@ -10,7 +10,7 @@ function createResultadosRepository(pool) {
           GROUP BY l.id, l.nombre
         )
         SELECT
-          (SELECT COUNT(*) FROM estudiantes) AS habilitados,
+          (SELECT COUNT(*) FROM estudiantes WHERE activo = TRUE OR ya_voto = TRUE) AS habilitados,
           (SELECT COUNT(*) FROM votos) AS emitidos,
           (SELECT COUNT(*) FROM votos WHERE lista_id IS NULL) AS blancos,
           COALESCE(

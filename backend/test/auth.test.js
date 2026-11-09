@@ -8,13 +8,13 @@ const { JWT_ISSUER, JWT_AUDIENCE } = require("../config/auth");
 
 const secret = "secreto-exclusivo-para-pruebas-no-usar-en-produccion";
 const password = "Clave de prueba 2026";
-const administrador = { id: 7, usuario: "admin", password_hash: bcrypt.hashSync(password, 4) };
+const administrador = { id: 7, usuario: "admin", activo: true, version_token: 0, password_hash: bcrypt.hashSync(password, 4) };
 const queries = [];
 const pool = {
   async query(sql, values) {
     queries.push({ sql, values });
     if (values?.[0] === "sin-base") throw new Error("Detalle privado de PostgreSQL");
-    return { rows: values?.[0] === administrador.usuario ? [administrador] : [] };
+    return { rows: [administrador.usuario, administrador.id].includes(values?.[0]) ? [administrador] : [] };
   },
 };
 let server;

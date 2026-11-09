@@ -13,8 +13,8 @@ const pool = {
     lastValues = values;
     if (values[0] === "99999999") throw new Error("Detalle privado de PostgreSQL");
     const estudiantes = {
-      "01234567": { id: 8, dni: "01234567", nombre: "Estudiante de prueba", ya_voto: false },
-      "12345678": { id: 9, dni: "12345678", nombre: "Ya votó", ya_voto: true },
+      "01234567": { id: 8, dni: "01234567", nombre: "Estudiante de prueba", ya_voto: false, activo: true },
+      "12345678": { id: 9, dni: "12345678", nombre: "Ya votó", ya_voto: true, activo: true },
     };
     return { rows: estudiantes[values[0]] ? [estudiantes[values[0]]] : [] };
   },

@@ -18,12 +18,17 @@ const { createVotosRouter } = require("./routes/votos.routes");
 const { createPadronRepository } = require("./repositories/padron.repository");
 const { createPadronService } = require("./services/padron.service");
 const { createPadronRouter } = require("./routes/padron.routes");
+const { createAdministradoresService } = require("./services/administradores.service");
+const { createEstudiantesService } = require("./services/estudiantes.service");
+const { createUsuariosRouter } = require("./routes/usuarios.routes");
 
 function createApp({ pool, jwtSecret, limitesAcceso }) {
   const app = express();
   const administradorRepository = createAdministradorRepository(pool);
   const authService = createAuthService({ administradorRepository, jwtSecret });
-  const autenticarAdministrador = createAutenticacionMiddleware(jwtSecret);
+  const autenticarAdministrador = createAutenticacionMiddleware(jwtSecret, administradorRepository);
+  const administradoresService = createAdministradoresService(administradorRepository);
+  const estudiantesService = createEstudiantesService(createEstudianteRepository(pool));
   const estudianteAuthService = createEstudianteAuthService({
     estudianteRepository: createEstudianteRepository(pool), jwtSecret,
   });
@@ -41,7 +46,9 @@ function createApp({ pool, jwtSecret, limitesAcceso }) {
       res.status(500).json({ mensaje: "Error al conectar con PostgreSQL" });
     }
   });
-  app.use("/api/auth", createAuthRouter({ authService, estudianteAuthService, autenticarAdministrador, limitesAcceso }));
+  app.use("/api/auth", createAuthRouter({ authService, estudianteAuthService, administradoresService, autenticarAdministrador, limitesAcceso }));
+  app.use("/api/administradores", createUsuariosRouter({ service: administradoresService, autenticarAdministrador, entidad: "administrador" }));
+  app.use("/api/estudiantes", createUsuariosRouter({ service: estudiantesService, autenticarAdministrador, entidad: "estudiante" }));
   const resultadosService = createResultadosService(createResultadosRepository(pool));
   app.use("/api/resultados", createResultadosRouter({ resultadosService, autenticarAdministrador }));
   const listasService = createListasService(createListasRepository(pool));

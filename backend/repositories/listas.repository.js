@@ -3,7 +3,7 @@ function createListasRepository(pool) {
     async obtenerPapeleta(estudianteId) {
       const result = await pool.query(`
         SELECT
-          (SELECT jsonb_build_object('yaVoto', e.ya_voto)
+          (SELECT jsonb_build_object('yaVoto', e.ya_voto, 'activo', e.activo)
            FROM estudiantes e WHERE e.id = $1) AS estudiante,
           COALESCE(
             (SELECT jsonb_agg(
