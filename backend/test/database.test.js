@@ -48,7 +48,7 @@ async function prepararVotacion() {
 }
 
 test("instala una base vacía y repetir las migraciones no duplica el esquema", async () => {
-  assert.equal((await migrar(pool)).length, 2);
+  assert.equal((await migrar(pool)).length, 3);
   assert.deepEqual(await migrar(pool), []);
   const tables = await db.query("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename");
   assert.deepEqual(tables.rows.map(row => row.tablename), ["administradores", "candidatos", "esquema_migraciones", "estudiantes", "listas", "votos"]);
@@ -125,7 +125,7 @@ test("impide volver a aplicar una migración cuyo checksum no coincide", async (
   await migrar(pool);
   await db.query("UPDATE esquema_migraciones SET checksum = $1 WHERE version = $2", ["alterado", "001_estructura_inicial.sql"]);
   await assert.rejects(migrar(pool), /cambió después de aplicarse/);
-  assert.equal((await db.query("SELECT COUNT(*)::int AS total FROM esquema_migraciones")).rows[0].total, 2);
+  assert.equal((await db.query("SELECT COUNT(*)::int AS total FROM esquema_migraciones")).rows[0].total, 3);
 });
 
 test("la papeleta real usa los nombres de listas y candidatos del nuevo modelo", async () => {

@@ -2,7 +2,7 @@ function createListasService(listasRepository) {
   return {
     async obtenerListas(estudianteId) {
       const papeleta = await listasRepository.obtenerPapeleta(estudianteId);
-      if (!papeleta.estudiante) return { estado: "no_habilitado" };
+      if (!papeleta.estudiante || !papeleta.estudiante.activo) return { estado: "no_habilitado" };
       if (papeleta.estudiante.yaVoto) return { estado: "ya_voto" };
       if (!Array.isArray(papeleta.candidatos)) throw new Error("Papeleta electoral inválida.");
 
