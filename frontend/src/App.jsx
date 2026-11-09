@@ -1,152 +1,210 @@
-import React, { useState } from 'react';
-import AgregarVotante from './components/AgregarVotante';
-import AgregarCandidatos from './components/AgregarCandidatos';
-import MarcoPantalla from './components/MarcoPantalla';
-import LoginAdmin from './pages/LoginAdmin';
 
-function App() {
-  const [vistaActual, setVistaActual] = useState('menu');
+import { useEffect, useState } from "react";
+import AgregarVotante from "./components/AgregarVotante";
+import AgregarCandidatos from "./components/AgregarCandidatos";
+import MarcoPantalla from "./components/MarcoPantalla";
+import LoginAdmin from "./pages/LoginAdmin";
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+
+const opciones = [
+  { id: "configuracion", nombre: "Configuración", icono: "⚙️" },
+  { id: "estudiantes", nombre: "Gestión de estudiantes", icono: "👥" },
+  { id: "listas", nombre: "Listas y candidatos", icono: "📋" },
+  { id: "votacion", nombre: "Votación", icono: "🗳️" },
+  { id: "resultados", nombre: "Resultados electorales", icono: "📊" },
+];
+
+export default function App() {
   const [sesion, setSesion] = useState(null);
+  const [verificando, setVerificando] = useState(true);
+  const [vistaActual, setVistaActual] = useState("menu");
+  const [aviso, setAviso] = useState("");
+
+  function cerrarSesion() {
+    sessionStorage.removeItem("admin_token");
+    setSesion(null);
+    setVistaActual("menu");
+    setAviso("");
+  }
+
+  useEffect(() => {
+    const token = sessionStorage.getItem("admin_token");
+
+    if (!token) {
+      setVerificando(false);
+      return;
+    }
+
+    fetch(`${API}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(async (respuesta) => {
+        if (!respuesta.ok) throw new Error("Sesión no válida");
+        return respuesta.json();
+      })
+      .then((datos) => {
+        setSesion({
+          token,
+          administrador: datos.administrador
+        });
+      })
+      .catch(() => {
+        sessionStorage.removeItem("admin_token");
+      })
+      .finally(() => setVerificando(false));
+  }, []);
+
+  function iniciarSesion(datos) {
+    if (!datos?.token || !datos?.administrador) {
+      throw new Error("El servidor no devolvió una sesión válida");
+    }
+
+    sessionStorage.setItem("admin_token", datos.token);
+    setSesion(datos);
+    setVistaActual("menu");
+  }
+
+  async function solicitudProtegida(ruta, opcionesFetch = {}) {
+    const respuesta = await fetch(`${API}${ruta}`, {
+      ...opcionesFetch,
+      headers: {
+        ...opcionesFetch.headers,
+        Authorization: `Bearer ${sesion.token}`
+      }
+    });
+
+    if (respuesta.status === 401) {
+      cerrarSesion();
+      throw new Error("La sesión expiró. Inicia sesión nuevamente.");
+    }
+
+    return respuesta;
+  }
+
+  function navegar(id) {
+    setAviso("");
+    setVistaActual(id);
+  }
+
+  const boton = {
+    border: "1px solid #dbe3ef",
+    borderRadius: 10,
+    padding: "15px",
+    background: "white",
+    color: "#123568",
+    cursor: "pointer",
+    textAlign: "left",
+    fontSize: 15,
+    fontWeight: 600
+  };
+
+  if (verificando) {
+    return <p style={{ padding: 30 }}>Verificando sesión...</p>;
+  }
+
   if (!sesion) {
-  return <LoginAdmin onLogin={setSesion} />;
-}
+    return <LoginAdmin onLogin={iniciarSesion} />;
+  }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#eef2f6' }}>
+    <div style={{ minHeight: "100vh", background: "#e5ebf4" }}>
       <MarcoPantalla>
-        <div style={{ textAlign: 'right', padding: '10px 20px' }}>
-  <button
-    type="button"
-    onClick={() => {
-      setSesion(null);
-      setVistaActual('menu');
-    }}
-    style={{
-      background: '#dc3545',
-      color: 'white',
-      padding: '10px 20px',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer'
-    }}
-  >
-    Cerrar sesión
-  </button>
-</div>
-        {vistaActual === 'menu' && (
-          <div style={{ display: 'flex', gap: '20px', padding: '20px', minHeight: 'calc(100vh - 140px)', boxSizing: 'border-box' }}>
-            
-            {/* Panel Izquierdo - Lateral de Configuración */}
-            <div style={{ width: '260px', backgroundColor: '#0284c7', color: '#fff', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
-                  <span style={{ fontSize: '28px' }}>⚙️</span>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '18px' }}>Configuración</h3>
-                    <p style={{ margin: 0, fontSize: '11px', opacity: 0.9 }}>Administra y personaliza el sistema de votación.</p>
-                  </div>
-                </div>
-              </div>
-              <div style={{ textAlign: 'center', fontSize: '13px', fontStyle: 'italic', opacity: 0.95 }}>
-                "Una buena configuración garantiza un proceso electoral seguro y transparente."
-              </div>
-            </div>
-
-            {/* Panel Central - Lista de Opciones */}
-            <div style={{ flex: 1, backgroundColor: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
-                <span style={{ fontSize: '24px' }}>⚙️</span>
-                <div>
-                  <h3 style={{ margin: 0, color: '#1e293b' }}>Configurar Sistema de Votación</h3>
-                  <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Selecciona la opción que deseas configurar:</p>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                
-                {/* Opciones inhabilitadas */}
-                <div style={{ display: 'flex', alignItems: 'center', padding: '12px 15px', backgroundColor: '#f8fafc', borderRadius: '8px', opacity: 0.5, border: '1px solid #e2e8f0', cursor: 'not-allowed' }}>
-                  <span style={{ fontSize: '20px', marginRight: '12px' }}>🏫</span>
-                  <div style={{ flex: 1 }}>
-                    <strong style={{ display: 'block', fontSize: '14px', color: '#334155' }}>Configurar centro educativo</strong>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>Datos de la I.E., año electoral y parámetros generales.</span>
-                  </div>
-                  <span>›</span>
-                </div>
-
-                {/* BOTÓN 1: HABILITADO */}
-                <div 
-                  onClick={() => setVistaActual('votante')}
-                  style={{ display: 'flex', alignItems: 'center', padding: '12px 15px', backgroundColor: '#eff6ff', borderRadius: '8px', border: '2px solid #2563eb', cursor: 'pointer' }}
-                >
-                  <span style={{ fontSize: '20px', marginRight: '12px' }}>👤</span>
-                  <div style={{ flex: 1 }}>
-                    <strong style={{ display: 'block', fontSize: '14px', color: '#1e40af' }}>Agregar un votante</strong>
-                    <span style={{ fontSize: '11px', color: '#1d4ed8' }}>Registra manualmente a un votante (estudiante).</span>
-                  </div>
-                  <span style={{ color: '#2563eb', fontWeight: 'bold' }}>›</span>
-                </div>
-
-                {/* BOTÓN 2: HABILITADO */}
-                <div 
-                  onClick={() => setVistaActual('candidatos')}
-                  style={{ display: 'flex', alignItems: 'center', padding: '12px 15px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '2px solid #16a34a', cursor: 'pointer' }}
-                >
-                  <span style={{ fontSize: '20px', marginRight: '12px' }}>🍊</span>
-                  <div style={{ flex: 1 }}>
-                    <strong style={{ display: 'block', fontSize: '14px', color: '#15803d' }}>Agregar candidatos</strong>
-                    <span style={{ fontSize: '11px', color: '#16a34a' }}>Registra a los candidatos de cada lista.</span>
-                  </div>
-                  <span style={{ color: '#16a34a', fontWeight: 'bold' }}>›</span>
-                </div>
-
-                {/* Opciones inhabilitadas adicionales */}
-                <div style={{ display: 'flex', alignItems: 'center', padding: '12px 15px', backgroundColor: '#f8fafc', borderRadius: '8px', opacity: 0.5, border: '1px solid #e2e8f0', cursor: 'not-allowed' }}>
-                  <span style={{ fontSize: '20px', marginRight: '12px' }}>🗳️</span>
-                  <div style={{ flex: 1 }}>
-                    <strong style={{ display: 'block', fontSize: '14px', color: '#334155' }}>Configurar voto en blanco</strong>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>Activa o desactiva la opción de voto en blanco.</span>
-                  </div>
-                  <span>›</span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', padding: '12px 15px', backgroundColor: '#f8fafc', borderRadius: '8px', opacity: 0.5, border: '1px solid #e2e8f0', cursor: 'not-allowed' }}>
-                  <span style={{ fontSize: '20px', marginRight: '12px' }}>🔒</span>
-                  <div style={{ flex: 1 }}>
-                    <strong style={{ display: 'block', fontSize: '14px', color: '#334155' }}>Seguridad</strong>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>Cambia contraseñas y gestiona accesos al sistema.</span>
-                  </div>
-                  <span>›</span>
-                </div>
-
-              </div>
-            </div>
-
-            {/* Panel Derecho */}
-            <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <div style={{ backgroundColor: '#e0f2fe', padding: '15px', borderRadius: '10px', fontSize: '12px', color: '#0369a1' }}>
-                <strong>ℹ️ Importante</strong>
-                <p style={{ margin: '5px 0 0 0' }}>Solo el personal autorizado puede acceder a la configuración del sistema.</p>
-              </div>
-              <div style={{ backgroundColor: '#f0fdf4', padding: '15px', borderRadius: '10px', fontSize: '12px', color: '#15803d' }}>
-                <strong>🛡️ Mantén la seguridad</strong>
-                <p style={{ margin: '5px 0 0 0' }}>Usa contraseñas seguras y no compartas tus accesos.</p>
-              </div>
-            </div>
-
+        <div style={{
+          padding: "20px 5%",
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap"
+        }}>
+          <div>
+            <strong>Panel administrativo</strong>
+            <p>Usuario: {sesion.administrador.usuario}</p>
           </div>
-        )}
 
-        {vistaActual === 'votante' && (
-          <AgregarVotante onVolver={() => setVistaActual('menu')} />
-        )}
+          <button
+            onClick={cerrarSesion}
+            style={{ ...boton, background: "#dc3545", color: "white" }}
+          >
+            Cerrar sesión
+          </button>
+        </div>
 
-        {vistaActual === 'candidatos' && (
-          <AgregarCandidatos onVolver={() => setVistaActual('menu')} />
-        )}
+        <main style={{ padding: "15px 5% 40px" }}>
+          {vistaActual !== "menu" && (
+            <button
+              onClick={() => navegar("menu")}
+              style={{ ...boton, marginBottom: 20 }}
+            >
+              ← Volver al menú
+            </button>
+          )}
+
+          {vistaActual === "menu" && (
+            <section style={{
+              background: "white",
+              borderRadius: 15,
+              padding: 25
+            }}>
+              <h2>🏫 Menú principal</h2>
+              <p>Selecciona el módulo que deseas utilizar.</p>
+
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+                gap: 15,
+                marginTop: 25
+              }}>
+                {opciones.map((opcion) => (
+                  <button
+                    key={opcion.id}
+                    style={boton}
+                    onClick={() => navegar(opcion.id)}
+                  >
+                    <span style={{ marginRight: 10 }}>
+                      {opcion.icono}
+                    </span>
+                    {opcion.nombre}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {vistaActual === "configuracion" && (
+            <section style={{ background: "white", padding: 25, borderRadius: 15 }}>
+              <h2>⚙️ Configuración</h2>
+              <p>Opciones administrativas del sistema electoral.</p>
+              <p>Centro educativo, apertura electoral y seguridad: pendientes de integración.</p>
+            </section>
+          )}
+
+          {vistaActual === "estudiantes" && (
+            <AgregarVotante onVolver={() => navegar("menu")} />
+          )}
+
+          {vistaActual === "listas" && (
+            <AgregarCandidatos onVolver={() => navegar("menu")} />
+          )}
+
+          {vistaActual === "votacion" && (
+            <section style={{ background: "white", padding: 25, borderRadius: 15 }}>
+              <h2>🗳️ Votación estudiantil</h2>
+              <p>El estudiante debe identificarse mediante su propio flujo de acceso.</p>
+              <p>Pendiente de integrar la pantalla de identificación y votación.</p>
+            </section>
+          )}
+
+          {vistaActual === "resultados" && (
+            <section style={{ background: "white", padding: 25, borderRadius: 15 }}>
+              <h2>📊 Resultados electorales</h2>
+              <p>Pendiente de integrar el conteo y los porcentajes desde el backend.</p>
+            </section>
+          )}
+
+          {aviso && <p role="alert">{aviso}</p>}
+        </main>
       </MarcoPantalla>
     </div>
   );
 }
-
-export default App;
