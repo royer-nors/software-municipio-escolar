@@ -21,12 +21,17 @@ const { createPadronRouter } = require("./routes/padron.routes");
 const { createAdministradoresService } = require("./services/administradores.service");
 const { createEstudiantesService } = require("./services/estudiantes.service");
 const { createUsuariosRouter } = require("./routes/usuarios.routes");
+const { createVotacionConfiguracionRepository } = require("./repositories/votacion-configuracion.repository");
+const { createVotacionConfiguracionService } = require("./services/votacion-configuracion.service");
+const { createVotacionConfiguracionRouter } = require("./routes/votacion-configuracion.routes");
 
 function createApp({ pool, jwtSecret, limitesAcceso }) {
   const app = express();
   const administradorRepository = createAdministradorRepository(pool);
   const authService = createAuthService({ administradorRepository, jwtSecret });
   const autenticarAdministrador = createAutenticacionMiddleware(jwtSecret, administradorRepository);
+  const votacionConfiguracionRepository = createVotacionConfiguracionRepository(pool);
+  const votacionConfiguracionService = createVotacionConfiguracionService(votacionConfiguracionRepository);
   const administradoresService = createAdministradoresService(administradorRepository);
   const estudiantesService = createEstudiantesService(createEstudianteRepository(pool));
   const estudianteAuthService = createEstudianteAuthService({
@@ -58,6 +63,13 @@ function createApp({ pool, jwtSecret, limitesAcceso }) {
   app.use("/api/votos", createVotosRouter({ votosService, autenticarEstudiante }));
   const padronService = createPadronService(createPadronRepository(pool));
   app.use("/api/padron", createPadronRouter({ padronService, autenticarAdministrador }));
+  app.use(
+  "/api/votacion/configuracion",
+  createVotacionConfiguracionRouter({
+    votacionConfiguracionService,
+    autenticarAdministrador,
+  })
+);
   app.use((error, req, res, next) => {
     if (error.type === "entity.parse.failed" || error.type === "entity.too.large") {
       return res.status(error.status).json({ mensaje: "El cuerpo de la solicitud no es válido." });
