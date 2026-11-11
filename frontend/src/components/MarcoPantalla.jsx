@@ -16,10 +16,9 @@ function useAhora() {
   return ahora;
 }
 
-// Encabezado y pie comunes a las pantallas del diseño.
-//  - mostrarMarca: false oculta "MUNICIPIO ESCOLAR" (la pantalla de bienvenida no lo lleva).
-//  - pie: función ({ fecha, hora }) => JSX que reemplaza el pie azul por defecto.
-export default function MarcoPantalla({ children, onSalir, mostrarMarca = true, pie }) {
+// Marco compartido; etiquetaCabecera añade una leyenda opcional al encabezado,
+// sin cambiar el escudo ni las pantallas existentes.
+export default function MarcoPantalla({ children, onSalir, mostrarMarca = true, pie, etiquetaCabecera = null }) {
   const ahora = useAhora();
   const fecha = `${DIAS[ahora.getDay()]}, ${ahora.getDate()} de ${MESES[ahora.getMonth()]} de ${ahora.getFullYear()}`;
   const hora = ahora.toLocaleTimeString("es-PE", { hour: "numeric", minute: "2-digit", hour12: true });
@@ -27,7 +26,6 @@ export default function MarcoPantalla({ children, onSalir, mostrarMarca = true, 
   return (
     <div className="marco">
       <header className="marco-cabecera">
-        {/* Coloca el escudo en frontend/public/logo-ie.png */}
         <img
           className="marco-logo"
           src="logoo.png"
@@ -39,6 +37,9 @@ export default function MarcoPantalla({ children, onSalir, mostrarMarca = true, 
           <p>Tamburco - Abancay - Apurímac</p>
         </div>
         <p className="marco-lema">Tu voz también construye una mejor institución</p>
+        {etiquetaCabecera && (
+          <span className="marco-etiqueta-cabecera">{etiquetaCabecera}</span>
+        )}
         {mostrarMarca && (
           <div className="marco-marca">
             <strong>MUNICIPIO ESCOLAR</strong>
