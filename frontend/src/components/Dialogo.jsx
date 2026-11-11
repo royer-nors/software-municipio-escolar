@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import "../styles/dialogo.css";
 
 // Ventana modal sobre la pantalla (usa <dialog>: bloquea lo de atrás y maneja el foco).
 // Si pasas onCerrar se muestra la "×" y la tecla Esc cierra; sin onCerrar no se puede cerrar.
 export default function Dialogo({ titulo, onCerrar, children }) {
   const ref = useRef(null);
+  const tituloId = useId();
 
   useEffect(() => {
     const dialogo = ref.current;
@@ -18,14 +19,14 @@ export default function Dialogo({ titulo, onCerrar, children }) {
     <dialog
       ref={ref}
       className="dialogo"
-      aria-labelledby="dialogo-titulo"
+      aria-labelledby={tituloId}
       onCancel={(e) => {
         e.preventDefault();
         onCerrar?.();
       }}
     >
       <div className="dialogo-barra">
-        <h2 id="dialogo-titulo">{titulo}</h2>
+        <h2 id={tituloId}>{titulo}</h2>
         {onCerrar && (
           <button type="button" className="dialogo-x" aria-label="Cerrar" onClick={onCerrar}>×</button>
         )}

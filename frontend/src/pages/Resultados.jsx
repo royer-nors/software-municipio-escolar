@@ -1,74 +1,120 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import MarcoPantalla from "../components/MarcoPantalla";
+import Avatar from "../components/Avatar";
 import { obtenerResultados } from "../api/estudiantes";
+import { cantidad, coloresPorNombre, porcentaje, posicion, TONOS } from "../utils/elecciones";
+import "../styles/elecciones.css";
 
-export default function Resultados({ onSalir }) {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState("");
+function GraficoCircular({ listas, total, colores }) {
+  const segmentos = listas.map((lista, index) => {
+    const longitud = total === 0 ? 0 : lista.votos / total * 100;
+    const inicio = total === 0 ? 0 : listas.slice(0, index).reduce((suma, anterior) => suma + anterior.votos, 0) / total * 100;
+    return { ...lista, longitud, inicio };
+  });
+  return (
+    <div className="electoral-anillo" role="img" aria-label={total === 0
+      ? "Sin votos válidos registrados."
+      : `Distribución de ${cantidad(total)} votos válidos. ${listas.map(l => `${l.nombre}: ${porcentaje(l.porcentaje)}`).join(". ")}`}>
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle cx="60" cy="60" r="48" fill="none" stroke="#e3eaf3" strokeWidth="13" />
+        {segmentos.filter(l => l.longitud > 0).map(l => <circle key={l.nombre} cx="60" cy="60" r="48" fill="none"
+          stroke={TONOS[colores.get(l.nombre)]} strokeWidth="13" pathLength="100"
+          strokeDasharray={`${l.longitud} ${100 - l.longitud}`} strokeDashoffset={-l.inicio} transform="rotate(-90 60 60)" />)}
+      </svg>
+      <div><strong>{cantidad(total)}</strong><span>votos válidos</span></div>
+    </div>
+  );
+}
+
+export default function Resultados({ token, onSalir }) {
+  // Conserva sessionStorage.admin_token y admite la sesión entregada por App.
+  const tokenAdmin = token || sessionStorage.getItem("admin_token") || "";
+  const [revision, setRevision] = useState(0);
+  const [estado, setEstado] = useState({ data: null, error: "", cargando: true });
 
   useEffect(() => {
-    const tokenAdmin = localStorage.getItem("tokenAdmin") || "";
-    obtenerResultados(tokenAdmin)
-      .then((datos) => setData(datos))
-      .catch((e) => setError(e.message));
-  }, []);
+    const controller = new AbortController();
+    Promise.resolve().then(() => {
+      if (!tokenAdmin) throw new Error("No se encontró una sesión administrativa. Inicia sesión nuevamente.");
+      return obtenerResultados(tokenAdmin, controller.signal);
+    }).then(data => {
+      if (!controller.signal.aborted) setEstado({ data, error: "", cargando: false });
+    }).catch(error => {
+      if (!controller.signal.aborted) setEstado({ data: null, error: error.message, cargando: false });
+    });
+    return () => controller.abort();
+  }, [tokenAdmin, revision]);
+
+  function actualizar() {
+    setEstado({ data: null, error: "", cargando: true });
+    setRevision(v => v + 1);
+  }
+
+  const { data, error, cargando } = estado;
+  const resumen = data?.resumen;
+  const colores = coloresPorNombre(data?.listas || []);
+  const fechaReporte = data ? new Date(data.generadoEn).toLocaleString("es-PE", { timeZone: "America/Lima" }) : "";
 
   return (
-    <MarcoPantalla onSalir={onSalir}>
-      <div style={{ padding: "20px", maxWidth: "900px", margin: "0 auto" }}>
-        <h2>📊 Resultados Electorales (PostgreSQL)</h2>
-
-        {error && <p className="estado estado-error" role="alert">⚠️ {error}</p>}
-        {!error && !data && <p className="estado">Cargando datos del servidor...</p>}
-
-        {data && (
-          <>
-            {/* Tarjetas informativas */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "15px", marginBottom: "25px" }}>
-              <div className="panel" style={{ textAlign: "center" }}>
-                <span className="etiqueta">Habilitados</span>
-                <h3 style={{ fontSize: "22px", color: "#2563eb", margin: "5px 0" }}>{data.estudiantesHabilitados}</h3>
+    <MarcoPantalla electoral onSalir={onSalir}>
+      <section className="electoral-resultados" aria-busy={cargando}>
+        <div className="electoral-encabezado-resultados">
+          <div className="electoral-titulo-con-icono"><span className="electoral-icono" aria-hidden="true">▣</span>
+            <div><h2>RESULTADOS DE LA ELECCIÓN</h2><p>Municipio Escolar · Resultados por lista</p></div></div>
+          <div className="electoral-acciones">
+            <button type="button" className="btn-claro" disabled={cargando} onClick={actualizar}>Actualizar</button>
+            <button type="button" className="electoral-btn-azul" disabled={!data || cargando || Boolean(error)} onClick={() => window.print()}>Imprimir resultados</button>
+          </div>
+        </div>
+        {cargando && <div className="estado" role="status"><span className="electoral-cargando" aria-hidden="true" />Consultando resultados del proceso electoral…</div>}
+        {error && <div className="electoral-alerta electoral-alerta-error" role="alert"><strong>No se pudieron mostrar los resultados.</strong><p>{error}</p></div>}
+        {!cargando && !error && data && <>
+          <p className="electoral-fecha-reporte">Reporte generado: {fechaReporte} (hora de Perú)</p>
+          {data.listas.length === 0 && <p className="electoral-alerta">No hay listas electorales registradas para mostrar.</p>}
+          <div className="electoral-ranking">
+            {data.listas.map(lista => <article key={lista.nombre} className={`electoral-resultado tarjeta-${colores.get(lista.nombre)}`}>
+              <div className="electoral-resultado-cabecera"><span>Lista electoral</span><strong>{posicion(lista.posicion)}</strong></div>
+              <div className="electoral-resultado-cifras"><div className="electoral-avatares-ilustrativos" aria-hidden="true">
+                <Avatar tam={36} tono={TONOS[colores.get(lista.nombre)]} /><Avatar tam={36} tono={TONOS[colores.get(lista.nombre)]} />
+              </div><div><strong>{porcentaje(lista.porcentaje)}</strong><span>{cantidad(lista.votos)} votos</span></div></div>
+              <h3>{lista.nombre}</h3>
+            </article>)}
+          </div>
+          <div className="electoral-estadisticas">
+            <section className="panel electoral-resumen">
+              <h3>Resumen de la votación</h3>
+              <div className="electoral-resumen-contenido">
+                <GraficoCircular listas={data.listas} total={resumen.votosValidos} colores={colores} />
+                <dl>
+                  <div><dt>Estudiantes habilitados</dt><dd>{cantidad(resumen.estudiantesHabilitados)}</dd></div>
+                  <div><dt>Votos emitidos</dt><dd>{cantidad(resumen.votosEmitidos)}</dd></div>
+                  <div><dt>No votaron</dt><dd>{cantidad(resumen.noVotaron)}</dd></div>
+                  <div className="electoral-participacion"><dt>Participación</dt><dd>{porcentaje(resumen.participacion)}</dd></div>
+                </dl>
               </div>
-              <div className="panel" style={{ textAlign: "center" }}>
-                <span className="etiqueta">Votos Emitidos</span>
-                <h3 style={{ fontSize: "22px", color: "#16a34a", margin: "5px 0" }}>{data.votosEmitidos}</h3>
-              </div>
-              <div className="panel" style={{ textAlign: "center" }}>
-                <span className="etiqueta">Participación</span>
-                <h3 style={{ fontSize: "22px", color: "#d97706", margin: "5px 0" }}>{data.participacionElectoral}%</h3>
-              </div>
-              <div className="panel" style={{ textAlign: "center" }}>
-                <span className="etiqueta">Blancos / Nulos</span>
-                <h3 style={{ fontSize: "22px", color: "#475569", margin: "5px 0" }}>{data.votosBlancosNulos}</h3>
-              </div>
-            </div>
-
-            {/* Tabla de Resultados por Lista */}
-            <div className="panel">
-              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-                <thead>
-                  <tr style={{ borderBottom: "2px solid #cbd5e1" }}>
-                    <th style={{ padding: "10px" }}>Posición</th>
-                    <th style={{ padding: "10px" }}>Lista Electoral</th>
-                    <th style={{ padding: "10px" }}>Votos Válidos</th>
-                    <th style={{ padding: "10px" }}>Porcentaje</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.listas?.map((l, index) => (
-                    <tr key={l.id || index} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                      <td style={{ padding: "10px", fontWeight: "bold" }}>#{index + 1}</td>
-                      <td style={{ padding: "10px" }}>{l.nombre}</td>
-                      <td style={{ padding: "10px" }}>{l.votos}</td>
-                      <td style={{ padding: "10px", color: "#2563eb", fontWeight: "bold" }}>{l.porcentaje}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </div>
+            </section>
+            <section className="panel electoral-barras">
+              <div className="electoral-barras-titulo"><h3>Porcentaje de votos por lista</h3><span>Base: {cantidad(resumen.votosValidos)} votos válidos</span></div>
+              {resumen.votosValidos === 0 && <p className="electoral-sin-votos">Aún no hay votos válidos. No se asignan posiciones.</p>}
+              {data.listas.map(lista => <div className="electoral-barra-fila" key={lista.nombre}>
+                <span title={lista.nombre}>{lista.nombre}</span>
+                <div className="electoral-barra-fondo" aria-hidden="true"><span style={{ width: `${lista.porcentaje}%`, background: TONOS[colores.get(lista.nombre)] }} /></div>
+                <strong>{porcentaje(lista.porcentaje)}</strong>
+              </div>)}
+              <p className="electoral-nota">Votos en blanco: <strong>{cantidad(resumen.votosEnBlanco)}</strong> · Votos nulos: <strong>{cantidad(resumen.votosNulos)}</strong></p>
+            </section>
+          </div>
+          <details className="panel electoral-detalle">
+            <summary>Ver detalle de los resultados</summary>
+            <div className="electoral-tabla-scroll"><table>
+              <caption>Votos válidos por lista electoral</caption>
+              <thead><tr><th scope="col">Posición</th><th scope="col">Lista electoral</th><th scope="col">Votos</th><th scope="col">Porcentaje</th></tr></thead>
+              <tbody>{data.listas.map(lista => <tr key={lista.nombre}><td>{posicion(lista.posicion)}</td><th scope="row">{lista.nombre}</th><td>{cantidad(lista.votos)}</td><td>{porcentaje(lista.porcentaje)}</td></tr>)}</tbody>
+            </table></div>
+          </details>
+          <p className="electoral-nota">Los porcentajes por lista corresponden a los votos válidos. La participación corresponde a los votos emitidos sobre estudiantes habilitados. Las posiciones y los empates son los informados por el servidor.</p>
+        </>}
+      </section>
     </MarcoPantalla>
   );
 }

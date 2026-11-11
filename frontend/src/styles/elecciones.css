@@ -1,0 +1,201 @@
+/* Módulo electoral. Los estilos se limitan a .marco-electoral para conservar
+   los formularios administrativos y el menú existentes. */
+.marco-electoral {
+  --azul-noche: #0b2e69; --azul: #165eac; --verde: #11884d; --verde-osc: #0b703e;
+  --fondo: #e4eaf2; --panel: #fff; --borde: #cad8e8; --tinta: #183759; --ok: #e7f5eb;
+  color-scheme: light; font-family: Inter, "Segoe UI", Arial, sans-serif; line-height: 1.5;
+}
+.marco-electoral *, .marco-electoral *::before, .marco-electoral *::after { box-sizing: border-box; }
+.marco-electoral button, .marco-electoral input { font: inherit; }
+.marco-electoral button { transition: background .15s, box-shadow .15s; }
+.marco-electoral button:disabled { cursor: not-allowed; opacity: .55; }
+.marco-electoral .marco-cabecera {
+  min-height: 126px; padding: 20px max(24px, calc((100vw - 1200px) / 2));
+  gap: 22px; background: linear-gradient(110deg, #0b2e69 0%, #134697 65%, #165acf 100%);
+}
+.marco-electoral .marco-logo { width: 82px; height: 86px; object-fit: contain; flex: 0 0 auto; }
+.marco-electoral .marco-colegio { max-width: 440px; }
+.marco-electoral .marco-colegio h1 { font-size: clamp(18px, 1.9vw, 25px); line-height: 1.3; }
+.marco-electoral .marco-colegio p { font-size: 13px; margin-top: 8px; opacity: .9; }
+.marco-electoral .marco-lema { font-size: 18px; line-height: 1.4; max-width: 190px; }
+.marco-electoral .marco-marca { margin-left: auto; min-width: 170px; gap: 9px; }
+.marco-electoral .marco-marca strong { font-size: 20px; letter-spacing: .3px; }
+.marco-electoral .marco-contenido { width: 100%; max-width: 1248px; margin: 0 auto; padding: 28px 24px 34px; }
+.marco-electoral .marco-pie { min-height: 76px; padding: 18px max(24px, calc((100vw - 1200px) / 2)); font-size: 13px; }
+.marco-electoral .btn-salir { border: 1px solid #86a9db; min-width: 110px; font-weight: 600; }
+.marco-electoral .panel { border-radius: 12px; padding: 24px; box-shadow: 0 3px 12px #12305f08; }
+.marco-electoral .panel h2 { font-size: 17px; }
+.marco-electoral .id-grid { grid-template-columns: minmax(0, 1.9fr) minmax(270px, 1fr); gap: 20px; }
+.marco-electoral .electoral-seccion-label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: #53718f; margin-bottom: 16px; }
+.marco-electoral .electoral-icono { display: grid; place-items: center; width: 55px; height: 55px; flex: 0 0 auto; border-radius: 10px; background: var(--azul); color: #fff; font-size: 26px; }
+.marco-electoral .aut-titulo { padding: 18px; min-height: 105px; }
+.marco-electoral .aut-titulo-texto p, .marco-electoral .panel-cabecera p { margin-top: 5px; color: #5b728a; font-size: 12px; }
+.marco-electoral .sello-seguro { color: #145176; background: #e8f3fa; max-width: 140px; font-size: 11px; padding: 12px; }
+.marco-electoral .aut-izq { gap: 20px; }
+.marco-electoral .aut-fila { grid-template-columns: minmax(0, 1fr) 180px; gap: 22px; align-items: center; }
+.marco-electoral .etiqueta { font-size: 16px; display: block; }
+.marco-electoral .electoral-campo-descripcion { font-size: 12px; margin: 5px 0 16px; color: #61788f; }
+.marco-electoral .aut-input { font-size: 23px; padding: 15px; letter-spacing: 3px; border-radius: 9px; border: 1px solid #acc3dc; min-width: 0; }
+.marco-electoral .aut-input::placeholder { font-size: 13px; }
+.marco-electoral .aut-ayuda { font-size: 12px; padding: 12px; background: #edf5fc; margin-top: 14px; }
+.marco-electoral .aut-error { background: #fff0f0; color: #a02727; }
+.marco-electoral .aut-ejemplo { background: #eaf3fa; padding: 16px 12px; border: 1px solid #d4e3ef; }
+.marco-electoral .aut-ejemplo p { font-size: 11px; color: #5c7189; }
+.marco-electoral .aut-pie { margin-top: 32px; border-top: 1px solid #e7edf4; padding-top: 22px; flex-wrap: wrap; }
+.marco-electoral .aut-stepper li { width: 96px; font-size: 11px; }
+.marco-electoral .btn-verde { padding: 13px 21px; border-radius: 8px; font-size: 14px; font-weight: 600; box-shadow: 0 2px 4px #0b703e12; }
+.marco-electoral .aut-boton { min-width: 165px; }
+.marco-electoral .btn-verde span { margin-left: 14px; }
+.marco-electoral .electoral-pasos { display: flex; flex-direction: column; }
+.marco-electoral .electoral-pasos h2 { display: flex; gap: 10px; align-items: center; }
+.marco-electoral .electoral-pasos h2 > span { color: #165acf; }
+.marco-electoral .electoral-pasos .pasos { margin: 25px 0; flex: 1; }
+.marco-electoral .electoral-pasos .pasos li { position: relative; gap: 14px; margin: 0; min-height: 64px; font-size: 14px; }
+.marco-electoral .electoral-pasos .pasos li:not(:last-child)::after { content: ""; position: absolute; left: 16px; top: 48px; height: 25px; width: 1px; background: #c6d9f2; }
+.marco-electoral .electoral-pasos .paso-num { width: 33px; height: 33px; flex: 0 0 auto; background: #165acf; font-size: 13px; }
+.marco-electoral .listo { border: 0; background: #e7f5eb; margin: 0; padding: 17px; }
+.marco-electoral .listo strong { font-size: 13px; color: #17653e; }
+.marco-electoral .listo p { margin-top: 5px; color: #4b6f5a; font-size: 12px; }
+.marco-electoral .electoral-pasos > .btn-verde { margin-top: 16px; }
+.marco-electoral .electoral-identificado .panel-cabecera { margin-bottom: 28px; }
+.marco-electoral .campo-dni { padding: 16px; font-size: 21px; margin-top: 8px; }
+.marco-electoral .aviso-ok { font-size: 12px; padding: 9px 12px; }
+.marco-electoral .votante-card { margin-top: 24px; padding: 20px; flex-wrap: wrap; background: #f6f9fd; }
+.marco-electoral .votante-datos { min-width: 170px; gap: 5px; }
+.marco-electoral .votante-datos > strong { font-size: 18px; }
+.marco-electoral .votante-datos > span { font-size: 12px; color: #59718a; }
+.marco-electoral .votante-datos .electoral-micro { font-size: 10px; letter-spacing: 1px; font-weight: 700; }
+.marco-electoral .insignia { padding: 6px 11px; font-size: 11px; white-space: nowrap; }
+.marco-electoral .electoral-nota { color: #607891; font-size: 11px; line-height: 1.6; margin-top: 17px; }
+.marco-electoral .lista-cabecera { padding: 16px 18px; border-radius: 10px; margin-bottom: 22px; background: #f4f8fd; }
+.marco-electoral .electoral-titulo-con-icono { display: flex; align-items: center; gap: 14px; }
+.marco-electoral .electoral-titulo-con-icono h2 { font-size: 17px; font-weight: 700; letter-spacing: .15px; }
+.marco-electoral .electoral-titulo-con-icono p { color: #607891; font-size: 12px; margin-top: 5px; }
+.marco-electoral .lista-votante { min-width: 190px; padding: 10px 15px; font-size: 11px; }
+.marco-electoral .lista-votante strong { font-size: 12px; }
+.marco-electoral .electoral-papeleta { border: 0; padding: 0; margin: 0; min-width: 0; }
+.marco-electoral .tarjetas { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; align-items: stretch; }
+.marco-electoral .tarjeta { position: relative; padding: 15px; min-height: 310px; gap: 15px; border-width: 1px; box-shadow: 0 3px 10px #12305f08; justify-content: flex-start; }
+.marco-electoral .tarjeta:hover:not(.tarjeta-deshabilitada) { box-shadow: 0 7px 20px #12305f16; }
+.marco-electoral .tarjeta-activa { outline-width: 3px; }
+.marco-electoral .electoral-radio { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.marco-electoral .tarjeta:has(input:focus-visible), .marco-electoral .btn-blanco:has(input:focus-visible) { outline: 3px solid #165acf; outline-offset: 4px; }
+.marco-electoral .electoral-tarjeta-superior { display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 11px; font-weight: 600; color: var(--c); }
+.marco-electoral .electoral-selector { width: 21px; height: 21px; border: 1px solid var(--c); background: #fff; border-radius: 50%; text-align: center; line-height: 19px; }
+.marco-electoral .tarjeta-activa .electoral-selector { background: var(--c); color: #fff; }
+.marco-electoral .tarjeta-retratos { justify-content: center; min-height: 76px; align-items: center; }
+.marco-electoral .electoral-foto { width: 64px; height: 64px; object-fit: cover; border-radius: 50%; }
+.marco-electoral .tarjeta-nombre { border-radius: 7px; min-height: 60px; display: grid; place-items: center; padding: 12px 8px; font-size: 15px; line-height: 1.3; }
+.marco-electoral .electoral-candidatos { font-size: 11px; text-align: center; display: grid; gap: 7px; color: #415e79; }
+.marco-electoral .electoral-candidatos > span { display: grid; }
+.marco-electoral .electoral-candidatos small { font-size: 10px; font-weight: 400; }
+.marco-electoral .electoral-propuestas { display: grid; gap: 5px; font-size: 11px; width: 100%; }
+.marco-electoral .electoral-elegir { margin-top: auto; font-size: 11px; font-weight: 600; color: var(--c); }
+.marco-electoral .tarjeta-deshabilitada { cursor: not-allowed; opacity: .65; }
+.marco-electoral .barra-votar { grid-template-columns: minmax(150px, 1fr) minmax(0, 2fr) minmax(140px, 1fr); gap: 16px; margin-top: 20px; }
+.marco-electoral .barra-votar:not(:has(.btn-blanco)) { grid-template-columns: minmax(0, 3fr) minmax(140px, 1fr); }
+.marco-electoral .btn-blanco { display: grid; place-items: center; position: relative; min-height: 48px; border: 1px solid #bbcfe3; border-radius: 8px; font-size: 14px; }
+.marco-electoral .electoral-blanco-activo { outline: 3px solid var(--azul); background: #e8f2fc; }
+.marco-electoral .cuadro-info { padding: 12px 15px; font-size: 11px; color: #536e88; }
+.marco-electoral .electoral-alerta { background: #fff8e8; color: #765113; border: 1px solid #edd8a8; padding: 16px 18px; border-radius: 9px; margin: 16px 0; font-size: 13px; }
+.marco-electoral .electoral-alerta-error { background: #fff1f1; color: #9a2929; border-color: #edcaca; }
+.marco-electoral .electoral-alerta p { margin-top: 5px; }
+.marco-electoral .electoral-sr { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.marco-electoral .electoral-encabezado-resultados { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+.marco-electoral .electoral-acciones { display: flex; gap: 10px; }
+.marco-electoral .electoral-acciones button { padding: 10px 14px; border-radius: 7px; font-size: 12px; font-weight: 600; }
+.marco-electoral .electoral-btn-azul { background: var(--azul); color: #fff; border: 0; cursor: pointer; }
+.marco-electoral .electoral-fecha-reporte { font-size: 11px; color: #607891; margin: 14px 0 20px; }
+.marco-electoral .electoral-ranking { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; }
+.marco-electoral .electoral-resultado { border: 1px solid var(--c-borde); background: var(--c-fondo); border-radius: 10px; padding: 15px; color: var(--c); }
+.marco-electoral .electoral-resultado-cabecera { display: flex; gap: 10px; justify-content: space-between; align-items: center; font-size: 11px; }
+.marco-electoral .electoral-resultado-cabecera strong { font-size: 10px; }
+.marco-electoral .electoral-resultado-cifras { display: flex; align-items: center; gap: 13px; margin: 17px 0; }
+.marco-electoral .electoral-resultado-cifras > div:last-child { display: grid; }
+.marco-electoral .electoral-resultado-cifras strong { font-size: 27px; line-height: 1.2; }
+.marco-electoral .electoral-resultado-cifras span { color: #38546e; font-size: 11px; margin-top: 4px; }
+.marco-electoral .electoral-avatares-ilustrativos { display: flex; gap: 2px; }
+.marco-electoral .electoral-resultado h3 { background: var(--c); color: #fff; border-radius: 6px; padding: 12px 8px; margin: 0; min-height: 64px; display: grid; place-items: center; text-align: center; font-weight: 500; font-size: 14px; line-height: 1.35; }
+.marco-electoral .electoral-estadisticas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 18px; margin-top: 20px; }
+.marco-electoral .electoral-estadisticas h3 { font-size: 13px; margin: 0 0 15px; font-weight: 700; }
+.marco-electoral .electoral-resumen-contenido { display: flex; gap: 20px; align-items: center; }
+.marco-electoral .electoral-anillo { width: 132px; height: 132px; position: relative; flex: 0 0 auto; }
+.marco-electoral .electoral-anillo svg { width: 132px; height: 132px; }
+.marco-electoral .electoral-anillo > div { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.marco-electoral .electoral-anillo strong { font-size: clamp(18px, 2vw, 26px); line-height: 1.2; }
+.marco-electoral .electoral-anillo span { font-size: 10px; color: #607891; }
+.marco-electoral .electoral-resumen dl { margin: 0; flex: 1; min-width: 0; }
+.marco-electoral .electoral-resumen dl > div { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; padding: 4px 0; }
+.marco-electoral .electoral-resumen dt { color: #607891; }
+.marco-electoral .electoral-resumen dd { font-weight: 700; margin: 0; white-space: nowrap; }
+.marco-electoral .electoral-resumen .electoral-participacion { border-top: 1px solid #d4e2ef; margin-top: 5px; padding-top: 9px; }
+.marco-electoral .electoral-participacion dt, .marco-electoral .electoral-participacion dd { color: #165eac; font-weight: 700; }
+.marco-electoral .electoral-barras-titulo { display: flex; gap: 8px; justify-content: space-between; flex-wrap: wrap; margin-bottom: 12px; }
+.marco-electoral .electoral-barras-titulo h3 { margin-bottom: 0; }
+.marco-electoral .electoral-barras-titulo > span { font-size: 10px; color: #607891; }
+.marco-electoral .electoral-barra-fila { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(70px, 1.3fr) 60px; gap: 12px; align-items: center; margin-top: 12px; font-size: 11px; }
+.marco-electoral .electoral-barra-fila > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.marco-electoral .electoral-barra-fila > strong { text-align: right; }
+.marco-electoral .electoral-barra-fondo { height: 9px; background: #e5edf6; border-radius: 3px; overflow: hidden; }
+.marco-electoral .electoral-barra-fondo > span { display: block; height: 100%; border-radius: inherit; }
+.marco-electoral .electoral-sin-votos { font-size: 12px; color: #607891; }
+.marco-electoral .electoral-detalle { margin-top: 20px; padding: 16px 20px; }
+.marco-electoral .electoral-detalle summary { cursor: pointer; font-size: 12px; font-weight: 600; }
+.marco-electoral .electoral-tabla-scroll { overflow-x: auto; }
+.marco-electoral table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; text-align: left; }
+.marco-electoral caption { text-align: left; margin-bottom: 10px; color: #607891; }
+.marco-electoral th, .marco-electoral td { padding: 10px; border-bottom: 1px solid #e2eaf3; }
+.marco-electoral .electoral-cargando { display: block; width: 26px; height: 26px; margin: 0 auto 12px; border: 3px solid #cbdced; border-top-color: #165eac; border-radius: 50%; animation: electoral-giro .8s linear infinite; }
+@keyframes electoral-giro { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .marco-electoral .electoral-cargando { animation: none; } }
+@media (max-width: 1050px) {
+  .marco-electoral .marco-lema { display: none; }
+  .marco-electoral .id-grid { grid-template-columns: minmax(0, 1.7fr) minmax(245px, 1fr); }
+  .marco-electoral .aut-fila { grid-template-columns: minmax(0, 1fr) 155px; }
+  .marco-electoral .electoral-estadisticas { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .marco-electoral .marco-cabecera { padding: 16px; gap: 12px; }
+  .marco-electoral .marco-logo { width: 55px; height: 64px; }
+  .marco-electoral .marco-marca { display: none; }
+  .marco-electoral .marco-contenido { padding: 20px 16px; }
+  .marco-electoral .id-grid { grid-template-columns: 1fr; }
+  .marco-electoral .panel { padding: 20px; }
+  .marco-electoral .aut-titulo { flex-wrap: wrap; }
+  .marco-electoral .sello-seguro { display: none; }
+  .marco-electoral .aut-fila { grid-template-columns: minmax(0, 1fr); }
+  .marco-electoral .aut-ejemplo { display: none; }
+  .marco-electoral .aut-pie { align-items: center; }
+  .marco-electoral .aut-boton { width: 100%; }
+  .marco-electoral .aut-stepper { width: 100%; justify-content: space-around; }
+  .marco-electoral .lista-cabecera { align-items: flex-start; flex-direction: column; }
+  .marco-electoral .lista-votante { width: 100%; }
+  .marco-electoral .tarjetas, .marco-electoral .electoral-ranking { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .marco-electoral .tarjeta { padding: 12px; }
+  .marco-electoral .tarjeta-retratos { gap: 5px; }
+  .marco-electoral .tarjeta-nombre { font-size: 13px; }
+  .marco-electoral .barra-votar, .marco-electoral .barra-votar:not(:has(.btn-blanco)) { grid-template-columns: 1fr; }
+  .marco-electoral .marco-pie { padding: 15px 16px; flex-wrap: wrap; gap: 14px; }
+  .marco-electoral .marco-fecha { width: 100%; font-size: 11px; }
+  .marco-electoral .marco-hora { margin-left: 0; margin-right: auto; }
+  .marco-electoral .electoral-resultado-cifras { gap: 8px; flex-wrap: wrap; }
+  .marco-electoral .electoral-resultado-cifras strong { font-size: 24px; }
+}
+@media (max-width: 420px) {
+  .marco-electoral .tarjetas, .marco-electoral .electoral-ranking { grid-template-columns: 1fr; }
+  .marco-electoral .electoral-resumen-contenido { flex-direction: column; }
+  .marco-electoral .electoral-resumen dl { width: 100%; }
+  .marco-electoral .electoral-titulo-con-icono h2 { font-size: 14px; }
+}
+@media print {
+  @page { size: A4 landscape; margin: 12mm; }
+  html, body, #root { background: #fff !important; color: #183759 !important; }
+  .marco-electoral { min-height: 0; background: #fff; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .marco-electoral .marco-cabecera { padding: 0 0 12px; min-height: 0; border-bottom: 2px solid #183759; background: #fff; color: #183759; }
+  .marco-electoral .marco-logo { width: 54px; height: 60px; }
+  .marco-electoral .marco-lema, .marco-electoral .marco-marca, .marco-electoral .marco-pie, .marco-electoral .electoral-acciones, .marco-electoral .electoral-detalle { display: none; }
+  .marco-electoral .marco-contenido { padding: 16px 0; max-width: none; }
+  .marco-electoral .electoral-ranking { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .marco-electoral .electoral-resultado, .marco-electoral .panel { break-inside: avoid; box-shadow: none; }
+  .marco-electoral .electoral-estadisticas { grid-template-columns: 1fr 1.25fr; }
+}

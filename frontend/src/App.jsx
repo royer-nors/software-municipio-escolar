@@ -152,8 +152,8 @@ export default function App() {
         <ListasCandidatos
           token={sesionEstudiante.token}
           estudiante={sesionEstudiante.estudiante}
-          onFinalizar={() => ir("inicio")}
-          onSalir={() => ir("inicio")}
+          onFinalizar={finalizarVotacion}
+          onSalir={finalizarVotacion}
         />
       );
     }
@@ -181,7 +181,10 @@ export default function App() {
           {sesionAdmin && vista !== "inicio" && (
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
               <span>Panel administrativo — Usuario: {sesionAdmin.administrador?.usuario}</span>
-              <button style={{ ...boton, background: "#dc3545" }} onClick={cerrarSesionAdmin}>Cerrar sesión</button>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button style={boton} onClick={() => entrarA("resultados")}>Ver resultados</button>
+                <button style={{ ...boton, background: "#dc3545" }} onClick={cerrarSesionAdmin}>Cerrar sesión</button>
+              </div>
             </div>
           )}
 

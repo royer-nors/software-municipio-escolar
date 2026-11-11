@@ -1,25 +1,27 @@
 import Avatar from "./Avatar";
+import { TONOS } from "../utils/elecciones";
 
-const TONOS = { azul: "#1b5fae", verde: "#1e8a55", morado: "#7447b8", naranja: "#d9770f" };
-
-// Una tarjeta por lista electoral. "color": azul | verde | morado | naranja.
-export default function TarjetaLista({ lista, color, seleccionada, onElegir }) {
-  const nombres = lista.candidatos.map((c) => c.nombre).join(", ");
+export default function TarjetaLista({ lista, color, seleccionada, onElegir, disabled = false }) {
+  const propuestas = Array.isArray(lista.propuestas) ? lista.propuestas : [];
   return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={seleccionada}
-      title={nombres}
-      className={`tarjeta tarjeta-${color}${seleccionada ? " tarjeta-activa" : ""}`}
-      onClick={onElegir}
-    >
-      <div className="tarjeta-retratos">
-        {lista.candidatos.slice(0, 2).map((c) => (
-          <Avatar key={c.id} tono={TONOS[color]} />
-        ))}
-      </div>
+    <label className={`tarjeta tarjeta-${color}${seleccionada ? " tarjeta-activa" : ""}${disabled ? " tarjeta-deshabilitada" : ""}`}>
+      <input className="electoral-radio" type="radio" name="opcion-electoral" value={lista.id}
+        checked={seleccionada} onChange={onElegir} disabled={disabled} aria-label={lista.nombre} />
+      <span className="electoral-tarjeta-superior"><span>{lista.numero ? `Lista ${lista.numero}` : "Lista electoral"}</span>
+        <span className="electoral-selector" aria-hidden="true">{seleccionada ? "✓" : ""}</span></span>
+      <span className="tarjeta-retratos" aria-hidden="true">
+        {lista.candidatos.slice(0, 2).map(c => c.foto_url || c.fotoUrl
+          ? <img key={c.id} className="electoral-foto" src={c.foto_url || c.fotoUrl} alt="" />
+          : <Avatar key={c.id} tono={TONOS[color]} tam={64} />)}
+      </span>
       <span className="tarjeta-nombre">{lista.nombre}</span>
-    </button>
+      <span className="electoral-candidatos">
+        {lista.candidatos.map(c => <span key={c.id}><strong>{c.nombre}</strong>{c.cargo && <small>{c.cargo}</small>}</span>)}
+      </span>
+      {propuestas.length > 0 && <span className="electoral-propuestas">
+        <strong>Propuestas</strong>{propuestas.map((p, i) => <span key={i}>• {p}</span>)}
+      </span>}
+      <span className="electoral-elegir">{seleccionada ? "Opción seleccionada" : "Seleccionar lista"}</span>
+    </label>
   );
 }
