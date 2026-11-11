@@ -1,89 +1,103 @@
 import { useState } from "react";
-import MarcoPantalla from "../components/MarcoPantalla";
 import "../styles/bienvenida.css";
 
-// Ilustración de reemplazo. Si pones la imagen del diseño en frontend/public/bienvenida.png
-// se muestra esa en lugar de este dibujo.
-function Ilustracion() {
+function IconoUrna() {
   return (
-    <svg viewBox="0 0 400 300" role="img" aria-label="Estudiantes depositando su voto" className="bv-svg">
-      {[90, 200, 310].map((x) => (
-        <g key={x} transform={`translate(${x} 0)`}>
-          <circle cx="0" cy="80" r="22" fill="#f0c9a4" />
-          <path d="M-38 150c4-34 20-48 38-48s34 14 38 48z" fill="#1f4e8c" />
-        </g>
-      ))}
-      <rect x="130" y="170" width="140" height="90" rx="8" fill="#9ec5ee" />
-      <rect x="150" y="150" width="100" height="26" rx="4" fill="#cfe3f8" />
-      <circle cx="200" cy="215" r="22" fill="#3b82d6" />
-      <path d="M190 215l8 8 14-16" stroke="#fff" strokeWidth="5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 12h16l1.5 8h-19L4 12Z" />
+      <path d="M9 4h6l2 8H7l2-8Z" />
+      <path d="m10 8 1.5 1.5L15 6" />
+      <path d="M3.5 16h17" />
     </svg>
   );
 }
 
-const Calendario = () => (
-  <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
-    <rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
-    <path d="M3 10h18M8 3v4M16 3v4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
-
-const Encendido = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-    <path d="M12 3v8M6.5 6.5a8 8 0 1 0 11 0" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-  </svg>
-);
-
-const Urna = () => (
-  <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
-    <path d="M3 13h18v7H3z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-    <path d="M8 4h8v7H8z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-  </svg>
-);
-
-// Pantalla "Bienvenido": primera pantalla del estudiante.
-export default function Bienvenida({ onVotar, onAyuda, onSalir }) {
-  const [hayImagen, setHayImagen] = useState(true);
-
-  const pie = ({ fecha }) => (
-    <footer className="bv-pie">
-      <span className="bv-fecha"><Calendario />{fecha}</span>
-      <button type="button" className="bv-ayuda" onClick={onAyuda}>
-        <span className="bv-ayuda-icono" aria-hidden="true">?</span>Ayuda
-      </button>
-      <button type="button" className="btn-salir bv-salir" onClick={onSalir}>
-        <Encendido />Salir
-      </button>
-    </footer>
+function IconoAdministrador() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="5" y="10" width="14" height="11" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+      <circle cx="12" cy="15" r="1" />
+      <path d="M12 16v2" />
+    </svg>
   );
+}
+
+function IlustracionAlternativa() {
+  return (
+    <svg className="bv-fallback" viewBox="0 0 420 300" role="img" aria-label="Urna electoral con una papeleta y estudiantes">
+      <circle cx="210" cy="146" r="132" fill="#dbe9fb" />
+      <circle cx="89" cy="68" r="9" fill="#f3cf71" />
+      <circle cx="339" cy="100" r="7" fill="#9eb7e9" />
+      <rect x="118" y="158" width="185" height="106" rx="15" fill="#2c67b4" />
+      <rect x="132" y="169" width="157" height="82" rx="10" fill="#85b1e8" />
+      <path d="M145 159h133" stroke="#173f84" strokeWidth="12" strokeLinecap="round" />
+      <g transform="rotate(-12 207 127)">
+        <rect x="170" y="58" width="82" height="99" rx="9" fill="white" stroke="#7c9fc9" strokeWidth="3" />
+        <path d="m192 110 14 13 24-29" stroke="#2d9b71" strokeWidth="9" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+      <circle cx="91" cy="188" r="25" fill="#efc4a3" />
+      <path d="M44 257c5-43 25-60 47-60s42 17 47 60" fill="#154c99" />
+      <circle cx="329" cy="188" r="25" fill="#efc4a3" />
+      <path d="M282 257c5-43 25-60 47-60s42 17 47 60" fill="#154c99" />
+    </svg>
+  );
+}
+
+/**
+ * Contenido de la portada. App.jsx ya lo envuelve en MarcoPantalla:
+ * no agregamos otro encabezado, pie ni escudo.
+ */
+export default function Bienvenida({ onVotar, onAdministrador }) {
+  const [imagenNoDisponible, setImagenNoDisponible] = useState(false);
 
   return (
-    <MarcoPantalla mostrarMarca={false} pie={pie}>
-      <div className="bv-grid">
-        <div className="bv-ilustracion">
-          {hayImagen ? (
-            <img
-              src="/icono.png"
-              alt="Estudiantes depositando su voto"
-              onError={() => setHayImagen(false)}
-            />
+    <section className="bv-inicio" aria-labelledby="bv-titulo">
+      <div className="bv-visual">
+        <div className="bv-visual-marco">
+          <span className="bv-visual-destello bv-visual-destello-uno" aria-hidden="true" />
+          <span className="bv-visual-destello bv-visual-destello-dos" aria-hidden="true" />
+          {imagenNoDisponible ? (
+            <IlustracionAlternativa />
           ) : (
-            <Ilustracion />
+            <img
+              src="/ilustracion-votacion-escolar.png"
+              alt="Estudiantes de secundaria participando en la elección del Municipio Escolar"
+              className="bv-ilustracion"
+              onError={() => setImagenNoDisponible(true)}
+            />
           )}
         </div>
+        <span className="bv-visual-pie">Tu voz también cuenta en nuestra institución</span>
+      </div>
 
-        <div className="bv-derecha">
-          <h2 className="bv-titulo">Bienvenido</h2>
-          <button type="button" className="bv-votar" onClick={onVotar}>
-            <span className="bv-votar-icono"><Urna /></span>
-            <span className="bv-votar-texto">
-              <strong>Votación</strong>
-              <span>Participa en la elección</span>
+      <div className="bv-contenido">
+        <h2 id="bv-titulo" className="bv-titulo">¡Bienvenidos!</h2>
+        <p className="bv-subtitulo">Participa en las elecciones de nuestra institución.</p>
+        <p className="bv-descripcion">Selecciona una opción para continuar:</p>
+
+        <div className="bv-opciones" role="group" aria-label="Tipo de acceso">
+          <button type="button" className="bv-opcion bv-opcion-estudiante" onClick={onVotar}>
+            <span className="bv-opcion-icono bv-opcion-icono-estudiante"><IconoUrna /></span>
+            <span className="bv-opcion-texto">
+              <strong>Ingresar como estudiante</strong>
+              <small>Identifícate y emite tu voto</small>
             </span>
-            <span className="bv-flecha" aria-hidden="true">›</span>
+            <span className="bv-opcion-flecha" aria-hidden="true">→</span>
+          </button>
+
+          <button type="button" className="bv-opcion bv-opcion-administrador" onClick={onAdministrador}>
+            <span className="bv-opcion-icono bv-opcion-icono-administrador"><IconoAdministrador /></span>
+            <span className="bv-opcion-texto">
+              <strong>Ingresar como administrador</strong>
+              <small>Gestiona el proceso electoral</small>
+            </span>
+            <span className="bv-opcion-flecha" aria-hidden="true">→</span>
           </button>
         </div>
+
+        <p className="bv-nota">Si eres estudiante, ten a mano tu DNI para identificarte.</p>
       </div>
-    </MarcoPantalla>
+    </section>
   );
 }

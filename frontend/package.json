@@ -9,7 +9,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "electron": "electron ."
+    "electron": "electron .",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "react": "^19.3.1",

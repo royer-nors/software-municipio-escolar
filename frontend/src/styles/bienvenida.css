@@ -1,53 +1,534 @@
-/* Pantalla "Bienvenido". Reutiliza las variables de estudiante.css (.marco). */
-.bv-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 28px; align-items: center; min-height: 380px; }
-.bv-ilustracion {
-  display: grid; place-items: center; min-height: 340px; padding: 16px;
-  background: #edf2f9; border: 1px solid #d9e3f1; border-radius: 14px;
-}
-.bv-ilustracion img { max-width: 100%; max-height: 340px; object-fit: contain; }
-.bv-svg { width: 100%; max-height: 340px; }
 
-.bv-derecha { display: flex; flex-direction: column; gap: 40px; }
+.bv-inicio {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 28px;
+
+  width: min(1200px, 100%);
+  min-width: 0;
+  min-height: 0;
+  margin: auto;
+  padding: 20px;
+
+  box-sizing: border-box;
+  border: 1px solid #c5d7ef;
+  border-radius: 18px;
+
+  background: linear-gradient(
+    115deg,
+    #f7faff 0%,
+    #edf4fd 55%,
+    #e3eefb 100%
+  );
+
+  box-shadow: 0 8px 22px rgba(20, 55, 104, 0.06);
+}
+
+/* ==========================================
+   ILUSTRACIÓN
+   ========================================== */
+
+.bv-visual {
+  width: 100%;
+  min-width: 0;
+}
+
+.bv-visual-marco {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  height: min(49vh, 370px);
+  min-height: 265px;
+
+  padding: 8px;
+  overflow: hidden;
+  box-sizing: border-box;
+
+  border-radius: 18px;
+  background: #d9e9fa;
+}
+
+.bv-ilustracion,
+.bv-fallback {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.bv-visual-pie {
+  display: block;
+  margin-top: 10px;
+
+  color: #476b9b;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ==========================================
+   BIENVENIDA
+   ========================================== */
+
+.bv-contenido {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+}
+
 .marco .bv-titulo {
-  text-align: center; color: #1b3a8a; font-weight: 400; font-style: italic; line-height: 1.1;
-  font-size: clamp(40px, 6vw, 68px);
-  font-family: "Segoe Script", "Brush Script MT", "Lucida Handwriting", cursive;
+  margin: 0 0 10px;
+
+  color: #173f84;
+  font-family:
+    "Segoe Script",
+    "Lucida Handwriting",
+    "Brush Script MT",
+    cursive;
+
+  font-size: clamp(36px, 3.8vw, 54px);
+  font-weight: 650;
+  line-height: 1.2;
 }
 
-.bv-votar {
-  display: flex; align-items: center; gap: 16px; width: 100%; padding: 14px 18px;
-  background: var(--panel); border: 1px solid var(--borde); border-radius: 10px;
-  color: inherit; font: inherit; text-align: left; cursor: pointer;
+.marco .bv-subtitulo {
+  color: #214266;
+  font-size: clamp(14px, 1.25vw, 18px);
+  font-weight: 650;
+  line-height: 1.4;
 }
-.bv-votar:hover { background: #e9f0fa; }
-.bv-votar:focus-visible, .bv-ayuda:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
-.bv-votar-icono {
-  display: grid; place-items: center; flex: none; width: 56px; height: 56px;
-  border-radius: 12px; background: #4f5be8; color: #fff;
-}
-.bv-votar-texto { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.bv-votar-texto strong { font-size: 16px; font-weight: 500; }
-.bv-votar-texto span { font-size: 12px; color: #4a638a; }
-.bv-flecha { font-size: 30px; line-height: 1; color: #4a638a; }
 
-/* Pie claro de esta pantalla (distinto al pie azul de las demás) */
-.bv-pie {
-  display: flex; align-items: center; gap: 12px; margin: 0 28px 22px; padding: 12px 16px;
-  background: var(--panel); border: 1px solid var(--borde); border-radius: 8px;
-}
-.bv-fecha { display: flex; align-items: center; gap: 10px; margin-right: auto; }
-.bv-ayuda {
-  display: flex; align-items: center; gap: 8px; padding: 10px 22px;
-  background: #dfe6f0; border: 0; border-radius: 8px; color: inherit; font: inherit; cursor: pointer;
-}
-.bv-ayuda:hover { background: #d2dcea; }
-.bv-ayuda-icono {
-  display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
-  background: var(--azul); color: #fff; font-size: 12px; font-weight: 700;
-}
-.bv-salir { display: flex; align-items: center; gap: 8px; }
+.marco .bv-descripcion {
+  margin: 12px 0 16px;
 
-@media (max-width: 760px) {
-  .bv-grid { grid-template-columns: 1fr; }
-  .bv-pie { flex-wrap: wrap; margin: 0 12px 16px; }
+  color: #556e8c;
+  font-size: 13px;
+}
+
+.marco .bv-nota {
+  margin-top: 13px;
+  color: #607995;
+  font-size: 12px;
+}
+
+/* ==========================================
+   BOTONES DE ACCESO
+   ========================================== */
+
+.bv-opciones {
+  display: grid;
+  width: 100%;
+  gap: 11px;
+}
+
+.bv-opcion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  width: 100%;
+  min-height: 66px;
+  padding: 10px 14px;
+
+  box-sizing: border-box;
+  border: 1.5px solid #afc9ed;
+  border-radius: 11px;
+
+  background: #ffffff;
+  color: #15365e;
+
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.bv-opcion:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(31, 65, 109, 0.12);
+}
+
+.bv-opcion:active {
+  transform: translateY(0);
+}
+
+.bv-opcion:focus-visible {
+  outline: 3px solid #1766ce;
+  outline-offset: 3px;
+}
+
+.bv-opcion-estudiante:hover {
+  border-color: #397ecf;
+}
+
+.bv-opcion-administrador {
+  border-color: #c8bcea;
+}
+
+.bv-opcion-administrador:hover {
+  border-color: #8e74d8;
+}
+
+.bv-opcion-icono {
+  display: grid;
+  place-items: center;
+
+  flex: 0 0 48px;
+  height: 48px;
+
+  border-radius: 10px;
+  color: #ffffff;
+}
+
+.bv-opcion-icono svg {
+  width: 26px;
+  height: 26px;
+}
+
+.bv-opcion-icono-estudiante {
+  background: linear-gradient(135deg, #165bd1, #428dec);
+}
+
+.bv-opcion-icono-administrador {
+  background: linear-gradient(135deg, #6c4cce, #9e86e6);
+}
+
+.bv-opcion-texto {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.bv-opcion-texto strong {
+  color: #163760;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.bv-opcion-texto small {
+  color: #617994;
+  font-size: 12px;
+}
+
+.bv-opcion-flecha {
+  color: #5e86b5;
+  font-size: 23px;
+
+  transition: transform 0.16s ease;
+}
+
+.bv-opcion:hover .bv-opcion-flecha {
+  transform: translateX(4px);
+}
+
+/* ==========================================
+   ENCABEZADO INSTITUCIONAL
+   ========================================== */
+
+.marco:has(.bv-inicio) .marco-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 17px;
+
+  width: 100%;
+  min-height: 83px;
+  padding: 10px 26px;
+
+  box-sizing: border-box;
+
+  background: linear-gradient(
+    100deg,
+    #0b327d,
+    #1654b8
+  );
+}
+
+/* Escudo correcto del repositorio */
+
+.marco:has(.bv-inicio) .marco-logo {
+  flex: 0 0 58px;
+
+  width: 58px;
+  height: 65px;
+
+  object-fit: contain;
+}
+
+/* Nombre del colegio: izquierda */
+
+.marco:has(.bv-inicio) .marco-colegio {
+  flex: 0 1 365px;
+  min-width: 0;
+}
+
+.marco:has(.bv-inicio) .marco-colegio h1 {
+  font-size: clamp(16px, 1.65vw, 22px);
+  line-height: 1.25;
+}
+
+.marco:has(.bv-inicio) .marco-colegio p {
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+/* Lema: centro */
+
+.marco:has(.bv-inicio) .marco-lema {
+  flex: 1 1 185px;
+
+  max-width: 260px;
+  margin: 0 auto;
+
+  font-size: 15px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+/* Título del sistema: derecha */
+
+.marco:has(.bv-inicio) .marco-etiqueta-cabecera {
+  display: block;
+
+  flex: 0 0 246px;
+  margin-left: auto;
+  padding: 9px 12px;
+
+  box-sizing: border-box;
+
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 9px;
+
+  background: rgba(255, 255, 255, 0.10);
+  color: #ffffff;
+
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+/* ==========================================
+   PIE DE PÁGINA AZUL OSCURO
+   ========================================== */
+
+.marco:has(.bv-inicio) .marco-pie {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 22px;
+
+  min-height: 60px;
+  margin: 0;
+  padding: 10px 26px;
+
+  box-sizing: border-box;
+
+  border: 0;
+  border-radius: 0;
+
+  background: #0c2d6b;
+  color: #ffffff;
+}
+
+.marco:has(.bv-inicio) .marco-fecha,
+.marco:has(.bv-inicio) .marco-hora {
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.marco:has(.bv-inicio) .marco-hora {
+  margin-left: auto;
+}
+
+.marco:has(.bv-inicio) .marco-pie .btn-salir {
+  background: #578bd3;
+  color: #ffffff;
+
+  padding: 9px 22px;
+  border-radius: 8px;
+}
+
+.marco:has(.bv-inicio) .marco-pie .btn-salir:hover {
+  background: #6b9bdb;
+}
+
+/* ==========================================
+   SIN SCROLL EN ELECTRON
+   ========================================== */
+
+@media (min-width: 851px) and (min-height: 560px) {
+  .marco:has(.bv-inicio) {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .marco:has(.bv-inicio) .marco-contenido {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+
+    padding: 10px 20px;
+    overflow: hidden;
+  }
+
+  .marco:has(.bv-inicio) .bv-inicio {
+    height: 100%;
+  }
+}
+
+/* ==========================================
+   VENTANAS MEDIANAS
+   ========================================== */
+
+@media (max-width: 1080px) {
+  .marco:has(.bv-inicio) .marco-lema {
+    display: none;
+  }
+
+  .marco:has(.bv-inicio) .marco-colegio {
+    flex: 1 1 auto;
+  }
+
+  .marco:has(.bv-inicio) .marco-etiqueta-cabecera {
+    flex-basis: 235px;
+  }
+}
+
+/* ==========================================
+   VENTANAS BAJAS
+   ========================================== */
+
+@media (max-height: 690px) and (min-width: 851px) {
+  .marco:has(.bv-inicio) .marco-cabecera {
+    min-height: 72px;
+    padding-block: 6px;
+  }
+
+  .marco:has(.bv-inicio) .marco-logo {
+    height: 57px;
+    width: 53px;
+    flex-basis: 53px;
+  }
+
+  .bv-visual-marco {
+    height: min(43vh, 300px);
+    min-height: 200px;
+  }
+
+  .bv-inicio {
+    padding: 14px 20px;
+  }
+
+  .marco .bv-titulo {
+    font-size: clamp(32px, 3vw, 46px);
+  }
+
+  .marco:has(.bv-inicio) .marco-pie {
+    min-height: 54px;
+    padding-block: 7px;
+  }
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 850px) {
+  .marco:has(.bv-inicio) {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .marco:has(.bv-inicio) .marco-contenido {
+    padding: 14px;
+  }
+
+  .bv-inicio {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding: 18px;
+  }
+
+  .bv-visual-marco {
+    height: 230px;
+    min-height: 0;
+  }
+
+  .bv-contenido {
+    align-items: center;
+    text-align: center;
+  }
+
+  .bv-opciones {
+    max-width: 560px;
+  }
+
+  .bv-opcion {
+    text-align: left;
+  }
+}
+
+@media (max-width: 600px) {
+  .marco:has(.bv-inicio) .marco-cabecera {
+    padding: 9px 12px;
+    gap: 8px;
+  }
+
+  .marco:has(.bv-inicio) .marco-logo {
+    width: 43px;
+    height: 50px;
+    flex-basis: 43px;
+  }
+
+  .marco:has(.bv-inicio) .marco-colegio h1 {
+    font-size: 14px;
+  }
+
+  .marco:has(.bv-inicio) .marco-etiqueta-cabecera {
+    display: none;
+  }
+
+  .bv-inicio {
+    padding: 13px;
+  }
+
+  .marco:has(.bv-inicio) .marco-pie {
+    padding: 10px 12px;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-height: 559px) {
+  .marco:has(.bv-inicio) {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bv-opcion,
+  .bv-opcion-flecha {
+    transition: none;
+  }
 }
