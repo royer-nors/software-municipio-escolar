@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import MarcoPantalla from "./components/MarcoPantalla";
+import Bienvenida from "./pages/Bienvenida";
 import LoginAdmin from "./pages/LoginAdmin";
 import AgregarVotante from "./components/AgregarVotante";
 import AgregarCandidatos from "./components/AgregarCandidatos";
@@ -26,17 +27,14 @@ export default function App() {
   const [vista, setVista] = useState("inicio");
   const [destino, setDestino] = useState(null);
   const [sesionAdmin, setSesionAdmin] = useState(null);
-  const [verificando, setVerificando] = useState(true);
+  const [verificando, setVerificando] = useState(() => Boolean(sessionStorage.getItem("admin_token")));
   const [mensaje, setMensaje] = useState("");
   const [pasoVotacion, setPasoVotacion] = useState("autenticar");
   const [sesionEstudiante, setSesionEstudiante] = useState(null);
 
   useEffect(() => {
     const token = sessionStorage.getItem("admin_token");
-    if (!token) {
-      setVerificando(false);
-      return;
-    }
+    if (!token) return;
     fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(async (respuesta) => {
         if (!respuesta.ok) throw new Error("Sesión no válida");
@@ -109,6 +107,22 @@ export default function App() {
 
   if (verificando) return <p style={{ padding: 30 }}>Verificando sesión...</p>;
 
+  // Portada independiente: un solo encabezado y sin el contenedor extra de administración.
+  if (vista === "inicio") {
+    return (
+      <MarcoPantalla
+        mostrarMarca={false}
+        etiquetaCabecera="MUNICIPIO ESCOLAR · VOTACIÓN DIGITAL"
+        onSalir={() => ir("inicio")}
+      >
+        <Bienvenida
+          onVotar={() => entrarA("votacion")}
+          onAdministrador={() => entrarA("configuracion")}
+        />
+      </MarcoPantalla>
+    );
+  }
+
   if (vista === "acceso") {
     return (
       <div>
@@ -118,6 +132,46 @@ export default function App() {
         <LoginAdmin onLogin={loginCorrecto} />
       </div>
     );
+  }
+
+  // Las pantallas del votante incluyen su propio MarcoPantalla.
+  // Se renderizan fuera del marco general para evitar cabeceras y pies duplicados.
+  if (vista === "votacion") {
+    if (pasoVotacion === "identificado" && sesionEstudiante) {
+      return (
+        <VotanteIdentificado
+          estudiante={sesionEstudiante.estudiante}
+          onVotar={() => setPasoVotacion("papeleta")}
+          onSalir={() => ir("inicio")}
+        />
+      );
+    }
+
+    if (pasoVotacion === "papeleta" && sesionEstudiante) {
+      return (
+        <ListasCandidatos
+          token={sesionEstudiante.token}
+          estudiante={sesionEstudiante.estudiante}
+          onFinalizar={() => ir("inicio")}
+          onSalir={() => ir("inicio")}
+        />
+      );
+    }
+
+    return (
+      <AutenticarVotante
+        onAutenticado={(datos) => {
+          setSesionEstudiante(datos);
+          setPasoVotacion("identificado");
+        }}
+        onSalir={() => ir("inicio")}
+      />
+    );
+  }
+
+  // Resultados también incluye su propio MarcoPantalla.
+  if (vista === "resultados" && sesionAdmin) {
+    return <Resultados token={sesionAdmin.token} onSalir={() => ir("inicio")} />;
   }
 
   return (
@@ -131,27 +185,6 @@ export default function App() {
             </div>
           )}
 
-          {vista === "inicio" && (
-            <section style={{ textAlign: "center" }}>
-              <div style={{ padding: "55px 12px 45px", background: "#e8f0fa", borderRadius: 8 }}>
-                <h1 style={{ fontSize: "clamp(36px, 6vw, 55px)", color: "#5175b5", marginBottom: 10 }}>¡Bienvenido!</h1>
-                <p style={{ fontSize: 20, color: "#334155" }}>«Gestiona el proceso electoral escolar»</p>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 18, marginTop: 18 }}>
-                {[
-                  ["resultados", "📊", "Ver resultados", "Consultar los resultados electorales"],
-                  ["configuracion", "⚙️", "Configurar", "Administrar el sistema electoral"],
-                  ["votacion", "🗳️", "Votación", "Identificación y voto del estudiante"]
-                ].map(([id, icono, nombre, descripcion]) => (
-                  <button key={id} style={{ ...tarjeta, textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }} onClick={() => entrarA(id)}>
-                    <span style={{ fontSize: 36 }}>{icono}</span>
-                    <span><strong>{nombre}</strong><small style={{ display: "block", marginTop: 5 }}>{descripcion}</small></span>
-                    <span style={{ marginLeft: "auto" }}>❯</span>
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
 
           {vista === "configuracion" && sesionAdmin && (
             <section style={tarjeta}>
@@ -170,16 +203,6 @@ export default function App() {
 
           {vista === "padron" && sesionAdmin && <AgregarVotante onVolver={() => ir("configuracion")} />}
           {vista === "candidatos" && sesionAdmin && <AgregarCandidatos onVolver={() => ir("configuracion")} />}
-          {vista === "resultados" && sesionAdmin && <Resultados token={sesionAdmin.token} onSalir={() => ir("inicio")} />}
-
-          {vista === "votacion" && (
-            <section>
-              {pasoVotacion === "autenticar" && <AutenticarVotante onAutenticado={(datos) => { setSesionEstudiante(datos); setPasoVotacion("identificado"); }} onSalir={() => ir("inicio")} />}
-              {pasoVotacion === "identificado" && sesionEstudiante && <VotanteIdentificado estudiante={sesionEstudiante.estudiante} onVotar={() => setPasoVotacion("papeleta")} onSalir={finalizarVotacion} />}
-              {pasoVotacion === "papeleta" && sesionEstudiante && <ListasCandidatos token={sesionEstudiante.token} estudiante={sesionEstudiante.estudiante} onFinalizar={finalizarVotacion} onSalir={finalizarVotacion} />}
-            </section>
-          )}
-
           {vista !== "inicio" && (
             <button style={{ ...boton, marginTop: 20 }} onClick={volver}>← Volver {vista === "padron" || vista === "candidatos" ? "a configuración" : "al inicio"}</button>
           )}
