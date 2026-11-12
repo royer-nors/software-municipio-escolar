@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const carpeta = await mkdtemp(path.join(tmpdir(), "municipio-electoral-revision-"));
@@ -17,8 +18,17 @@ const pendientes = new Map();
 const handlers = new Map();
 let secuencia = 0, sesion;
 const origen = "http://127.0.0.1:4179";
+const sharp = createRequire(path.join(raiz, "../backend/package.json"))("sharp");
+const pngPrueba = await readFile(path.join(raiz, "public/logoo.png"));
+const imagenPrueba = await sharp(pngPrueba).webp().toBuffer();
+const logoPrueba = "/api/archivos/logo-prueba.webp";
+const fotoPrueba = "/api/archivos/foto-prueba.webp";
+const candidaturas = [];
 const dormir = ms => new Promise(resolve => setTimeout(resolve, ms));
 const votos = [];
+const importaciones = [];
+const altas = [];
+let modoImportacion = "normal";
 let modoVoto = "normal", modoResultados = "normal";
 let configuracion = { votacionAbierta: true, votoBlancoHabilitado: true };
 const listas = [
@@ -27,10 +37,11 @@ const listas = [
   { id: 45, nombre: "Ideas que transforman", candidatos: [{ id: 5, nombre: "Candidatura E" }] },
   { id: 66, nombre: "La fuerza de todos", candidatos: [{ id: 6, nombre: "Candidatura F" }] },
 ];
+listas.forEach((l, i) => { l.numero = i + 1; l.logoUrl = logoPrueba; l.candidatos.forEach((c, j) => { c.fotoUrl = fotoPrueba; if (!j) c.cargo = "Alcalde escolar"; }); });
 function reporte() {
   return { generadoEn: "2026-11-10T14:30:00Z",
     resumen: { estudiantesHabilitados: 1200, votosEmitidos: 1000, votosValidos: 1000, votosEnBlanco: 0, votosNulos: 0, noVotaron: 200, participacion: 83.3 },
-    listas: listas.map((l, i) => ({ nombre: l.nombre, votos: [501, 328, 104, 67][i], porcentaje: [50.1, 32.8, 10.4, 6.7][i], posicion: i + 1 })),
+    listas: listas.map((l, i) => ({ id: l.id, numero: l.numero, nombre: l.nombre, logoUrl: l.logoUrl, candidatos: l.candidatos, votos: [501, 328, 104, 67][i], porcentaje: [50.1, 32.8, 10.4, 6.7][i], posicion: i + 1 })),
   };
 }
 function enviar(method, params = {}, sessionId = sesion) {
@@ -43,7 +54,7 @@ function enviar(method, params = {}, sessionId = sesion) {
 }
 async function evaluar(expression) {
   const r = await enviar("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true });
-  if (r.exceptionDetails) throw new Error(r.exceptionDetails.text);
+  if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
   return r.result.value;
 }
 async function esperar(expression) {
@@ -114,6 +125,11 @@ try {
   sesion = (await enviar("Target.attachToTarget", { targetId, flatten: true })).sessionId;
   handlers.set("Fetch.requestPaused", async ({ requestId, request }) => {
     const url = new URL(request.url);
+    if (url.pathname.startsWith("/api/archivos/")) {
+      await enviar("Fetch.fulfillRequest", { requestId, responseCode: url.pathname.includes('inexistente') ? 404 : 200,
+        responseHeaders: [{ name: "Content-Type", value: "image/webp" }, { name: "Access-Control-Allow-Origin", value: "*" }],
+        body: url.pathname.includes('inexistente') ? "" : imagenPrueba.toString("base64") }); return;
+    }
     if (url.origin === origen && !url.pathname.startsWith("/api/")) {
       await enviar("Fetch.continueRequest", { requestId }); return;
     }
@@ -124,7 +140,8 @@ try {
         { name: "Access-Control-Allow-Methods", value: "GET,POST,OPTIONS" },
       ] }); return;
     }
-    const body = request.postData ? JSON.parse(request.postData) : {};
+    const contentType = Object.entries(request.headers).find(([name]) => name.toLowerCase() === "content-type")?.[1] || "";
+    const body = request.postData && contentType.includes("application/json") ? JSON.parse(request.postData) : {};
     let status = 200, datos;
     if (url.pathname.endsWith("/auth/me")) datos = { administrador: { id: 1, usuario: "revision-aislada" } };
     else if (url.pathname.endsWith("/auth/login")) datos = { token: "admin-aislado", administrador: { id: 1, usuario: "revision-aislada" } };
@@ -132,6 +149,20 @@ try {
       if (body.dni === "11111111") { status = 409; datos = { mensaje: "El estudiante ya emitió su voto." }; }
       else datos = { token: "estudiante-aislado", habilitadoParaVotar: true, estudiante: { id: 1, dni: body.dni, nombre: "Estudiante de revisión aislada" } };
     }
+    else if (url.pathname.endsWith("/candidaturas")) {
+      candidaturas.push(request);
+      datos = { lista: { id: 88, numero: 7, nombre: "Lista desde formulario", logo_url: logoPrueba, candidatos: [{ id: 99, nombre: "Candidata desde formulario", foto_url: fotoPrueba }] } };
+      status = 201;
+    }
+    else if (url.pathname.endsWith("/padron/importar")) {
+      importaciones.push({ contentType, authorization: Object.entries(request.headers).find(([name]) => name.toLowerCase() === "authorization")?.[1] });
+      await dormir(250);
+      if (modoImportacion === "errores") { status = 422; datos = { mensaje: "El padrón contiene errores. No se importó ninguna fila.", errores: [{ fila: 2, campo: "dni", mensaje: "El DNI está repetido en el archivo." }] }; }
+      else if (modoImportacion === "bloqueado") { status = 409; datos = { mensaje: "No se puede reemplazar el padrón después de que haya comenzado la votación." }; }
+      else if (modoImportacion === "sesion") { status = 401; datos = { mensaje: "La sesión fue invalidada." }; }
+      else datos = { mensaje: "Padrón reemplazado correctamente.", total: 2, reemplazados: 1 };
+    }
+    else if (url.pathname.endsWith("/estudiantes") && request.method === "POST") { altas.push(body); status = 201; datos = { estudiante: { id: 7, ...body, activo: true, ya_voto: false } }; }
     else if (url.pathname.endsWith("/votacion/configuracion")) datos = configuracion;
     else if (url.pathname.endsWith("/listas")) datos = { listas };
     else if (url.pathname.endsWith("/votos")) {
@@ -150,6 +181,7 @@ try {
         datos.listas = datos.listas.map(l => ({ ...l, votos: 0, porcentaje: 0, posicion: null }));
       }
       if (modoResultados === "invalido") datos = { estudiantesHabilitados: 1200, listas: [] };
+      if (modoResultados === "imagen-rota") datos.listas[0].logoUrl = "/api/archivos/inexistente.webp";
     }
     else { await enviar("Fetch.failRequest", { requestId, errorReason: "BlockedByClient" }); return; }
     await enviar("Fetch.fulfillRequest", { requestId, responseCode: status,
@@ -245,9 +277,51 @@ try {
   if (await evaluar("document.body.innerText.includes('Configurar Sistema de Votación')")) {
     await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Gestionar estudiantes')).click()");
     await esperar("document.body.innerText.includes('Registrar Nuevo Votante')");
+    await escribir('input[name="dni"]', "01234567");
+    await escribir('input[name="nombres"]', "Ana");
+    await escribir('input[name="apellidos"]', "Torres");
+    await evaluar("document.querySelector('.gestion-padron form').requestSubmit()");
+    await esperar("document.querySelector('.gestion-padron .padron-exito')?.textContent.includes('registrado correctamente')");
+    assert.deepEqual(altas, [{ dni: "01234567", nombre: "Ana Torres", grado: "3°", seccion: "A" }]);
+    // Archivo de transporte aislado: la API está interceptada; no se importa en PostgreSQL.
+    await evaluar("(() => { const dt = new DataTransfer(); dt.items.add(new File(['prueba de transporte'], 'padron.xlsx')); const input = document.querySelector('#padron-archivo'); input.files = dt.files; input.dispatchEvent(new Event('change', { bubbles: true })); })()");
+    await esperar("document.querySelector('.padron-archivo-nombre')?.textContent === 'padron.xlsx'");
+    await click("Importar estudiantes");
+    await esperar("document.querySelector('dialog')?.textContent.includes('Se reemplazarán todos')");
+    assert.equal(importaciones.length, 0);
+    await click("Cancelar");
+    assert.equal(importaciones.length, 0);
+    await click("Importar estudiantes");
+    await evaluar("const btn=Array.from(document.querySelectorAll('button')).find(b=>b.textContent.trim()==='Confirmar importación'); btn.click(); btn.click()");
+    await esperar("document.querySelector('dialog')?.textContent.includes('Importando…')");
+    await esperar("document.querySelector('.padron-importacion .padron-exito')?.textContent.includes('2 estudiantes importados')");
+    assert.equal(importaciones.length, 1);
+    assert.ok(importaciones[0].contentType.includes('multipart/form-data; boundary='));
+    assert.equal(importaciones[0].authorization, 'Bearer admin-aislado');
+    await captura("10-importacion-excel");
+    for (const modo of ["errores", "bloqueado", "sesion"]) {
+      modoImportacion = modo;
+      await evaluar("(() => { const dt = new DataTransfer(); dt.items.add(new File(['prueba de transporte'], 'padron.xlsx')); const input = document.querySelector('#padron-archivo'); input.files = dt.files; input.dispatchEvent(new Event('change', { bubbles: true })); })()");
+      await click("Importar estudiantes"); await click("Confirmar importación");
+      await esperar("!document.querySelector('dialog') && Boolean(document.querySelector('.padron-importacion .padron-error'))");
+      assert.equal(await evaluar("document.querySelector('.padron-importacion .padron-exito') === null"), true);
+      if (modo === "errores") assert.equal(await evaluar("document.querySelector('.padron-errores')?.textContent.includes('El DNI está repetido')"), true);
+      if (modo === "bloqueado") assert.equal(await evaluar("document.querySelector('.padron-error')?.textContent.includes('comenzado la votación')"), true);
+    }
     await click("Volver");
     await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Agregar candidatos')).click()");
     await esperar("document.body.innerText.includes('Registrar Lista de Candidatos')");
+    await escribir('input[name="numeroLista"]', "7");
+    await escribir('input[name="nombreLista"]', "Lista desde formulario");
+    await escribir('input[name="candidatoAlcalde"]', "Candidata desde formulario");
+    await evaluar(`(() => { const raw = Uint8Array.from(atob('${pngPrueba.toString('base64')}'), c => c.charCodeAt(0));
+      document.querySelectorAll('.candidatura-imagen-campo input').forEach((input,i) => { const dt = new DataTransfer(); dt.items.add(new File([raw], i ? 'foto.png' : 'logo.png', {type:'image/png'})); input.files = dt.files; input.dispatchEvent(new Event('change', {bubbles:true})); }); })()`);
+    await esperar("document.querySelectorAll('.candidatura-vista-previa').length === 2");
+    await captura("11-candidaturas-vistas-previas");
+    await evaluar("document.querySelector('.candidatura-formulario form').requestSubmit()");
+    await esperar("Boolean(document.querySelector('.candidatura-exito'))");
+    assert.equal(candidaturas.length, 1);
+    await esperar("Array.from(document.querySelectorAll('.candidatura-exito img')).every(img=>img.complete && img.naturalWidth>0)");
     await click("Volver");
     await click("Ver resultados");
   }
@@ -258,7 +332,22 @@ try {
   await captura("08-resultados");
   await evaluar("window.print=()=>{window.__impreso=true}");
   await click("Imprimir resultados");
-  assert.equal(await evaluar("window.__impreso"), true);
+  await esperar("window.__impreso === true");
+  assert.equal(await evaluar("Array.from(document.querySelectorAll('.electoral-ranking img')).every(img=>img.complete && img.naturalWidth>0)"), true);
+  const pdf = await enviar("Page.printToPDF", { printBackground: true, landscape: true, preferCSSPageSize: true });
+  const bytesPdf = Buffer.from(pdf.data, "base64");
+  assert.ok(bytesPdf.includes(Buffer.from("/Subtype /Image")));
+  await writeFile(path.join(carpeta, "resultados-A4.pdf"), bytesPdf);
+  await enviar("Emulation.setEmulatedMedia", { media: "print" });
+  assert.equal(await evaluar("Array.from(document.querySelectorAll('button')).every(b=>b.getClientRects().length===0)"), true);
+  await captura("12-reporte-impresion");
+  await enviar("Emulation.setEmulatedMedia", { media: "" });
+  modoResultados = "imagen-rota"; await click("Actualizar");
+  await esperar("document.querySelector('.imagen-electoral-fallo') !== null");
+  await evaluar("window.__impreso=false");
+  await click("Imprimir resultados");
+  await esperar("Boolean(document.querySelector('.electoral-error-impresion'))");
+  assert.equal(await evaluar("window.__impreso"), false);
   modoResultados = "empate"; await click("Actualizar");
   await esperar("Array.from(document.querySelectorAll('.electoral-resultado-cabecera strong')).map(x=>x.textContent).join(',')==='1.º lugar,1.º lugar,3.º lugar,3.º lugar'");
   modoResultados = "vacio"; await click("Actualizar");

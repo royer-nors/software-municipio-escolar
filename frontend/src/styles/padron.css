@@ -1,0 +1,26 @@
+.gestion-padron { color: #183759; text-align: left; color-scheme: light; }
+.gestion-padron *, .gestion-padron *::before, .gestion-padron *::after { box-sizing: border-box; }
+.gestion-padron .padron-formulario { border: 0; padding: 0; margin: 15px 0 0; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.gestion-padron button:disabled { opacity: .55; cursor: not-allowed; }
+.gestion-padron input, .gestion-padron select { color: #183759; background: #fff; border: 1px solid #b6cade; border-radius: 5px; }
+.gestion-padron button:focus-visible, .gestion-padron input:focus-visible, .gestion-padron select:focus-visible { outline: 3px solid #165eac; outline-offset: 3px; }
+.gestion-padron .padron-importacion { border-top: 1px solid #cbdced; margin-top: 28px; padding-top: 24px; }
+.gestion-padron .padron-importacion h3 { color: #1257a2; margin: 0 0 10px; font-size: 19px; }
+.gestion-padron .padron-importacion p { font-size: 13px; line-height: 1.6; margin: 8px 0; }
+.gestion-padron .padron-formato { color: #526d87; }
+.gestion-padron .padron-advertencia { padding: 12px; border: 1px solid #ead29c; background: #fff8e9; border-radius: 7px; color: #785517; }
+.gestion-padron .padron-archivo-fila { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 18px 0; }
+.gestion-padron .padron-seleccionar { padding: 10px 14px; border: 1px solid #a7c4e2; background: #edf5fe; color: #1257a2; border-radius: 6px; cursor: pointer; font: inherit; font-size: 13px; }
+.gestion-padron .padron-archivo-nombre { font-size: 12px; overflow-wrap: anywhere; color: #526d87; }
+.padron-importar { padding: 11px 17px; border: 0; background: #145aa6; color: #fff; border-radius: 6px; font: inherit; font-size: 14px; cursor: pointer; }
+.padron-importar:disabled { opacity: .55; cursor: not-allowed; }
+.padron-importar:focus-visible { outline: 3px solid #165eac; outline-offset: 3px; }
+.gestion-padron .padron-aviso { margin: 16px 0; padding: 13px; border-radius: 7px; border: 1px solid; font-size: 13px; overflow-wrap: anywhere; }
+.gestion-padron .padron-exito { color: #14663e; background: #eaf7ee; border-color: #b4dac2; }
+.gestion-padron .padron-error { color: #982b2b; background: #fff0f0; border-color: #e8bcbc; }
+.gestion-padron .padron-progreso { color: #145aa6; font-weight: 600; }
+.gestion-padron .padron-errores { max-height: 280px; overflow: auto; border: 1px solid #e2c5c5; border-radius: 7px; margin-top: 16px; }
+.gestion-padron .padron-errores table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.gestion-padron .padron-errores caption { padding: 12px; text-align: left; font-weight: 600; }
+.gestion-padron .padron-errores th, .gestion-padron .padron-errores td { padding: 9px; border-bottom: 1px solid #e3eaf2; text-align: left; }
+.gestion-padron .padron-errores thead { background: #edf4fb; }
