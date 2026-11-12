@@ -1,4 +1,5 @@
 import Avatar from "./Avatar";
+import ImagenElectoral from "./ImagenElectoral";
 import { TONOS } from "../utils/elecciones";
 
 export default function TarjetaLista({ lista, color, seleccionada, onElegir, disabled = false }) {
@@ -7,11 +8,12 @@ export default function TarjetaLista({ lista, color, seleccionada, onElegir, dis
     <label className={`tarjeta tarjeta-${color}${seleccionada ? " tarjeta-activa" : ""}${disabled ? " tarjeta-deshabilitada" : ""}`}>
       <input className="electoral-radio" type="radio" name="opcion-electoral" value={lista.id}
         checked={seleccionada} onChange={onElegir} disabled={disabled} aria-label={lista.nombre} />
-      <span className="electoral-tarjeta-superior"><span>{lista.numero ? `Lista ${lista.numero}` : "Lista electoral"}</span>
+      <span className="electoral-tarjeta-superior"><span>{lista.numero ? `Lista ${lista.numero}` : `ID ${lista.id}`}</span>
         <span className="electoral-selector" aria-hidden="true">{seleccionada ? "✓" : ""}</span></span>
-      <span className="tarjeta-retratos" aria-hidden="true">
+      {lista.logoUrl && <ImagenElectoral src={lista.logoUrl} className="electoral-logo-lista" alt={`Logo de ${lista.nombre}`} />}
+      <span className="tarjeta-retratos">
         {lista.candidatos.slice(0, 2).map(c => c.foto_url || c.fotoUrl
-          ? <img key={c.id} className="electoral-foto" src={c.foto_url || c.fotoUrl} alt="" />
+          ? <ImagenElectoral key={c.id} className="electoral-foto" src={c.foto_url || c.fotoUrl} alt={c.nombre} />
           : <Avatar key={c.id} tono={TONOS[color]} tam={64} />)}
       </span>
       <span className="tarjeta-nombre">{lista.nombre}</span>

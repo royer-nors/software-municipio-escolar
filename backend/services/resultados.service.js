@@ -30,7 +30,12 @@ function createResultadosService(resultadosRepository) {
           throw new Error("Hay candidatos sin una lista electoral definida.");
         }
         const votos = convertirConteo(lista.votos);
-        return { nombre: lista.nombre, votos, porcentaje: porcentaje(votos, validos) };
+        return { nombre: lista.nombre, votos, porcentaje: porcentaje(votos, validos),
+          ...(lista.id ? { id: lista.id } : {}), ...(lista.numero ? { numero: lista.numero } : {}),
+          ...(lista.logoUrl ? { logoUrl: lista.logoUrl } : {}),
+          ...(lista.propuestas?.length ? { propuestas: lista.propuestas } : {}),
+          ...(lista.candidatos ? { candidatos: lista.candidatos } : {}),
+        };
       });
       if (listas.reduce((total, lista) => total + lista.votos, 0) !== validos) {
         throw new Error("Los votos por lista no coinciden con el total válido.");

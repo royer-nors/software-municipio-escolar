@@ -84,8 +84,37 @@ La revisión cubre navegación, ID, doble clic, cambios de configuración antes 
 confirmar, elección cerrada, blanco deshabilitado, voto previo, respuesta incierta,
 empates, ausencia de votos, respuesta inválida, impresión y anchura móvil.
 
-El lint global conserva dos errores preexistentes de importaciones `React` sin uso
-en `AgregarVotante.jsx` y `AgregarCandidatos.jsx`; esos módulos no se modificaron.
+El lint global conserva una importación `React` sin uso en `AgregarCandidatos.jsx`.
+El formulario de votantes ahora permite registro manual real e importación Excel.
+
+## Importar padrón desde Excel
+
+En Configuración → Gestionar estudiantes se conserva el alta manual y se añade
+la sección de importación debajo de Guardar Votante. Usa la sesión administrativa
+actual, `VITE_API_URL` y `POST /api/padron/importar`, con un único campo `archivo`
+en FormData. El navegador genera automáticamente el boundary multipart.
+
+Selecciona un `.xlsx` de hasta 5 MiB y revisa el nombre antes de pulsar Importar
+estudiantes. El diálogo advierte que se reemplazarán TODOS los estudiantes y exige
+confirmación expresa. Antes de confirmar en un entorno real, comprueba que
+`GET /api/database` indique `db_municipio_escolar_pruebas`. El frontend no cambia
+la conexión de PostgreSQL ni elimina registros mediante otra operación.
+
+Formato recomendado en la primera hoja: `DNI | Nombre completo | Grado | Sección`.
+El DNI debe guardarse como texto para conservar ceros iniciales. La validación
+de contenido se mantiene en el backend: ocho dígitos, DNI no duplicados, nombres,
+longitudes y encabezados. Sus reglas y alias existentes no se modificaron.
+Los errores por fila se muestran en una tabla; con votos previos se presenta el
+409 del servidor. El éxito solo se muestra tras una respuesta verificable, con
+totales importados y reemplazados. No se reintentan escrituras automáticamente.
+
+El alta manual concatena nombres y apellidos en `nombre` y usa el endpoint
+existente `POST /api/estudiantes`, conservando DNI, grado y sección. Ya no utiliza
+`console.log` ni alertas para simular un guardado.
+
+La revisión aislada en Chrome también comprueba alta manual, selección del archivo,
+cancelación sin envío, doble clic, multipart/Bearer, importación aceptada y mensajes
+422, 409 y 401. Usa respuestas interceptadas; no importa archivos en la base real.
 
 Para una revisión manual segura, consultar resultados es de solo lectura. No
 confirmar un voto contra la base real para probar el diseño: usar la revisión

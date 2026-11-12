@@ -1,5 +1,18 @@
 /* Módulo electoral. Los estilos se limitan a .marco-electoral para conservar
    los formularios administrativos y el menú existentes. */
+.electoral-titulo-impreso { display: none; }
+.marco-electoral .electoral-total-votos { font-size: 12px; margin: 10px 0; color: #526d87; }
+.marco-electoral .electoral-ganadora { background: #edf6ee; border: 1px solid #c1dfc7; padding: 10px 14px; border-radius: 8px; font-size: 12px; margin: 14px 0; }
+.marco-electoral .electoral-candidato-resultado { margin: 10px 0 0; font-size: 12px; color: #183759; text-align: center; }
+.marco-electoral .electoral-candidato-resultado small { display: block; font-size: 10px; color: #526d87; }
+.marco-electoral .electoral-logo-lista { margin: 10px auto; width: 70px; height: 70px; }
+.marco-electoral .electoral-resultado > .electoral-logo-lista { display: grid; }
+.marco-electoral .imagen-electoral { display: inline-grid; place-items: center; width: 70px; height: 70px; flex: 0 0 auto; }
+.marco-electoral .imagen-electoral img { width: 100%; height: 100%; object-fit: contain; }
+.marco-electoral .imagen-electoral.electoral-foto { width: 64px; height: 64px; }
+.marco-electoral .imagen-electoral.electoral-foto img { object-fit: cover; border-radius: 50%; }
+.marco-electoral .imagen-electoral .imagen-electoral-fallo { display: none; }
+.marco-electoral .imagen-electoral > span { font-size: 10px; color: #982b2b; text-align: center; }
 .marco-electoral {
   --azul-noche: #0b2e69; --azul: #165eac; --verde: #11884d; --verde-osc: #0b703e;
   --fondo: #e4eaf2; --panel: #fff; --borde: #cad8e8; --tinta: #183759; --ok: #e7f5eb;
@@ -188,6 +201,8 @@
   .marco-electoral .electoral-titulo-con-icono h2 { font-size: 14px; }
 }
 @media print {
+  .marco-electoral .electoral-titulo-impreso { display: block; font-size: 18px; margin-bottom: 12px; }
+  .marco-electoral .electoral-encabezado-resultados, .marco-electoral .electoral-error-impresion { display: none; }
   @page { size: A4 landscape; margin: 12mm; }
   html, body, #root { background: #fff !important; color: #183759 !important; }
   .marco-electoral { min-height: 0; background: #fff; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
