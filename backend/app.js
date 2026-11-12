@@ -24,8 +24,12 @@ const { createUsuariosRouter } = require("./routes/usuarios.routes");
 const { createVotacionConfiguracionRepository } = require("./repositories/votacion-configuracion.repository");
 const { createVotacionConfiguracionService } = require("./services/votacion-configuracion.service");
 const { createVotacionConfiguracionRouter } = require("./routes/votacion-configuracion.routes");
+const { createImagenesStorage } = require("./services/imagenes-listas");
+const { createCandidaturasRepository } = require("./repositories/candidaturas.repository");
+const { createCandidaturasService } = require("./services/candidaturas.service");
+const { createCandidaturasRouter } = require("./routes/candidaturas.routes");
 
-function createApp({ pool, jwtSecret, limitesAcceso }) {
+function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createImagenesStorage() }) {
   const app = express();
   const administradorRepository = createAdministradorRepository(pool);
   const authService = createAuthService({ administradorRepository, jwtSecret });
@@ -39,6 +43,16 @@ function createApp({ pool, jwtSecret, limitesAcceso }) {
   });
   app.use(cors());
   app.use(express.json({ limit: "10kb" }));
+  app.get("/api/archivos/:nombre", (req, res) => {
+    if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.webp$/.test(req.params.nombre)) return res.sendStatus(404);
+    res.set({ "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; sandbox", "Content-Type": "image/webp" });
+    res.sendFile(req.params.nombre, { root: imagenesStorage.directory, dotfiles: "deny", immutable: true, maxAge: "1y" }, error => {
+      if (error && !res.headersSent) res.status(error.status === 404 ? 404 : 500).end();
+    });
+  });
+  app.use("/api/candidaturas", createCandidaturasRouter({
+    service: createCandidaturasService(createCandidaturasRepository(pool), imagenesStorage), autenticarAdministrador,
+  }));
   app.get("/api/estado", (req, res) => {
     res.json({ mensaje: "Servidor Municipio Escolar funcionando", estado: "activo" });
   });

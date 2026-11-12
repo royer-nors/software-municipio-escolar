@@ -1,0 +1,24 @@
+.candidatura-formulario { max-width: 740px; margin: auto; padding: 26px; border: 1px solid #c8daec; border-radius: 12px; background: #fff; color: #183759; text-align: left; }
+.candidatura-formulario * { box-sizing: border-box; }
+.candidatura-cabecera { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.candidatura-formulario h2 { font-size: 21px; color: #145aa6; }
+.candidatura-formulario > p { font-size: 13px; margin: 14px 0; color: #526d87; }
+.candidatura-formulario fieldset { display: grid; gap: 16px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.candidatura-formulario label { display: grid; gap: 7px; font-size: 14px; font-weight: 600; }
+.candidatura-formulario input { width: 100%; padding: 10px; border: 1px solid #b6cade; background: #f8fbff; color: #183759; border-radius: 6px; font: inherit; font-weight: 400; }
+.candidatura-formulario button { padding: 11px 16px; font: inherit; border: 0; border-radius: 6px; cursor: pointer; }
+.candidatura-formulario button[type=submit] { background: #145aa6; color: #fff; }
+.candidatura-formulario button:disabled { opacity: .5; cursor: not-allowed; }
+.candidatura-imagenes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.candidatura-imagen-campo { padding: 15px; background: #eef5fd; border: 1px solid #d0e0ef; border-radius: 8px; display: grid; align-content: start; gap: 10px; min-width: 0; }
+.candidatura-imagen-campo h3 { font-size: 14px; margin: 0; }
+.candidatura-imagen-campo p, .candidatura-imagen-campo > span { font-size: 11px; overflow-wrap: anywhere; }
+.candidatura-vista-previa { width: 120px; height: 120px; object-fit: contain; background: #fff; border-radius: 6px; }
+.candidatura-error, .candidatura-exito { padding: 15px; margin-top: 18px; border-radius: 8px; font-size: 13px; }
+.candidatura-error { background: #fff0f0; color: #982b2b; }
+.candidatura-exito { background: #eaf7ee; color: #14663e; }
+.imagen-electoral { display: inline-grid; place-items: center; width: 80px; height: 80px; flex: 0 0 auto; }
+.imagen-electoral img { width: 100%; height: 100%; object-fit: contain; }
+.imagen-electoral .imagen-electoral-fallo { display: none; }
+.imagen-electoral > span { font-size: 10px; color: #982b2b; text-align: center; }
+@media(max-width:600px) { .candidatura-formulario { padding: 18px; } .candidatura-imagenes { grid-template-columns: 1fr; } }

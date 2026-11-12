@@ -204,8 +204,8 @@ export default function App() {
             </section>
           )}
 
-          {vista === "padron" && sesionAdmin && <AgregarVotante onVolver={() => ir("configuracion")} />}
-          {vista === "candidatos" && sesionAdmin && <AgregarCandidatos onVolver={() => ir("configuracion")} />}
+          {vista === "padron" && sesionAdmin && <AgregarVotante token={sesionAdmin.token} onVolver={() => ir("configuracion")} />}
+          {vista === "candidatos" && sesionAdmin && <AgregarCandidatos token={sesionAdmin.token} onVolver={() => ir("configuracion")} />}
           {vista !== "inicio" && (
             <button style={{ ...boton, marginTop: 20 }} onClick={volver}>← Volver {vista === "padron" || vista === "candidatos" ? "a configuración" : "al inicio"}</button>
           )}

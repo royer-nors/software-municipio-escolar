@@ -17,14 +17,20 @@ function createListasService(listasRepository) {
           throw new Error("Los datos de la lista electoral están incompletos.");
         }
         if (!grupos.has(candidato.listaId)) {
-          grupos.set(candidato.listaId, { id: candidato.listaId, nombre: candidato.lista, candidatos: [] });
+          grupos.set(candidato.listaId, {
+            id: candidato.listaId, nombre: candidato.lista, candidatos: [],
+            ...(candidato.numero ? { numero: candidato.numero } : {}),
+            ...(candidato.logoUrl ? { logoUrl: candidato.logoUrl } : {}),
+            ...(candidato.propuestas?.length ? { propuestas: candidato.propuestas } : {}),
+          });
         }
         const grupo = grupos.get(candidato.listaId);
         if (grupo.nombre !== candidato.lista) throw new Error("La lista tiene nombres inconsistentes.");
-        grupo.candidatos.push({ id: candidato.id, nombre: candidato.nombre });
+        grupo.candidatos.push({ id: candidato.id, nombre: candidato.nombre,
+          ...(candidato.cargo ? { cargo: candidato.cargo } : {}), ...(candidato.fotoUrl ? { fotoUrl: candidato.fotoUrl } : {}) });
       }
-      const listas = [...grupos.values()].map(({ id, nombre, candidatos }) => ({
-        id, nombre, candidatos: candidatos.sort((a, b) => a.id - b.id),
+      const listas = [...grupos.values()].map(({ candidatos, ...lista }) => ({
+        ...lista, candidatos: candidatos.sort((a, b) => a.id - b.id),
       }));
       listas.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
       return { estado: "habilitado", listas };

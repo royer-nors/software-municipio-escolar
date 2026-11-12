@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import MarcoPantalla from "../components/MarcoPantalla";
 import Avatar from "../components/Avatar";
+import ImagenElectoral from "../components/ImagenElectoral";
+import { esperarImagenes } from "../utils/imagenes";
 import { obtenerResultados } from "../api/estudiantes";
 import { cantidad, coloresPorNombre, porcentaje, posicion, TONOS } from "../utils/elecciones";
 import "../styles/elecciones.css";
@@ -31,6 +33,9 @@ export default function Resultados({ token, onSalir }) {
   const tokenAdmin = token || sessionStorage.getItem("admin_token") || "";
   const [revision, setRevision] = useState(0);
   const [estado, setEstado] = useState({ data: null, error: "", cargando: true });
+  const [imprimiendo, setImprimiendo] = useState(false);
+  const [errorImpresion, setErrorImpresion] = useState("");
+  const reporte = useRef(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -46,6 +51,7 @@ export default function Resultados({ token, onSalir }) {
   }, [tokenAdmin, revision]);
 
   function actualizar() {
+    setErrorImpresion("");
     setEstado({ data: null, error: "", cargando: true });
     setRevision(v => v + 1);
   }
@@ -54,30 +60,50 @@ export default function Resultados({ token, onSalir }) {
   const resumen = data?.resumen;
   const colores = coloresPorNombre(data?.listas || []);
   const fechaReporte = data ? new Date(data.generadoEn).toLocaleString("es-PE", { timeZone: "America/Lima" }) : "";
+  const primeros = data?.listas.filter(l => l.posicion === 1) || [];
+  async function imprimir() {
+    if (imprimiendo) return;
+    setImprimiendo(true); setErrorImpresion("");
+    try { await esperarImagenes(reporte.current.closest('.marco')); window.print(); }
+    catch (e) { setErrorImpresion(e.message); }
+    finally { setImprimiendo(false); }
+  }
 
   return (
     <MarcoPantalla electoral onSalir={onSalir}>
-      <section className="electoral-resultados" aria-busy={cargando}>
+      <section ref={reporte} className="electoral-resultados" aria-busy={cargando}>
         <div className="electoral-encabezado-resultados">
           <div className="electoral-titulo-con-icono"><span className="electoral-icono" aria-hidden="true">▣</span>
             <div><h2>RESULTADOS DE LA ELECCIÓN</h2><p>Municipio Escolar · Resultados por lista</p></div></div>
           <div className="electoral-acciones">
-            <button type="button" className="btn-claro" disabled={cargando} onClick={actualizar}>Actualizar</button>
-            <button type="button" className="electoral-btn-azul" disabled={!data || cargando || Boolean(error)} onClick={() => window.print()}>Imprimir resultados</button>
+            <button type="button" className="btn-claro" disabled={cargando || imprimiendo} onClick={actualizar}>Actualizar</button>
+            <button type="button" className="electoral-btn-azul" disabled={!data || cargando || Boolean(error) || imprimiendo} onClick={imprimir}>{imprimiendo ? 'Preparando imágenes…' : 'Imprimir resultados'}</button>
           </div>
         </div>
         {cargando && <div className="estado" role="status"><span className="electoral-cargando" aria-hidden="true" />Consultando resultados del proceso electoral…</div>}
         {error && <div className="electoral-alerta electoral-alerta-error" role="alert"><strong>No se pudieron mostrar los resultados.</strong><p>{error}</p></div>}
+        {errorImpresion && <p role="alert" className="electoral-alerta electoral-alerta-error electoral-error-impresion">{errorImpresion}</p>}
         {!cargando && !error && data && <>
           <p className="electoral-fecha-reporte">Reporte generado: {fechaReporte} (hora de Perú)</p>
+          <h1 className="electoral-titulo-impreso">RESULTADOS DE ELECCIONES DEL MUNICIPIO ESCOLAR</h1>
+          <p className="electoral-total-votos">Total de votos registrados: <strong>{cantidad(resumen.votosEmitidos)}</strong></p>
+          {resumen.votosValidos > 0 && primeros.length > 0 && <p className="electoral-ganadora">
+            <strong>{primeros.length === 1 ? 'Lista ganadora según el conteo actual: ' : 'Empate en el primer lugar: '}</strong>{primeros.map(l => l.nombre).join(' · ')}
+          </p>}
           {data.listas.length === 0 && <p className="electoral-alerta">No hay listas electorales registradas para mostrar.</p>}
           <div className="electoral-ranking">
             {data.listas.map(lista => <article key={lista.nombre} className={`electoral-resultado tarjeta-${colores.get(lista.nombre)}`}>
-              <div className="electoral-resultado-cabecera"><span>Lista electoral</span><strong>{posicion(lista.posicion)}</strong></div>
-              <div className="electoral-resultado-cifras"><div className="electoral-avatares-ilustrativos" aria-hidden="true">
-                <Avatar tam={36} tono={TONOS[colores.get(lista.nombre)]} /><Avatar tam={36} tono={TONOS[colores.get(lista.nombre)]} />
+              <div className="electoral-resultado-cabecera"><span>{lista.numero ? `Lista ${lista.numero}` : lista.id ? `ID ${lista.id}` : 'Lista electoral'}</span><strong>{posicion(lista.posicion)}</strong></div>
+              {lista.logoUrl && <ImagenElectoral src={lista.logoUrl} alt={`Logo de ${lista.nombre}`} className="electoral-logo-lista" />}
+              <div className="electoral-resultado-cifras"><div className="electoral-avatares-ilustrativos">
+                {(() => { const candidato = lista.candidatos?.find(c => /alcald/i.test(c.cargo || '')) || lista.candidatos?.[0];
+                  return candidato?.fotoUrl
+                    ? <ImagenElectoral src={candidato.fotoUrl} alt={candidato.nombre} className="electoral-foto" />
+                    : <Avatar tam={36} tono={TONOS[colores.get(lista.nombre)]} />;
+                })()}
               </div><div><strong>{porcentaje(lista.porcentaje)}</strong><span>{cantidad(lista.votos)} votos</span></div></div>
               <h3>{lista.nombre}</h3>
+              {lista.candidatos?.filter((c, i) => /alcald/i.test(c.cargo || '') || i === 0).map(c => <p className="electoral-candidato-resultado" key={c.id}>{c.nombre}{c.cargo && <small>{c.cargo}</small>}</p>)}
             </article>)}
           </div>
           <div className="electoral-estadisticas">
