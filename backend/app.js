@@ -72,7 +72,7 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
   app.use("/api/administradores", createUsuariosRouter({ service: administradoresService, autenticarAdministrador, entidad: "administrador" }));
   app.use("/api/estudiantes", createUsuariosRouter({ service: estudiantesService, autenticarAdministrador, entidad: "estudiante" }));
   app.use("/api/borrado-datos", createBorradoDatosRouter({
-    service: createBorradoDatosService(createBorradoDatosRepository(pool)), autenticarAdministrador,
+    service: createBorradoDatosService(createBorradoDatosRepository(pool), administradorRepository), autenticarAdministrador,
   }));
   const resultadosService = createResultadosService(createResultadosRepository(pool));
   app.use("/api/resultados", createResultadosRouter({ resultadosService, autenticarAdministrador }));
