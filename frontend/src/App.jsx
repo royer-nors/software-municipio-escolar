@@ -16,6 +16,8 @@ import Resultados from "./pages/Resultados";
 
 import ConfigurarCentroEducativo from "./components/ConfigurarCentroEducativo";
 import ControlVotacion from "./components/ControlVotacion";
+import ConfigurarVotoBlanco from "./components/ConfigurarVotoBlanco";
+import ConfigurarSeguridad from "./components/ConfigurarSeguridad";
 
 const API =
   import.meta.env.VITE_API_URL || "http://localhost:3000/api";
@@ -102,6 +104,9 @@ export default function App() {
   const [mostrarCentro, setMostrarCentro] =
     useState(false);
 
+  const [mostrarVotoBlanco, setMostrarVotoBlanco] = useState(false);
+  const [mostrarSeguridad, setMostrarSeguridad] = useState(false);
+
   // Verificar sesión del administrador.
   useEffect(() => {
     const token = sessionStorage.getItem("admin_token");
@@ -156,6 +161,8 @@ export default function App() {
     }
 
     setMostrarCentro(false);
+    setMostrarVotoBlanco(false);
+    setMostrarSeguridad(false);
     setMensaje("");
     setVista(nuevaVista);
   }
@@ -167,6 +174,8 @@ export default function App() {
     setSesionAdmin(null);
     setDestino(null);
     setMostrarCentro(false);
+    setMostrarVotoBlanco(false);
+    setMostrarSeguridad(false);
 
     finalizarVotacion();
     ir("inicio");
@@ -227,12 +236,25 @@ export default function App() {
       return;
     }
 
+    if (id === "blanco") {
+      setMostrarVotoBlanco(true);
+      setMensaje("");
+      return;
+    }
+
+    if (id === "seguridad") {
+      setMostrarSeguridad(true);
+      setMensaje("");
+      return;
+    }
+
     if (id !== "borrar") {
       setMensaje(
         "Esta opción está pendiente de integración."
       );
     }
   }
+
 
   // Regresar a la pantalla anterior.
   function volver() {
@@ -508,6 +530,7 @@ export default function App() {
                           {nombre}
                         </strong>
 
+
                         <small
                           style={{
                             display: "block",
@@ -555,6 +578,25 @@ export default function App() {
             )}
 
           {vista === "control-votacion" && sesionAdmin && <ControlVotacion token={sesionAdmin.token} />}
+
+          {/* CONFIGURAR VOTO EN BLANCO */}
+          {vista === "configuracion" &&
+            sesionAdmin &&
+            mostrarVotoBlanco && (
+              <ConfigurarVotoBlanco
+                onVolver={() => setMostrarVotoBlanco(false)}
+              />
+            )}
+
+          {/* SEGURIDAD: CAMBIAR CONTRASEÑA */}
+          {vista === "configuracion" &&
+            sesionAdmin &&
+            mostrarSeguridad && (
+              <ConfigurarSeguridad
+                token={sesionAdmin.token}
+                onVolver={() => setMostrarSeguridad(false)}
+              />
+            )}
 
           {/* GESTIÓN DE ESTUDIANTES */}
           {vista === "padron" &&
