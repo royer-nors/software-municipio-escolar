@@ -462,7 +462,10 @@ test("el código del módulo y las migraciones de auditoría no usan DROP ni TRU
     path.join(__dirname, "../../database/migrations/008_auditoria_intentos_no_autenticados.sql"),
     path.join(__dirname, "../../database/migrations/009_consumo_simulaciones_borrado_datos.sql"),
   ];
-  assert.equal((await db.query("SELECT COUNT(*)::int AS total FROM esquema_migraciones")).rows[0].total, 9);
+  const versiones = (await db.query("SELECT version FROM esquema_migraciones")).rows.map(row => row.version);
+  for (const archivo of archivos.filter(archivo => archivo.endsWith(".sql"))) {
+    assert.ok(versiones.includes(path.basename(archivo)), `Migración de auditoría aplicada: ${archivo}`);
+  }
   for (const archivo of archivos) {
     const contenido = await readFile(archivo, "utf8");
     assert.doesNotMatch(contenido, /\bDROP\s+(?:DATABASE|TABLE)\b|\bTRUNCATE\b/i, archivo);

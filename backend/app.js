@@ -1,5 +1,9 @@
 const express = require("express");
 const cors = require("cors");
+const { configurarRed } = require("./config/red");
+const { createComputadorasRepository } = require("./repositories/computadoras.repository");
+const { createComputadorasService } = require("./services/computadoras.service");
+const { createComputadorasRouter } = require("./routes/computadoras.routes");
 const { createAdministradorRepository } = require("./repositories/administrador.repository");
 const { createAuthService } = require("./services/auth.service");
 const { createAutenticacionMiddleware, createAutenticacionEstudianteMiddleware } = require("./middleware/autenticacion");
@@ -32,7 +36,7 @@ const { createBorradoDatosRepository } = require("./repositories/borrado-datos.r
 const { createBorradoDatosService } = require("./services/borrado-datos.service");
 const { createBorradoDatosRouter } = require("./routes/borrado-datos.routes");
 
-function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createImagenesStorage() }) {
+function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createImagenesStorage(), red = configurarRed() }) {
   const app = express();
   const administradorRepository = createAdministradorRepository(pool);
   const authService = createAuthService({ administradorRepository, jwtSecret });
@@ -44,7 +48,18 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
   const estudianteAuthService = createEstudianteAuthService({
     estudianteRepository: createEstudianteRepository(pool), jwtSecret, configuracionRepository: votacionConfiguracionRepository,
   });
-  app.use(cors());
+  app.use((req, res, next) => {
+    const origen = req.get("Origin");
+    if (origen !== undefined && !red.origenes.includes(origen) && !(origen === "null" && red.permitirOrigenNull)) {
+      return res.status(403).json({ mensaje: "Origen no autorizado." });
+    }
+    return next();
+  });
+  app.use(cors({
+    origin: (origen, callback) => callback(null, origen ?? false),
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }));
   app.use(express.json({ limit: "10kb" }));
   app.get("/api/archivos/:nombre", (req, res) => {
     if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.webp$/.test(req.params.nombre)) return res.sendStatus(404);
@@ -71,6 +86,9 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
   app.use("/api/auth", createAuthRouter({ authService, estudianteAuthService, administradoresService, autenticarAdministrador, limitesAcceso }));
   app.use("/api/administradores", createUsuariosRouter({ service: administradoresService, autenticarAdministrador, entidad: "administrador" }));
   app.use("/api/estudiantes", createUsuariosRouter({ service: estudiantesService, autenticarAdministrador, entidad: "estudiante" }));
+  app.use("/api/computadoras", createComputadorasRouter({
+    service: createComputadorasService(createComputadorasRepository(pool)), autenticarAdministrador,
+  }));
   app.use("/api/borrado-datos", createBorradoDatosRouter({
     service: createBorradoDatosService(createBorradoDatosRepository(pool), administradorRepository), autenticarAdministrador,
   }));

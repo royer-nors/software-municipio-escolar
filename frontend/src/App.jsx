@@ -19,6 +19,7 @@ import ControlVotacion from "./components/ControlVotacion";
 import ConfigurarVotoBlanco from "./components/ConfigurarVotoBlanco";
 import ConfigurarSeguridad from "./components/ConfigurarSeguridad";
 import BorrarDatos from "./components/BorrarDatos";
+import GestionComputadoras from "./components/GestionComputadoras";
 
 const API =
   import.meta.env.VITE_API_URL || "http://localhost:3000/api";
@@ -43,6 +44,7 @@ const boton = {
 };
 
 const opcionesConfiguracion = [
+  ["computadoras", "▣", "Administrar computadoras", "Registrar equipos y asignar grados de secundaria."],
   ["control-votacion", "✓", "Control de votación", "Abrir o cerrar la votación y consultar su estado real."],
   [
     "centro",
@@ -231,6 +233,7 @@ export default function App() {
 
     if (
       id === "control-votacion" ||
+      id === "computadoras" ||
       id === "padron" ||
       id === "candidatos"
     ) {
@@ -267,6 +270,7 @@ export default function App() {
   function volver() {
     if (
       vista === "control-votacion" ||
+      vista === "computadoras" ||
       vista === "padron" ||
       vista === "candidatos" ||
       vista === "borrar"
@@ -574,6 +578,7 @@ export default function App() {
             )}
 
           {vista === "control-votacion" && sesionAdmin && <ControlVotacion token={sesionAdmin.token} />}
+          {vista === "computadoras" && sesionAdmin && <GestionComputadoras token={sesionAdmin.token} />}
 
           {vista === "borrar" && sesionAdmin && <BorrarDatos token={sesionAdmin.token} />}
 
@@ -641,6 +646,7 @@ export default function App() {
               ← Volver{" "}
               {[
                 "control-votacion",
+                "computadoras",
                 "padron",
                 "candidatos",
                 "borrar",
