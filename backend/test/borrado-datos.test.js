@@ -89,7 +89,12 @@ test("los endpoints requieren autenticación administrativa antes de consultar e
     method: "POST", body: { operacion: "solo_votos" }, credential: null,
   });
   assert.equal(simulation.response.status, 401);
-  assert.equal(consultas, beforeQuery);
+  assert.equal(consultas, beforeQuery + 1);
+  const unauthenticatedAudit = (await db.query("SELECT administrador_id, modo, resultado, detalle FROM auditoria_borrado_datos")).rows[0];
+  assert.equal(unauthenticatedAudit.administrador_id, null);
+  assert.equal(unauthenticatedAudit.modo, "simulacion");
+  assert.equal(unauthenticatedAudit.resultado, "fallido");
+  assert.equal(unauthenticatedAudit.detalle.motivo, "autenticacion_requerida");
 });
 
 test("el resumen informa cantidades y una simulación audita sin cambiar los datos", async () => {
@@ -143,17 +148,19 @@ test("el resumen informa cantidades y una simulación audita sin cambiar los dat
   assert.equal(JSON.stringify(audit).includes("ClaveSoloPruebas"), false);
 });
 
-test("rechaza operaciones desconocidas y simula el reinicio como pendiente de autorización adicional", async () => {
+test("audita operaciones desconocidas y simula el reinicio excepcional sin bloqueo pendiente", async () => {
   const invalid = await solicitar("simulacion", { method: "POST", body: { operacion: "otra" } });
   assert.equal(invalid.response.status, 400);
-  assert.equal((await db.query("SELECT COUNT(*)::int AS total FROM auditoria_borrado_datos")).rows[0].total, 0);
+  const invalidAudit = (await db.query("SELECT resultado, detalle FROM auditoria_borrado_datos")).rows[0];
+  assert.equal(invalidAudit.resultado, "fallido");
+  assert.equal(invalidAudit.detalle.motivo, "operacion_invalida");
 
   const exceptional = await solicitar("simulacion", {
     method: "POST", body: { operacion: "reinicio_pruebas" },
   });
   assert.equal(exceptional.response.status, 200);
-  assert.equal(exceptional.body.bloqueada, true);
+  assert.equal(exceptional.body.bloqueada, false);
   assert.equal(exceptional.body.requiereAutorizacionAdicional, true);
   assert.equal(exceptional.body.eliminacionReal, false);
-  assert.equal((await db.query("SELECT COUNT(*)::int AS total FROM auditoria_borrado_datos")).rows[0].total, 1);
+  assert.equal((await db.query("SELECT COUNT(*)::int AS total FROM auditoria_borrado_datos")).rows[0].total, 2);
 });
