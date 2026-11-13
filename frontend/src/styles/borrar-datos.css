@@ -1,0 +1,63 @@
+.borrar-datos {
+  display: grid;
+  gap: 18px;
+  color: #17345c;
+}
+
+.borrar-datos-encabezado,
+.borrar-datos-panel {
+  padding: 22px;
+  border: 1px solid #c0d6ef;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.borrar-datos-encabezado h2,
+.borrar-datos-panel h3 { margin: 0 0 10px; color: #0759b8; }
+.borrar-datos-encabezado p { margin: 6px 0 0; }
+.borrar-datos-etiqueta { color: #64748b; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.borrar-datos-panel > h3 { margin-bottom: 16px; }
+.borrar-datos-titulo-fila { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.borrar-datos-titulo-fila h3 { margin: 0; }
+
+.borrar-datos-cantidades { margin: 16px 0; }
+.borrar-datos-cantidades h3,
+.borrar-datos-cantidades h4 { margin: 0 0 10px; font-size: 15px; color: #17345c; }
+.borrar-datos-cantidades dl { display: grid; grid-template-columns: repeat(4, minmax(100px, 1fr)); gap: 10px; margin: 0; }
+.borrar-datos-cantidades dl > div { padding: 12px; border: 1px solid #d4e2f0; border-radius: 7px; background: #f7fbff; }
+.borrar-datos-cantidades dt { color: #52647a; font-size: 13px; }
+.borrar-datos-cantidades dd { margin: 4px 0 0; color: #0759b8; font-size: 23px; font-weight: 700; }
+
+.borrar-datos-aviso,
+.borrar-datos-mensaje,
+.borrar-datos-resultado { margin-top: 14px; padding: 13px 15px; border-radius: 7px; background: #edf5fd; border-left: 4px solid #0759b8; }
+.borrar-datos-aviso-error,
+.borrar-datos-error { color: #842029; background: #fff0f0; border-left-color: #bd2735; }
+.borrar-datos-resultado { background: #f4f9ff; }
+.borrar-datos-resultado h4 { margin: 0 0 8px; }
+.borrar-datos-resultado p { margin: 0; }
+.borrar-datos-resultado ul { margin-bottom: 0; }
+.borrar-datos-mensaje { color: #155724; background: #eef9f0; border-left-color: #258447; }
+.borrar-datos-error { color: #842029; background: #fff0f0; border-left-color: #bd2735; }
+
+.borrar-datos-campo { display: block; margin: 14px 0 6px; font-weight: 600; }
+.borrar-datos select,
+.borrar-datos-formulario input { box-sizing: border-box; width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid #aebed0; border-radius: 6px; color: #17345c; background: #fff; font: inherit; }
+.borrar-datos select { max-width: 650px; }
+.borrar-datos-boton { margin: 14px 10px 0 0; padding: 11px 18px; border: 0; border-radius: 7px; background: #0759b8; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.borrar-datos-boton.secundario { margin: 0; padding: 8px 13px; background: #e8f1fb; color: #0759b8; }
+.borrar-datos-boton.peligro { background: #b42332; }
+.borrar-datos-boton.peligro-oscuro { background: #751b25; }
+.borrar-datos-boton:disabled { opacity: .55; cursor: not-allowed; }
+.borrar-datos-ayuda { color: #5b6d82; font-size: 13px; }
+.borrar-datos-excepcional { border-color: #d6a3a8; }
+.borrar-datos-excepcional h3 { color: #842029; }
+.borrar-datos-formulario .dialogo-pregunta { margin-bottom: 12px; }
+
+@media (max-width: 640px) {
+  .borrar-datos-encabezado,
+  .borrar-datos-panel { padding: 16px; }
+  .borrar-datos-cantidades dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .borrar-datos-boton { width: 100%; margin-right: 0; }
+  .borrar-datos-titulo-fila { align-items: flex-start; }
+}
