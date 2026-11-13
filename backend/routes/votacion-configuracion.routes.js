@@ -1,5 +1,6 @@
 
 const { Router } = require("express");
+const { UsuariosError } = require("../errors/usuarios.error");
 
 function createVotacionConfiguracionRouter({
   votacionConfiguracionService,
@@ -34,22 +35,9 @@ function createVotacionConfiguracionRouter({
     res.set("Cache-Control", "no-store");
 
     const body = req.body ?? {};
-    const camposPermitidos = ["votacionAbierta", "votoBlancoHabilitado"];
-    const camposRecibidos = Object.keys(body);
-
-    if (
-      camposRecibidos.length === 0 ||
-      camposRecibidos.some(campo => !camposPermitidos.includes(campo)) ||
-      camposRecibidos.some(campo => typeof body[campo] !== "boolean")
-    ) {
-      return res.status(400).json({
-        mensaje: "Envía al menos una configuración válida de tipo booleano.",
-      });
-    }
-
     try {
       const configuracion =
-        await votacionConfiguracionService.actualizarConfiguracion(body);
+        await votacionConfiguracionService.actualizarConfiguracion(body, req.administrador);
 
       if (!configuracion) {
         return res.status(503).json({
@@ -61,7 +49,8 @@ function createVotacionConfiguracionRouter({
         mensaje: "Configuración actualizada correctamente.",
         configuracion,
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof UsuariosError) return res.status(error.status).json({ mensaje: error.message });
       return res.status(503).json({
         mensaje: "No se pudo actualizar la configuración de votación.",
       });

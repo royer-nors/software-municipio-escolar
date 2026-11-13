@@ -1,5 +1,7 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { obtenerConfiguracion } from "../api/estudiantes";
+import { guardarConfiguracionElectoral } from "../api/control-votacion";
 
 const estiloCampo = {
   width: "100%",
@@ -24,19 +26,58 @@ const datosIniciales = {
   institucion: "I.E. Micaela Bastidas Puyucahua",
   ubicacion: "Tamburco - Abancay - Apurímac",
   anio: "2026",
-  fecha: "2026-09-07",
+  fecha: "",
   horaInicio: "08:00",
   horaFin: "15:00",
+  automatica: false,
 };
 
-export default function ConfigurarCentroEducativo({ onVolver }) {
+export default function ConfigurarCentroEducativo({ onVolver, token }) {
   const [formulario, setFormulario] = useState(datosIniciales);
   const [mensaje, setMensaje] = useState("");
   const [tipoMensaje, setTipoMensaje] = useState("error");
+  const [configuracion, setConfiguracion] = useState(null);
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [estadoReal, setEstadoReal] = useState("");
+  const ocupado = useRef(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    obtenerConfiguracion(controller.signal).then(datos => {
+      if (controller.signal.aborted) return;
+      setConfiguracion(datos);
+      setEstadoReal(datos.estado);
+      setFormulario({ institucion: datos.institucion ?? datosIniciales.institucion,
+        ubicacion: datos.ubicacion ?? datosIniciales.ubicacion, anio: String(datos.anio ?? datosIniciales.anio),
+        fecha: datos.fecha ?? "", horaInicio: datos.horaInicio ?? "08:00", horaFin: datos.horaFin ?? "15:00",
+        automatica: datos.automatica === true });
+    }).catch(e => { if (!controller.signal.aborted) setMensaje(e.message); })
+      .finally(() => { if (!controller.signal.aborted) setCargando(false); });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function consultarEstado() {
+      if (ocupado.current) return;
+      try {
+        const actual = await obtenerConfiguracion(controller.signal);
+        if (controller.signal.aborted || ocupado.current) return;
+        setEstadoReal(actual.estado);
+        // Conserva la revisión del formulario para detectar ediciones de otro administrador.
+        setConfiguracion(previa => previa && previa.revision === actual.revision
+          ? { ...previa, estado: actual.estado, votacionAbierta: actual.votacionAbierta } : previa);
+      } catch { if (!controller.signal.aborted) setEstadoReal("No disponible; consulta de nuevo antes de guardar"); }
+    }
+    const intervalo = setInterval(consultarEstado, 20000);
+    window.addEventListener("focus", consultarEstado);
+    return () => { controller.abort(); clearInterval(intervalo); window.removeEventListener("focus", consultarEstado); };
+  }, []);
 
   useEffect(() => {
     function manejarTecla(evento) {
-      if (evento.key === "Escape") {
+      if (evento.key === "Escape" && !ocupado.current) {
         onVolver();
       }
     }
@@ -64,8 +105,9 @@ export default function ConfigurarCentroEducativo({ onVolver }) {
     setMensaje(texto);
   }
 
-  function guardar(evento) {
+  async function guardar(evento) {
     evento.preventDefault();
+    if (ocupado.current || !configuracion) return;
 
     if (
       !formulario.institucion.trim() ||
@@ -101,14 +143,19 @@ export default function ConfigurarCentroEducativo({ onVolver }) {
       return;
     }
 
-    // Demostración de frontend:
-    // Todavía no se guardan los datos en PostgreSQL.
-    setTipoMensaje("exito");
-    setMensaje(
-      "Datos y horario validados correctamente. Pendiente de conexión con el backend para guardar en la base de datos."
-    );
-
-    console.log("Configuración validada:", formulario);
+    if (!window.confirm("¿Guardar la configuración electoral? El horario automático se interpreta en America/Lima. Los votos existentes se conservan.")) return;
+    let motivo = "Configuración electoral desde el panel administrativo";
+    if (configuracion.votacionAbierta) {
+      motivo = window.prompt("La elección está abierta. Escribe el motivo del cambio; se registrará en la auditoría.")?.trim();
+      if (!motivo) { mostrarError("Es obligatorio indicar el motivo para modificar una elección abierta."); return; }
+    }
+    ocupado.current = true; setGuardando(true); setMensaje("");
+    try {
+      const actual = await guardarConfiguracionElectoral({ ...formulario, anio, revision: configuracion.revision,
+        confirmarCambioActivo: configuracion.votacionAbierta === true, motivo }, token);
+      setConfiguracion(actual); setEstadoReal(actual.estado); setTipoMensaje("exito"); setMensaje("Configuración electoral guardada correctamente en PostgreSQL.");
+    } catch (e) { mostrarError(e.message); }
+    finally { ocupado.current = false; setGuardando(false); }
   }
 
   return (
@@ -165,6 +212,7 @@ export default function ConfigurarCentroEducativo({ onVolver }) {
           <button
             type="button"
             onClick={onVolver}
+            disabled={guardando}
             aria-label="Cerrar ventana"
             style={{
               background: "transparent",
@@ -180,6 +228,7 @@ export default function ConfigurarCentroEducativo({ onVolver }) {
 
         {/* FORMULARIO */}
         <form onSubmit={guardar}>
+          <fieldset disabled={cargando || guardando || !configuracion} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
           <div style={{ padding: 24 }}>
             <p
               style={{
@@ -189,9 +238,14 @@ export default function ConfigurarCentroEducativo({ onVolver }) {
                 marginBottom: 28,
               }}
             >
-              Actualiza los datos institucionales y configura
-              el horario del proceso electoral.
+              Guarda los datos institucionales y el horario electoral en America/Lima.
+              El servidor central aplica el horario aunque esta ventana esté cerrada.
             </p>
+            {configuracion && <p role="status">Estado real: <strong>{estadoReal || configuracion.estado}</strong> · Modo {configuracion.automatica ? "automático" : "manual"}</p>}
+            <label style={{ display: "block", marginBottom: 20 }}>
+              <input type="checkbox" checked={formulario.automatica} onChange={e => setFormulario(f => ({ ...f, automatica: e.target.checked }))} /> Apertura y cierre automáticos
+            </label>
+            <p>Una orden manual de emergencia desactiva el horario automático hasta que vuelvas a activar esta opción y guardes.</p>
 
             {/* INSTITUCIÓN EDUCATIVA */}
             <div style={{ marginBottom: 20 }}>
@@ -431,10 +485,12 @@ export default function ConfigurarCentroEducativo({ onVolver }) {
                 fontWeight: 600,
               }}
             >
-              Guardar
+              {guardando ? "Guardando configuración…" : "Guardar configuración electoral"}
             </button>
           </div>
+          </fieldset>
         </form>
+        {cargando && <p role="status" style={{ padding: 20 }}>Consultando configuración guardada…</p>}
       </div>
     </div>
   );

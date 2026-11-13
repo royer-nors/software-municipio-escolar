@@ -9,7 +9,7 @@ function createCandidaturasRepository(pool) {
         await client.query("BEGIN");
         // Mismo orden que padrón; excluye el primer voto concurrente.
         await client.query("LOCK TABLE estudiantes, votos, listas, candidatos IN SHARE ROW EXCLUSIVE MODE");
-        const configuracion = (await client.query("SELECT votacion_abierta FROM configuracion_votacion WHERE id = 1 FOR SHARE")).rows[0];
+        const configuracion = (await client.query("SELECT estado_votacion(c) = 'Abierta' AS votacion_abierta FROM configuracion_votacion c WHERE id = 1 FOR SHARE")).rows[0];
         const estado = (await client.query(`SELECT EXISTS (SELECT 1 FROM votos) OR
           EXISTS (SELECT 1 FROM estudiantes WHERE ya_voto = TRUE) AS iniciado`)).rows[0];
         if (!configuracion) throw new UsuariosError(503, "La configuración electoral no está disponible.");

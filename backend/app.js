@@ -39,7 +39,7 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
   const administradoresService = createAdministradoresService(administradorRepository);
   const estudiantesService = createEstudiantesService(createEstudianteRepository(pool));
   const estudianteAuthService = createEstudianteAuthService({
-    estudianteRepository: createEstudianteRepository(pool), jwtSecret,
+    estudianteRepository: createEstudianteRepository(pool), jwtSecret, configuracionRepository: votacionConfiguracionRepository,
   });
   app.use(cors());
   app.use(express.json({ limit: "10kb" }));

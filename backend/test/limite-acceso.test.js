@@ -7,6 +7,7 @@ const secret = "secreto-de-pruebas-limites-no-usar-en-produccion";
 async function comprobar(run) {
   let consultas = 0;
   const pool = { async query(sql, values) {
+    if (sql.includes("estado_votacion")) return { rows: [{ estado: "Abierta", automatica: false, voto_blanco_habilitado: true }] };
     consultas++;
     return { rows: values[0] === "01234567" ? [{ id: 1, dni: values[0], nombre: "Estudiante", ya_voto: false, activo: true }] : [] };
   } };
