@@ -83,6 +83,7 @@ const opcionesConfiguracion = [
 ];
 
 export default function App() {
+  const [avisoSesion, setAvisoSesion] = useState("");
   const [vista, setVista] = useState("inicio");
 
   const [destino, setDestino] = useState(null);
@@ -320,7 +321,8 @@ export default function App() {
           ← Volver al inicio
         </button>
 
-        <LoginAdmin onLogin={loginCorrecto} />
+        {avisoSesion && <p role="status" style={{ padding: 16, color: azul }}>{avisoSesion}</p>}
+        <LoginAdmin onLogin={datos => { setAvisoSesion(""); loginCorrecto(datos); }} />
       </div>
     );
   }
@@ -580,6 +582,7 @@ export default function App() {
             sesionAdmin &&
             mostrarVotoBlanco && (
               <ConfigurarVotoBlanco
+                token={sesionAdmin.token}
                 onVolver={() => setMostrarVotoBlanco(false)}
               />
             )}
@@ -590,6 +593,12 @@ export default function App() {
             mostrarSeguridad && (
               <ConfigurarSeguridad
                 token={sesionAdmin.token}
+                onPasswordCambiada={() => {
+                  cerrarSesionAdmin();
+                  setAvisoSesion("Contraseña actualizada. Inicia sesión nuevamente con tu nueva contraseña.");
+                  setDestino("configuracion");
+                  setVista("acceso");
+                }}
                 onVolver={() => setMostrarSeguridad(false)}
               />
             )}

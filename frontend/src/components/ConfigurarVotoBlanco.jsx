@@ -1,13 +1,29 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { obtenerConfiguracion } from "../api/estudiantes";
+import { guardarConfiguracionElectoral } from "../api/control-votacion";
 
-export default function ConfigurarVotoBlanco({ onVolver }) {
+export default function ConfigurarVotoBlanco({ onVolver, token }) {
   const [habilitado, setHabilitado] = useState(false);
   const [mensaje, setMensaje] = useState("");
+  const [configuracion, setConfiguracion] = useState(null);
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [revision, setRevision] = useState(0);
+  const [esError, setEsError] = useState(false);
+  const ocupado = useRef(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    obtenerConfiguracion(controller.signal).then(datos => {
+      if (!controller.signal.aborted) { setConfiguracion(datos); setHabilitado(datos.votoBlancoHabilitado); }
+    }).catch(e => { if (!controller.signal.aborted) { setConfiguracion(null); setEsError(true); setMensaje(e.message); } })
+      .finally(() => { if (!controller.signal.aborted) setCargando(false); });
+    return () => controller.abort();
+  }, [revision]);
 
   useEffect(() => {
     function manejarTecla(evento) {
-      if (evento.key === "Escape") {
+      if (evento.key === "Escape" && !ocupado.current) {
         onVolver();
       }
     }
@@ -19,16 +35,16 @@ export default function ConfigurarVotoBlanco({ onVolver }) {
     };
   }, [onVolver]);
 
-  function guardar(evento) {
+  async function guardar(evento) {
     evento.preventDefault();
-
-    // Por ahora solamente se valida la selección.
-    // Falta conectar con el backend y PostgreSQL.
-    setMensaje(
-      `Opción seleccionada: voto en blanco ${
-        habilitado ? "habilitado" : "deshabilitado"
-      }. Pendiente de guardar en el servidor.`
-    );
+    if (ocupado.current || cargando || !configuracion || configuracion.votacionAbierta) return;
+    ocupado.current = true; setGuardando(true); setMensaje(""); setEsError(false);
+    try {
+      const actual = await guardarConfiguracionElectoral({ votoBlancoHabilitado: habilitado, revision: configuracion.revision }, token);
+      setConfiguracion(actual); setHabilitado(actual.votoBlancoHabilitado);
+      setMensaje(`Configuración guardada: voto en blanco ${actual.votoBlancoHabilitado ? "habilitado" : "deshabilitado"}.`);
+    } catch (e) { setEsError(true); setMensaje(e.message); }
+    finally { ocupado.current = false; setGuardando(false); }
   }
 
   const estiloOpcion = {
@@ -98,6 +114,7 @@ export default function ConfigurarVotoBlanco({ onVolver }) {
             type="button"
             onClick={onVolver}
             aria-label="Cerrar"
+            disabled={guardando}
             style={{
               border: "none",
               background: "transparent",
@@ -111,7 +128,13 @@ export default function ConfigurarVotoBlanco({ onVolver }) {
         </div>
 
         {/* Formulario */}
+        <div style={{ padding: "12px 24px 0" }}>
+          <button type="button" disabled={cargando || guardando} onClick={() => { setCargando(true); setMensaje(""); setRevision(r => r + 1); }}>Consultar configuración</button>
+          {cargando && <p role="status">Consultando configuración guardada…</p>}
+          {configuracion?.votacionAbierta && <p role="status">La votación está abierta. El voto en blanco solo se puede modificar fuera de la votación abierta.</p>}
+        </div>
         <form onSubmit={guardar}>
+          <fieldset disabled={cargando || guardando || !configuracion || !token} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
           <div style={{ padding: 24 }}>
             <p
               style={{
@@ -135,6 +158,7 @@ export default function ConfigurarVotoBlanco({ onVolver }) {
                 <input
                   type="radio"
                   name="votoBlanco"
+                  disabled={configuracion?.votacionAbierta}
                   checked={habilitado}
                   onChange={() => {
                     setHabilitado(true);
@@ -154,6 +178,7 @@ export default function ConfigurarVotoBlanco({ onVolver }) {
                 <input
                   type="radio"
                   name="votoBlanco"
+                  disabled={configuracion?.votacionAbierta}
                   checked={!habilitado}
                   onChange={() => {
                     setHabilitado(false);
@@ -182,7 +207,7 @@ export default function ConfigurarVotoBlanco({ onVolver }) {
 
             {mensaje && (
               <p
-                role="status"
+                role={esError ? "alert" : "status"}
                 style={{
                   marginTop: 15,
                   padding: 12,
@@ -226,6 +251,7 @@ export default function ConfigurarVotoBlanco({ onVolver }) {
 
             <button
               type="submit"
+              disabled={configuracion?.votacionAbierta}
               style={{
                 padding: "11px 32px",
                 background: "#175da9",
@@ -236,9 +262,10 @@ export default function ConfigurarVotoBlanco({ onVolver }) {
                 fontWeight: 600,
               }}
             >
-              Guardar
+              {guardando ? "Guardando…" : "Guardar"}
             </button>
           </div>
+          </fieldset>
         </form>
       </div>
     </div>

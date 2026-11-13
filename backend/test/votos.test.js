@@ -241,7 +241,6 @@ test("solo el administrador puede actualizar la configuración de votación", as
     },
     body: JSON.stringify({
       votacionAbierta: false,
-      votoBlancoHabilitado: false,
     }),
   });
 
@@ -249,7 +248,8 @@ test("solo el administrador puede actualizar la configuración de votación", as
 
   assert.equal(response.status, 200);
   assert.equal(body.configuracion.votacionAbierta, false);
-  assert.equal(body.configuracion.votoBlancoHabilitado, false);
+  assert.equal(body.configuracion.votoBlancoHabilitado, true);
+  assert.equal((await cambiarConfiguracion({votoBlancoHabilitado:false})).response.status,200);
 
   const consulta = await fetch(`${url}/api/votacion/configuracion`);
   const configuracion = await consulta.json();
