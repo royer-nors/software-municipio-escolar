@@ -18,6 +18,8 @@ import ConfigurarCentroEducativo from "./components/ConfigurarCentroEducativo";
 import ControlVotacion from "./components/ControlVotacion";
 import ConfigurarVotoBlanco from "./components/ConfigurarVotoBlanco";
 import ConfigurarSeguridad from "./components/ConfigurarSeguridad";
+import BorrarDatos from "./components/BorrarDatos";
+import GestionComputadoras from "./components/GestionComputadoras";
 
 const API =
   import.meta.env.VITE_API_URL || "http://localhost:3000/api";
@@ -42,6 +44,7 @@ const boton = {
 };
 
 const opcionesConfiguracion = [
+  ["computadoras", "▣", "Administrar computadoras", "Registrar equipos y asignar grados de secundaria."],
   ["control-votacion", "✓", "Control de votación", "Abrir o cerrar la votación y consultar su estado real."],
   [
     "centro",
@@ -77,7 +80,7 @@ const opcionesConfiguracion = [
     "borrar",
     "🗑️",
     "Borrar datos",
-    "Operación no habilitada por seguridad.",
+    "Simular y ejecutar limpieza de datos de prueba.",
   ],
 ];
 
@@ -230,6 +233,7 @@ export default function App() {
 
     if (
       id === "control-votacion" ||
+      id === "computadoras" ||
       id === "padron" ||
       id === "candidatos"
     ) {
@@ -249,6 +253,11 @@ export default function App() {
       return;
     }
 
+    if (id === "borrar") {
+      ir("borrar");
+      return;
+    }
+
     if (id !== "borrar") {
       setMensaje(
         "Esta opción está pendiente de integración."
@@ -261,8 +270,10 @@ export default function App() {
   function volver() {
     if (
       vista === "control-votacion" ||
+      vista === "computadoras" ||
       vista === "padron" ||
-      vista === "candidatos"
+      vista === "candidatos" ||
+      vista === "borrar"
     ) {
       ir("configuracion");
     } else {
@@ -483,9 +494,6 @@ export default function App() {
                     <button
                       key={id}
                       type="button"
-                      disabled={
-                        id === "borrar"
-                      }
                       onClick={() =>
                         seleccionarOpcion(id)
                       }
@@ -501,14 +509,6 @@ export default function App() {
                         padding: 12,
                         marginBottom: 7,
                         textAlign: "left",
-                        cursor:
-                          id === "borrar"
-                            ? "not-allowed"
-                            : "pointer",
-                        opacity:
-                          id === "borrar"
-                            ? 0.45
-                            : 1,
                       }}
                     >
                       <span
@@ -544,9 +544,7 @@ export default function App() {
                         </small>
                       </span>
 
-                      {id !== "borrar" && (
-                        <span>❯</span>
-                      )}
+                      <span>❯</span>
                     </button>
                   )
                 )}
@@ -580,6 +578,9 @@ export default function App() {
             )}
 
           {vista === "control-votacion" && sesionAdmin && <ControlVotacion token={sesionAdmin.token} />}
+          {vista === "computadoras" && sesionAdmin && <GestionComputadoras token={sesionAdmin.token} />}
+
+          {vista === "borrar" && sesionAdmin && <BorrarDatos token={sesionAdmin.token} />}
 
           {/* CONFIGURAR VOTO EN BLANCO */}
           {vista === "configuracion" &&
@@ -645,8 +646,10 @@ export default function App() {
               ← Volver{" "}
               {[
                 "control-votacion",
+                "computadoras",
                 "padron",
                 "candidatos",
+                "borrar",
               ].includes(vista)
                 ? "a configuración"
                 : "al inicio"}

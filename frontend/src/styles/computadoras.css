@@ -1,0 +1,13 @@
+.computadoras .padron-formulario { max-width: 580px; }
+.computadoras .padron-formulario legend { font-weight: 700; padding: 0; margin-bottom: 12px; }
+.computadoras input, .computadoras select { padding: 10px; font: inherit; width: 100%; }
+.computadoras input[readonly] { background: #edf5fd; }
+.computadoras-listado { margin-top: 28px; border-top: 1px solid #c0d6ef; padding-top: 12px; }
+.computadoras-tabla { overflow-x: auto; margin: 16px 0; }
+.computadoras table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.computadoras caption { text-align: left; font-weight: 600; padding: 10px 0; }
+.computadoras th, .computadoras td { padding: 12px; border-bottom: 1px solid #c0d6ef; text-align: left; overflow-wrap: anywhere; }
+.computadoras thead { background: #edf5fd; }
+.computadoras td:nth-child(2) { min-width: 140px; max-width: 240px; }
+.computadoras td:last-child { min-width: 190px; }
+.computadoras .computadoras-tabla button { padding: 8px 12px; }
