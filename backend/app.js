@@ -1,6 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const { configurarRed } = require("./config/red");
+const { createComputadorasRepository } = require("./repositories/computadoras.repository");
+const { createComputadorasService } = require("./services/computadoras.service");
+const { createComputadorasRouter } = require("./routes/computadoras.routes");
 const { createAdministradorRepository } = require("./repositories/administrador.repository");
 const { createAuthService } = require("./services/auth.service");
 const { createAutenticacionMiddleware, createAutenticacionEstudianteMiddleware } = require("./middleware/autenticacion");
@@ -83,6 +86,9 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
   app.use("/api/auth", createAuthRouter({ authService, estudianteAuthService, administradoresService, autenticarAdministrador, limitesAcceso }));
   app.use("/api/administradores", createUsuariosRouter({ service: administradoresService, autenticarAdministrador, entidad: "administrador" }));
   app.use("/api/estudiantes", createUsuariosRouter({ service: estudiantesService, autenticarAdministrador, entidad: "estudiante" }));
+  app.use("/api/computadoras", createComputadorasRouter({
+    service: createComputadorasService(createComputadorasRepository(pool)), autenticarAdministrador,
+  }));
   app.use("/api/borrado-datos", createBorradoDatosRouter({
     service: createBorradoDatosService(createBorradoDatosRepository(pool), administradorRepository), autenticarAdministrador,
   }));
