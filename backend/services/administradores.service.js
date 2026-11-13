@@ -24,6 +24,7 @@ function createAdministradoresService(repository) {
         throw new UsuariosError(400, "Contraseña actual inválida.");
       }
       v.password(body.passwordNueva);
+      if (body.passwordActual === body.passwordNueva) throw new UsuariosError(400, "La nueva contraseña debe ser diferente a la actual.");
       const admin = await repository.findById(id);
       if (!admin || !admin.activo || !(await bcrypt.compare(body.passwordActual, admin.password_hash))) {
         throw new UsuariosError(401, "La contraseña actual no es correcta o la cuenta no está activa.");
