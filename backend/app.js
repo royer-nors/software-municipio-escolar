@@ -28,6 +28,9 @@ const { createImagenesStorage } = require("./services/imagenes-listas");
 const { createCandidaturasRepository } = require("./repositories/candidaturas.repository");
 const { createCandidaturasService } = require("./services/candidaturas.service");
 const { createCandidaturasRouter } = require("./routes/candidaturas.routes");
+const { createBorradoDatosRepository } = require("./repositories/borrado-datos.repository");
+const { createBorradoDatosService } = require("./services/borrado-datos.service");
+const { createBorradoDatosRouter } = require("./routes/borrado-datos.routes");
 
 function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createImagenesStorage() }) {
   const app = express();
@@ -68,6 +71,9 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
   app.use("/api/auth", createAuthRouter({ authService, estudianteAuthService, administradoresService, autenticarAdministrador, limitesAcceso }));
   app.use("/api/administradores", createUsuariosRouter({ service: administradoresService, autenticarAdministrador, entidad: "administrador" }));
   app.use("/api/estudiantes", createUsuariosRouter({ service: estudiantesService, autenticarAdministrador, entidad: "estudiante" }));
+  app.use("/api/borrado-datos", createBorradoDatosRouter({
+    service: createBorradoDatosService(createBorradoDatosRepository(pool)), autenticarAdministrador,
+  }));
   const resultadosService = createResultadosService(createResultadosRepository(pool));
   app.use("/api/resultados", createResultadosRouter({ resultadosService, autenticarAdministrador }));
   const listasService = createListasService(createListasRepository(pool));
