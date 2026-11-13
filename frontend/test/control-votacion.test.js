@@ -4,6 +4,14 @@ import { cambiarEstadoVotacion, guardarConfiguracionElectoral } from "../src/api
 const original = globalThis.fetch;
 afterEach(() => { globalThis.fetch = original; });
 
+test("guardar voto en blanco conserva el horario y no envía una orden manual de apertura",async()=>{
+  globalThis.fetch=async(url,opciones)=>{
+    assert.deepEqual(JSON.parse(opciones.body),{votoBlancoHabilitado:false,revision:3});
+    return {ok:true,json:async()=>({configuracion:{votacionAbierta:false,votoBlancoHabilitado:false,automatica:true,revision:4}})};
+  };
+  assert.equal((await guardarConfiguracionElectoral({votoBlancoHabilitado:false,revision:3},"admin")).automatica,true);
+});
+
 test("guarda centro y programación por la misma ruta con revisión, confirmación y motivo", async () => {
   const datos = { institucion: "I.E.", ubicacion: "Abancay", anio: 2099, fecha: "2099-11-12", horaInicio: "08:00", horaFin: "15:00", automatica: true, revision: 3, confirmarCambioActivo: true, motivo: "Reprogramación acordada" };
   globalThis.fetch = async (url, opciones) => {

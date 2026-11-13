@@ -27,6 +27,9 @@ function createVotacionConfiguracionRepository(pool) {
         const estado = (await client.query(CONSULTA)).rows[0].estado;
         const programa = Object.hasOwn(datos, "institucion");
         const emergencia = Object.hasOwn(datos, "votacionAbierta");
+        if (Object.hasOwn(datos, "votoBlancoHabilitado") && datos.votoBlancoHabilitado !== anterior.voto_blanco_habilitado && estado === "Abierta") {
+          throw new UsuariosError(409, "No se puede cambiar el voto en blanco mientras la votación está abierta.");
+        }
         if ((programa && estado === "Abierta") || (emergencia && anterior.automatica)) {
           if (datos.confirmarCambioActivo !== true || !datos.motivo?.trim()) throw new UsuariosError(409, "Confirma el cambio y escribe un motivo: afecta una elección activa o reemplaza el horario automático.");
         }

@@ -70,6 +70,18 @@ test("programa, recupera datos y audita el administrador sin modificar padrón n
   assert.equal((await db.query("SELECT count(*)::int n FROM estudiantes")).rows[0].n,5);
 });
 
+test("voto en blanco se guarda, se recupera y su cambio se bloquea durante votación abierta",async()=>{
+  const cambiado=await api("/votacion/configuracion",{votoBlancoHabilitado:false,revision:0});
+  assert.equal(cambiado.status,200);
+  assert.equal((await api("/votacion/configuracion")).body.votoBlancoHabilitado,false);
+  await activarHoy();
+  const denegado=await api("/votacion/configuracion",{votoBlancoHabilitado:true,revision:1});
+  assert.equal(denegado.status,409);
+  assert.equal((await api("/votos",{listaId:null},token(false))).status,409);
+  assert.equal((await db.query("SELECT ya_voto FROM estudiantes WHERE id=1")).rows[0].ya_voto,false);
+  assert.equal((await api("/votacion/configuracion")).body.votoBlancoHabilitado,false);
+});
+
 test("límites exactos, cambio de fecha y zona de sesión distinta usan America/Lima", async () => {
   await api("/votacion/configuracion",programa());
   await db.exec("SET TIME ZONE 'Asia/Tokyo'");
