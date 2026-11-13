@@ -1,5 +1,6 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { cambiarPassword } from "../api/seguridad";
 
 const estiloCampo = {
   width: "100%",
@@ -20,7 +21,7 @@ const estiloEtiqueta = {
   marginBottom: 7,
 };
 
-export default function ConfigurarSeguridad({ onVolver }) {
+export default function ConfigurarSeguridad({ onVolver, token, onPasswordCambiada }) {
   const [formulario, setFormulario] = useState({
     actual: "",
     nueva: "",
@@ -28,12 +29,14 @@ export default function ConfigurarSeguridad({ onVolver }) {
   });
 
   const [mensaje, setMensaje] = useState("");
-  const [guardando] = useState(false);
-  const [guardado] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [guardado, setGuardado] = useState(false);
+  const [visibles, setVisibles] = useState({ actual: false, nueva: false, confirmar: false });
+  const ocupado = useRef(false);
 
   useEffect(() => {
     function manejarTecla(evento) {
-      if (evento.key === "Escape") onVolver();
+      if (evento.key === "Escape" && !ocupado.current) onVolver();
     }
 
     window.addEventListener("keydown", manejarTecla);
@@ -51,6 +54,7 @@ export default function ConfigurarSeguridad({ onVolver }) {
 
   async function guardar(evento) {
     evento.preventDefault();
+    if (ocupado.current) return;
 
     if (!formulario.actual || !formulario.nueva || !formulario.confirmar) {
       setMensaje("Completa todos los campos.");
@@ -72,11 +76,16 @@ export default function ConfigurarSeguridad({ onVolver }) {
       return;
     }
 
-    // El cambio real debe hacerse en el backend.
-    // Nunca guardamos contraseñas en localStorage ni en el navegador.
-    setMensaje(
-      "Formulario validado. Falta conectar el cambio de contraseña con el backend."
-    );
+    ocupado.current = true; setGuardando(true); setMensaje("");
+    try {
+      await cambiarPassword(formulario, token);
+      setFormulario({ actual: "", nueva: "", confirmar: "" });
+      setVisibles({ actual: false, nueva: false, confirmar: false });
+      sessionStorage.removeItem("admin_token");
+      setGuardado(true);
+      onPasswordCambiada?.();
+    } catch (error) { setMensaje(error.message); }
+    finally { ocupado.current = false; setGuardando(false); }
   }
 
   const estiloBoton = {
@@ -134,6 +143,7 @@ export default function ConfigurarSeguridad({ onVolver }) {
             type="button"
             onClick={onVolver}
             aria-label="Cerrar ventana"
+            disabled={guardando}
             style={{
               border: "none",
               background: "transparent",
@@ -149,7 +159,7 @@ export default function ConfigurarSeguridad({ onVolver }) {
         {guardado ? (
           <div style={{ padding: 24 }}>
             <p style={{ color: "#58718d", fontSize: 13 }}>
-              La operación se completó correctamente.
+              Contraseña actualizada. Tu sesión anterior ha sido invalidada.
             </p>
 
             <p
@@ -174,12 +184,13 @@ export default function ConfigurarSeguridad({ onVolver }) {
                   border: "none",
                 }}
               >
-                Volver a configuración
+                Iniciar sesión nuevamente
               </button>
             </div>
           </div>
         ) : (
           <form onSubmit={guardar}>
+            <fieldset disabled={guardando || !token} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
             <div style={{ padding: 24 }}>
               <p
                 style={{
@@ -205,7 +216,7 @@ export default function ConfigurarSeguridad({ onVolver }) {
                   <input
                     id={`seguridad-${nombre}`}
                     name={nombre}
-                    type="password"
+                    type={visibles[nombre] ? "text" : "password"}
                     autoComplete={
                       nombre === "actual"
                         ? "current-password"
@@ -216,6 +227,12 @@ export default function ConfigurarSeguridad({ onVolver }) {
                     style={estiloCampo}
                     required
                   />
+                  <button type="button" aria-controls={`seguridad-${nombre}`} aria-pressed={visibles[nombre]}
+                    aria-label={`${visibles[nombre] ? "Ocultar" : "Mostrar"} ${etiqueta.toLowerCase()}`}
+                    onClick={() => setVisibles(previa => ({ ...previa, [nombre]: !previa[nombre] }))}
+                    style={{ marginTop: 6, color: "#0759b8", background: "white", border: "1px solid #b6d0ef", borderRadius: 5, padding: "5px 10px" }}>
+                    {visibles[nombre] ? "Ocultar" : "Mostrar"}
+                  </button>
                 </div>
               ))}
 
@@ -269,6 +286,7 @@ export default function ConfigurarSeguridad({ onVolver }) {
                 {guardando ? "Guardando..." : "Guardar"}
               </button>
             </div>
+            </fieldset>
           </form>
         )}
       </div>
