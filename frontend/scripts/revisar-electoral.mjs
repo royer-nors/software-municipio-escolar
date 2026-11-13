@@ -137,7 +137,7 @@ try {
       await enviar("Fetch.fulfillRequest", { requestId, responseCode: 204, responseHeaders: [
         { name: "Access-Control-Allow-Origin", value: "*" },
         { name: "Access-Control-Allow-Headers", value: "authorization,content-type" },
-        { name: "Access-Control-Allow-Methods", value: "GET,POST,OPTIONS" },
+        { name: "Access-Control-Allow-Methods", value: "GET,POST,PATCH,OPTIONS" },
       ] }); return;
     }
     const contentType = Object.entries(request.headers).find(([name]) => name.toLowerCase() === "content-type")?.[1] || "";
@@ -163,7 +163,23 @@ try {
       else datos = { mensaje: "Padrón reemplazado correctamente.", total: 2, reemplazados: 1 };
     }
     else if (url.pathname.endsWith("/estudiantes") && request.method === "POST") { altas.push(body); status = 201; datos = { estudiante: { id: 7, ...body, activo: true, ya_voto: false } }; }
-    else if (url.pathname.endsWith("/votacion/configuracion")) datos = configuracion;
+    else if (url.pathname.endsWith("/votacion/configuracion")) {
+      if (request.method === "PATCH") {
+        assert.equal(Object.entries(request.headers).find(([k]) => k.toLowerCase() === "authorization")?.[1], "Bearer admin-aislado");
+        if (Object.hasOwn(body,"institucion")) {
+          assert.equal(body.fecha,"2099-11-12"); assert.equal(body.anio,2099);
+          assert.equal(body.horaInicio,"22:00"); assert.equal(body.horaFin,"23:00");
+          assert.equal(body.automatica,true); assert.equal(typeof body.revision,"number");
+        } else if (configuracion.automatica) {
+          assert.equal(body.confirmarCambioActivo,true); assert.ok(body.motivo);
+        } else assert.ok(Object.keys(body).every(k=>["votacionAbierta","revision"].includes(k)));
+        configuracion = { ...configuracion, ...body, revision: (configuracion.revision || 0) + 1 };
+        if (Object.hasOwn(body,"votacionAbierta")) configuracion.automatica=false;
+        configuracion.estado = configuracion.automatica ? "Programada" : configuracion.votacionAbierta ? "Abierta" : "Cerrada";
+        if (configuracion.automatica) configuracion.votacionAbierta=false;
+        datos = { configuracion, mensaje: "Configuración actualizada correctamente." };
+      } else datos = { revision:0, automatica:false, estado:configuracion.votacionAbierta ? "Abierta" : "Cerrada", ...configuracion };
+    }
     else if (url.pathname.endsWith("/listas")) datos = { listas };
     else if (url.pathname.endsWith("/votos")) {
       votos.push(body);
@@ -275,6 +291,43 @@ try {
   await evaluar("document.querySelector('form').requestSubmit()");
   await esperar("document.body.innerText.includes('Configurar Sistema de Votación') || document.querySelectorAll('.electoral-resultado').length === 4");
   if (await evaluar("document.body.innerText.includes('Configurar Sistema de Votación')")) {
+    await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Control de votación')).click()");
+    await esperar("document.querySelector('.control-votacion-estado')?.textContent === 'Votación abierta'");
+    await evaluar("window.confirm=()=>false");
+    await click("Cerrar votación");
+    assert.equal(configuracion.votacionAbierta, true);
+    await evaluar("window.confirm=()=>true");
+    await click("Cerrar votación");
+    await esperar("document.querySelector('.control-votacion-estado')?.textContent === 'Votación cerrada'");
+    assert.equal(configuracion.votacionAbierta, false);
+    await click("Consultar estado actual");
+    await esperar("Boolean(document.querySelector('.control-votacion button:not(:disabled)'))");
+    assert.equal(await evaluar("document.querySelector('.control-votacion-estado').textContent"), "Votación cerrada");
+    await click("Abrir votación");
+    await esperar("document.querySelector('.control-votacion-estado')?.textContent === 'Votación abierta'");
+    assert.equal(configuracion.votacionAbierta, true);
+    await click("← Volver a configuración");
+    await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Configurar centro educativo')).click()");
+    await esperar("document.querySelector('#centro-fecha') && !document.querySelector('#centro-fecha').disabled && !document.querySelector('#centro-fecha').closest('fieldset').disabled");
+    await evaluar("window.prompt=()=> 'Reprogramación de prueba aislada'");
+    await evaluar("(() => { const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; for(const [id,v] of [['centro-anio','2099'],['centro-fecha','12/11/2099'],['centro-hora-inicio','22:00'],['centro-hora-fin','23:00']]) { const el=document.getElementById(id); setter.call(el,v); el.dispatchEvent(new Event('input',{bubbles:true})); } document.querySelector('[aria-labelledby=\"titulo-centro\"] input[type=checkbox]').click(); })()");
+    await esperar("document.querySelector('.centro-horario-seleccionado').textContent.includes('12 de noviembre de 2099')");
+    await click("Guardar configuración electoral");
+    await esperar("document.querySelector('[aria-labelledby=\"titulo-centro\"]').innerText.includes('guardada correctamente en PostgreSQL')");
+    assert.equal(configuracion.automatica,true); assert.equal(configuracion.estado,"Programada");
+    await evaluar("document.querySelector('[aria-label=\"Cerrar ventana\"]').click()");
+    await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Configurar centro educativo')).click()");
+    await esperar("document.querySelector('#centro-fecha')?.value==='12/11/2099'");
+    assert.ok((await evaluar("document.querySelector('.centro-horario-guardado').textContent")).includes("22:00 a 23:00"));
+    assert.equal(await evaluar("document.querySelector('#centro-anio').value"),"2099");
+    assert.equal(await evaluar("document.querySelector('[aria-labelledby=\"titulo-centro\"] input[type=checkbox]').checked"),true);
+    await evaluar("document.querySelector('[aria-label=\"Cerrar ventana\"]').click()");
+    await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Control de votación')).click()");
+    await esperar("document.querySelector('.control-votacion')?.innerText.includes('Programada')");
+    await click("Abrir votación");
+    await esperar("document.querySelector('.control-votacion-estado')?.textContent === 'Votación abierta'");
+    assert.equal(configuracion.automatica,false);
+    await click("← Volver a configuración");
     await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Gestionar estudiantes')).click()");
     await esperar("document.body.innerText.includes('Registrar Nuevo Votante')");
     await escribir('input[name="dni"]', "01234567");
@@ -360,7 +413,7 @@ try {
   modoResultados = "invalido"; await click("Actualizar");
   await esperar("document.body.innerText.includes('resultados incompletos')");
   assert.equal(await evaluar("document.querySelectorAll('.electoral-resultado').length"), 0);
-  console.log("Revisión de navegador aprobada: navegación, ID, doble clic, restricciones, respuesta incierta, empates, impresión y móvil.");
+  console.log("Revisión de navegador aprobada: apertura/cierre con confirmación, navegación, ID, doble clic, restricciones, respuesta incierta, empates, impresión y móvil.");
   console.log("Capturas: " + carpeta);
   console.log("API externa interceptada; ninguna escritura ni conexión al backend real.");
 } finally {

@@ -15,6 +15,7 @@ import ListasCandidatos from "./pages/ListasCandidatos";
 import Resultados from "./pages/Resultados";
 
 import ConfigurarCentroEducativo from "./components/ConfigurarCentroEducativo";
+import ControlVotacion from "./components/ControlVotacion";
 import ConfigurarVotoBlanco from "./components/ConfigurarVotoBlanco";
 import ConfigurarSeguridad from "./components/ConfigurarSeguridad";
 
@@ -41,6 +42,7 @@ const boton = {
 };
 
 const opcionesConfiguracion = [
+  ["control-votacion", "✓", "Control de votación", "Abrir o cerrar la votación y consultar su estado real."],
   [
     "centro",
     "🏫",
@@ -110,7 +112,6 @@ export default function App() {
     const token = sessionStorage.getItem("admin_token");
 
     if (!token) {
-      setVerificando(false);
       return;
     }
 
@@ -227,6 +228,7 @@ export default function App() {
     }
 
     if (
+      id === "control-votacion" ||
       id === "padron" ||
       id === "candidatos"
     ) {
@@ -257,6 +259,7 @@ export default function App() {
   // Regresar a la pantalla anterior.
   function volver() {
     if (
+      vista === "control-votacion" ||
       vista === "padron" ||
       vista === "candidatos"
     ) {
@@ -567,11 +570,14 @@ export default function App() {
             sesionAdmin &&
             mostrarCentro && (
               <ConfigurarCentroEducativo
+                token={sesionAdmin.token}
                 onVolver={() =>
                   setMostrarCentro(false)
                 }
               />
             )}
+
+          {vista === "control-votacion" && sesionAdmin && <ControlVotacion token={sesionAdmin.token} />}
 
           {/* CONFIGURAR VOTO EN BLANCO */}
           {vista === "configuracion" &&
@@ -629,6 +635,7 @@ export default function App() {
             >
               ← Volver{" "}
               {[
+                "control-votacion",
                 "padron",
                 "candidatos",
               ].includes(vista)

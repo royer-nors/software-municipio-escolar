@@ -36,7 +36,7 @@ before(async () => {
 beforeEach(async () => {
   falloConexion = false;
   await db.exec(`
-    TRUNCATE votos, candidatos, listas, estudiantes RESTART IDENTITY CASCADE;
+    TRUNCATE votos, candidatos, listas, estudiantes, administradores RESTART IDENTITY CASCADE;
     INSERT INTO estudiantes (codigo, nombre) VALUES ('01234567', 'Estudiante A'), ('12345678', 'Estudiante B');
     INSERT INTO listas (id, nombre) VALUES (10, 'Lista A'), (20, 'Lista B');
     INSERT INTO candidatos (id, nombre, lista_id) VALUES (101, 'Candidato A', 10), (102, 'Candidata A', 10), (201, 'Candidato B', 20);
@@ -60,6 +60,46 @@ async function votar(body, credential = token()) {
   return { response, body: await response.json() };
 }
 async function totalVotos() { return (await db.query("SELECT COUNT(*)::int AS total FROM votos")).rows[0].total; }
+
+async function cambiarConfiguracion(body, credential = token("administrador")) {
+  await db.query("INSERT INTO administradores (id, usuario, password_hash) VALUES (1, 'admin', 'hash-de-prueba') ON CONFLICT (id) DO NOTHING");
+  const response = await fetch(`${url}/api/votacion/configuracion`, {
+    method: "PATCH", headers: { "Content-Type": "application/json", ...(credential ? { Authorization: `Bearer ${credential}` } : {}) },
+    body: JSON.stringify(body),
+  });
+  return { response, body: await response.json() };
+}
+
+test("cerrar y reabrir por API conserva votos e impide votar dos veces", async () => {
+  assert.equal((await cambiarConfiguracion({ votacionAbierta: false })).response.status, 200);
+  assert.equal((await votar({ listaId: 10 })).response.status, 409);
+  const abierta = await cambiarConfiguracion({ votacionAbierta: true });
+  assert.equal(abierta.body.configuracion.votacionAbierta, true);
+  assert.equal(abierta.body.configuracion.votoBlancoHabilitado, true);
+  assert.ok(abierta.body.configuracion.actualizadoEn);
+  assert.equal((await votar({ listaId: 10 })).response.status, 201);
+  const votos = (await db.query("SELECT * FROM votos ORDER BY id")).rows;
+  const estudiantes = (await db.query("SELECT * FROM estudiantes ORDER BY id")).rows;
+  assert.equal((await cambiarConfiguracion({ votacionAbierta: false })).body.configuracion.votacionAbierta, false);
+  assert.equal((await votar({ listaId: 20 }, token("estudiante", { subject: "2" }))).response.status, 409);
+  assert.equal((await cambiarConfiguracion({ votacionAbierta: true })).response.status, 200);
+  assert.equal((await votar({ listaId: 20 })).response.status, 409);
+  await db.query("UPDATE estudiantes SET activo = FALSE WHERE id = 2");
+  assert.equal((await votar({ listaId: 20 }, token("estudiante", { subject: "2" }))).response.status, 409);
+  assert.deepEqual((await db.query("SELECT * FROM votos ORDER BY id")).rows, votos);
+  assert.deepEqual((await db.query("SELECT * FROM estudiantes WHERE id = 1")).rows, [estudiantes[0]]);
+});
+
+test("el control rechaza estudiantes, sesiones inactivas y estados inválidos", async () => {
+  assert.equal((await cambiarConfiguracion({ votacionAbierta: false }, token())).response.status, 401);
+  for (const body of [{}, { votacionAbierta: "false" }, { horario: "08:00" }, { votacionAbierta: null }]) {
+    assert.equal((await cambiarConfiguracion(body)).response.status, 400);
+  }
+  await db.query("UPDATE administradores SET activo = FALSE WHERE id = 1");
+  try { assert.equal((await cambiarConfiguracion({ votacionAbierta: false })).response.status, 401); }
+  finally { await db.query("UPDATE administradores SET activo = TRUE WHERE id = 1"); }
+  assert.equal((await db.query("SELECT votacion_abierta FROM configuracion_votacion")).rows[0].votacion_abierta, true);
+});
 
 test("desde DNI y papeleta registra la lista completa y usa la identidad del token", async () => {
   const login = await fetch(`${url}/api/auth/estudiante`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dni: "01234567" }) });

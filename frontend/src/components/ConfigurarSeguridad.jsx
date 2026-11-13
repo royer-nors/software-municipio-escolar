@@ -20,7 +20,7 @@ const estiloEtiqueta = {
   marginBottom: 7,
 };
 
-export default function ConfigurarSeguridad({ onVolver, token }) {
+export default function ConfigurarSeguridad({ onVolver }) {
   const [formulario, setFormulario] = useState({
     actual: "",
     nueva: "",
@@ -28,8 +28,8 @@ export default function ConfigurarSeguridad({ onVolver, token }) {
   });
 
   const [mensaje, setMensaje] = useState("");
-  const [guardando, setGuardando] = useState(false);
-  const [guardado, setGuardado] = useState(false);
+  const [guardando] = useState(false);
+  const [guardado] = useState(false);
 
   useEffect(() => {
     function manejarTecla(evento) {

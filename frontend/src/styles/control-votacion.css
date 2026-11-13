@@ -1,0 +1,7 @@
+.control-votacion { background: #fff; border: 1px solid #c0d6ef; border-radius: 9px; padding: 24px; color: #17345c; }
+.control-votacion h2 { color: #0759b8; margin-top: 0; }
+.control-votacion-estado { padding: 16px; background: #edf5fd; border-left: 4px solid #0759b8; }
+.control-votacion-acciones { display: flex; flex-wrap: wrap; gap: 12px; }
+.control-votacion button { padding: 12px 20px; border: 0; border-radius: 7px; background: #0759b8; color: #fff; cursor: pointer; }
+.control-votacion button:disabled { opacity: .6; cursor: wait; }
+.control-votacion [role="alert"] { color: #a32727; }

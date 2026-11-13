@@ -9,6 +9,7 @@ let queryCount = 0;
 let lastValues;
 const pool = {
   async query(sql, values) {
+    if (sql.includes("estado_votacion")) return { rows: [{ estado: "Abierta", automatica: false, voto_blanco_habilitado: true }] };
     queryCount++;
     lastValues = values;
     if (values[0] === "99999999") throw new Error("Detalle privado de PostgreSQL");
