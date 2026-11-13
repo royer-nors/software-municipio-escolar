@@ -179,12 +179,13 @@ function createBorradoDatosService(repository, administradorRepository, config =
         return { operacion, modo, resultado: "ejecutado", cantidades: ejecucion.cantidades };
       } catch (error) {
         const bloqueado = error.bloqueo === true;
+        const obsoleta = error.codigo === "simulacion_obsoleta";
         await auditar(administrador, operacion, modo, bloqueado ? "bloqueado" : "fallido", {
           motivo: error.codigo || error.message || "error_de_ejecucion",
           cantidades: error.cantidades ?? null,
         });
         if (error instanceof BorradoDatosError) throw error;
-        throw new BorradoDatosError(bloqueado ? 409 : 500, bloqueado ? error.message : "No se pudo completar la eliminación.");
+        throw new BorradoDatosError(bloqueado || obsoleta ? 409 : 500, bloqueado || obsoleta ? error.message : "No se pudo completar la eliminación.");
       }
     },
 

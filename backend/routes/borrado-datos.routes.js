@@ -6,7 +6,7 @@ function createBorradoDatosRouter({ service, autenticarAdministrador }) {
   const autenticarBorrado = (modo = "eliminacion") => async (req, res, next) => {
     const jsonOriginal = res.json.bind(res);
     res.json = body => {
-      if (req.method === "POST" && res.statusCode === 401) {
+      if (res.statusCode === 401) {
         const operacion = OPERACIONES.includes(req.body?.operacion) ? req.body.operacion : null;
         return service.auditarIntentoNoAutenticado(operacion, modo)
           .catch(() => undefined)
@@ -21,7 +21,7 @@ function createBorradoDatosRouter({ service, autenticarAdministrador }) {
     return res.status(503).json({ mensaje: generico });
   };
 
-  router.get("/resumen", autenticarAdministrador, async (req, res) => {
+  router.get("/resumen", autenticarBorrado("simulacion"), async (req, res) => {
     res.set("Cache-Control", "no-store");
     try { return res.json(await service.obtenerResumen()); }
     catch { return res.status(503).json({ mensaje: "El resumen de datos electorales no está disponible." }); }
