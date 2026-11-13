@@ -1,6 +1,6 @@
 const { before, beforeEach, after, test } = require("node:test");
 const assert = require("node:assert/strict");
-const { readFile } = require("node:fs/promises");
+const { readdir, readFile } = require("node:fs/promises");
 const path = require("node:path");
 const bcrypt = require("bcryptjs");
 const { PGlite } = require("@electric-sql/pglite");
@@ -56,11 +56,17 @@ async function prepararVotacion() {
 }
 
 test("instala una base vacía y repetir las migraciones no duplica el esquema", async () => {
-  assert.equal((await migrar(pool)).length, 6);
+  const archivos = (await readdir(path.join(__dirname, "../../database/migrations")))
+    .filter(nombre => /^\d{3}_[a-z0-9_]+\.sql$/.test(nombre)).sort();
+  assert.ok(archivos.length > 0);
+  assert.deepEqual(await migrar(pool), archivos);
   assert.deepEqual(await migrar(pool), []);
+  const versiones = await db.query("SELECT version FROM esquema_migraciones ORDER BY version");
+  assert.deepEqual(versiones.rows.map(row => row.version), archivos);
   const tables = await db.query("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename");
   assert.deepEqual(tables.rows.map(row => row.tablename), [
   "administradores",
+  "auditoria_borrado_datos",
   "auditoria_configuracion_electoral",
   "candidatos",
   "configuracion_votacion",
@@ -141,8 +147,10 @@ test("datos anteriores inválidos abortan toda la migración y se conservan para
 test("impide volver a aplicar una migración cuyo checksum no coincide", async () => {
   await migrar(pool);
   await db.query("UPDATE esquema_migraciones SET checksum = $1 WHERE version = $2", ["alterado", "001_estructura_inicial.sql"]);
+  const antes = await db.query("SELECT * FROM esquema_migraciones ORDER BY version");
   await assert.rejects(migrar(pool), /cambió después de aplicarse/);
-  assert.equal((await db.query("SELECT COUNT(*)::int AS total FROM esquema_migraciones")).rows[0].total, 6);
+  const despues = await db.query("SELECT * FROM esquema_migraciones ORDER BY version");
+  assert.deepEqual(despues.rows, antes.rows);
 });
 
 test("la papeleta real usa los nombres de listas y candidatos del nuevo modelo", async () => {
