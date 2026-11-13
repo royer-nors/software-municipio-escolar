@@ -36,6 +36,7 @@ function createAuthRouter({ authService, estudianteAuthService, administradoresS
       const result = await estudianteAuthService.identificar(dni.trim());
       if (!result) return res.status(401).json({ mensaje: "El DNI no se encuentra habilitado en el padrón." });
       if (result.estado === "ya_voto") return res.status(409).json({ mensaje: "El estudiante ya emitió su voto." });
+      if (result.estado === "fuera_horario") return res.status(409).json({ mensaje: result.mensaje });
       return res.json(result.sesion);
     } catch {
       return res.status(503).json({ mensaje: "El servicio de identificación no está disponible." });
