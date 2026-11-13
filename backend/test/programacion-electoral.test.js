@@ -98,6 +98,26 @@ test("autenticación y cada voto respetan antes, durante y después, aun con JWT
   assert.equal((await db.query("SELECT ya_voto FROM estudiantes WHERE id=3")).rows[0].ya_voto,false);
 });
 
+test("jornada 12 de noviembre 22:00–23:00: límites exactos, UTC equivalente y emergencia manual", async () => {
+  await db.query(`UPDATE configuracion_votacion SET institucion='I.E.',ubicacion='Abancay',anio_electoral=2026,
+    fecha_votacion='2026-11-12',hora_inicio='22:00',hora_fin='23:00',automatica=TRUE`);
+  for (const [instante, esperado] of [
+    ["2026-11-12T21:59:59.999999-05:00","Programada"],
+    ["2026-11-12T22:00:00-05:00","Abierta"],
+    ["2026-11-12T22:30:19-05:00","Abierta"],
+    ["2026-11-13T03:30:19Z","Abierta"],
+    ["2026-11-12T22:59:59.999999-05:00","Abierta"],
+    ["2026-11-12T23:00:00-05:00","Finalizada"],
+    ["2026-11-13T00:00:00-05:00","Finalizada"],
+  ]) assert.equal((await db.query("SELECT estado_votacion(c,$1::timestamptz) estado FROM configuracion_votacion c",[instante])).rows[0].estado,esperado);
+  // La fecha realmente hallada en pgAdmin es diciembre, para ella Programada es correcto.
+  await db.query("UPDATE configuracion_votacion SET fecha_votacion='2026-12-11'");
+  assert.equal((await db.query("SELECT estado_votacion(c,'2026-11-12T22:30:19-05:00') estado FROM configuracion_votacion c")).rows[0].estado,"Programada");
+  const manual = await api("/votacion/configuracion",{votacionAbierta:true,confirmarCambioActivo:true,motivo:"Emergencia de pruebas"});
+  assert.equal(manual.status,200); assert.equal(manual.body.configuracion.automatica,false);
+  assert.equal((await db.query("SELECT estado_votacion(c,'2026-11-12T22:30:19-05:00') estado FROM configuracion_votacion c")).rows[0].estado,"Abierta");
+});
+
 test("edición activa y emergencia exigen confirmación, motivo y auditoría; reactivar devuelve el control al horario", async () => {
   await activarHoy();
   assert.equal((await api("/votacion/configuracion",programa())).status,409);

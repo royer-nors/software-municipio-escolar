@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { obtenerConfiguracion } from "../api/estudiantes";
 import { guardarConfiguracionElectoral } from "../api/control-votacion";
+import { fechaIsoDesdeTexto, fechaTextoDesdeIso, describirHorario } from "../utils/horario-electoral";
 
 const estiloCampo = {
   width: "100%",
@@ -27,13 +28,14 @@ const datosIniciales = {
   ubicacion: "Tamburco - Abancay - Apurímac",
   anio: "2026",
   fecha: "",
-  horaInicio: "08:00",
-  horaFin: "15:00",
+  horaInicio: "",
+  horaFin: "",
   automatica: false,
 };
 
 export default function ConfigurarCentroEducativo({ onVolver, token }) {
   const [formulario, setFormulario] = useState(datosIniciales);
+  const [fechaEntrada, setFechaEntrada] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [tipoMensaje, setTipoMensaje] = useState("error");
   const [configuracion, setConfiguracion] = useState(null);
@@ -48,9 +50,10 @@ export default function ConfigurarCentroEducativo({ onVolver, token }) {
       if (controller.signal.aborted) return;
       setConfiguracion(datos);
       setEstadoReal(datos.estado);
+      setFechaEntrada(fechaTextoDesdeIso(datos.fecha));
       setFormulario({ institucion: datos.institucion ?? datosIniciales.institucion,
         ubicacion: datos.ubicacion ?? datosIniciales.ubicacion, anio: String(datos.anio ?? datosIniciales.anio),
-        fecha: datos.fecha ?? "", horaInicio: datos.horaInicio ?? "08:00", horaFin: datos.horaFin ?? "15:00",
+        fecha: datos.fecha ?? "", horaInicio: datos.horaInicio ?? "", horaFin: datos.horaFin ?? "",
         automatica: datos.automatica === true });
     }).catch(e => { if (!controller.signal.aborted) setMensaje(e.message); })
       .finally(() => { if (!controller.signal.aborted) setCargando(false); });
@@ -91,10 +94,11 @@ export default function ConfigurarCentroEducativo({ onVolver, token }) {
 
   function cambiar(evento) {
     const { name, value } = evento.target;
+    if (name === "fecha") setFechaEntrada(value);
 
     setFormulario((anterior) => ({
       ...anterior,
-      [name]: value,
+      [name]: name === "fecha" ? fechaIsoDesdeTexto(value) : value,
     }));
 
     setMensaje("");
@@ -108,6 +112,10 @@ export default function ConfigurarCentroEducativo({ onVolver, token }) {
   async function guardar(evento) {
     evento.preventDefault();
     if (ocupado.current || !configuracion) return;
+    if (!fechaIsoDesdeTexto(fechaEntrada)) {
+      mostrarError("Ingresa una fecha válida en formato DD/MM/AAAA (día/mes/año).");
+      return;
+    }
 
     if (
       !formulario.institucion.trim() ||
@@ -143,7 +151,7 @@ export default function ConfigurarCentroEducativo({ onVolver, token }) {
       return;
     }
 
-    if (!window.confirm("¿Guardar la configuración electoral? El horario automático se interpreta en America/Lima. Los votos existentes se conservan.")) return;
+    if (!window.confirm(`¿Guardar la configuración electoral?\n${describirHorario(formulario)}\nModo: ${formulario.automatica ? "automático" : "manual"}. Los votos existentes se conservan.`)) return;
     let motivo = "Configuración electoral desde el panel administrativo";
     if (configuracion.votacionAbierta) {
       motivo = window.prompt("La elección está abierta. Escribe el motivo del cambio; se registrará en la auditoría.")?.trim();
@@ -242,6 +250,7 @@ export default function ConfigurarCentroEducativo({ onVolver, token }) {
               El servidor central aplica el horario aunque esta ventana esté cerrada.
             </p>
             {configuracion && <p role="status">Estado real: <strong>{estadoReal || configuracion.estado}</strong> · Modo {configuracion.automatica ? "automático" : "manual"}</p>}
+            {configuracion?.fecha && <p className="centro-horario-guardado"><strong>Horario guardado:</strong> {describirHorario(configuracion)}</p>}
             <label style={{ display: "block", marginBottom: 20 }}>
               <input type="checkbox" checked={formulario.automatica} onChange={e => setFormulario(f => ({ ...f, automatica: e.target.checked }))} /> Apertura y cierre automáticos
             </label>
@@ -325,18 +334,24 @@ export default function ConfigurarCentroEducativo({ onVolver, token }) {
                   htmlFor="centro-fecha"
                   style={estiloEtiqueta}
                 >
-                  Fecha de votación
+                  Fecha de votación (día/mes/año)
                 </label>
 
                 <input
                   id="centro-fecha"
                   name="fecha"
-                  type="date"
-                  value={formulario.fecha}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="DD/MM/AAAA"
+                  maxLength={10}
+                  pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}"
+                  aria-describedby="centro-fecha-ayuda"
+                  value={fechaEntrada}
                   onChange={cambiar}
                   style={estiloCampo}
                   required
                 />
+                <small id="centro-fecha-ayuda">Formato fijo: 12/11/2026 significa 12 de noviembre de 2026.</small>
               </div>
             </div>
 
@@ -384,7 +399,7 @@ export default function ConfigurarCentroEducativo({ onVolver, token }) {
                     htmlFor="centro-hora-inicio"
                     style={estiloEtiqueta}
                   >
-                    Hora de inicio
+                    Hora de inicio (America/Lima)
                   </label>
 
                   <input
@@ -404,7 +419,7 @@ export default function ConfigurarCentroEducativo({ onVolver, token }) {
                     htmlFor="centro-hora-fin"
                     style={estiloEtiqueta}
                   >
-                    Hora de finalización
+                    Hora de finalización (America/Lima)
                   </label>
 
                   <input
@@ -419,6 +434,8 @@ export default function ConfigurarCentroEducativo({ onVolver, token }) {
                 </div>
               </div>
             </div>
+
+            <p className="centro-horario-seleccionado"><strong>Horario que se enviará:</strong> {describirHorario(formulario)}</p>
 
             {/* MENSAJE DE VALIDACIÓN */}
             {mensaje && (

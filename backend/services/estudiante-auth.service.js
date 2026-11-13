@@ -13,7 +13,7 @@ function createEstudianteAuthService({ estudianteRepository, jwtSecret, configur
       if (configuracionRepository) {
         const config = await configuracionRepository.obtener();
         if (!config) throw new Error("Configuración no disponible");
-        if (config.automatica && !config.votacionAbierta) return { estado: "fuera_horario", mensaje: `Votación ${config.estado.toLowerCase()}. El horario electoral se interpreta en America/Lima.` };
+        if (config.automatica && !config.votacionAbierta) return { estado: "fuera_horario", mensaje: `Votación ${config.estado.toLowerCase()}. Fecha: ${config.fecha} (año-mes-día), de ${config.horaInicio} a ${config.horaFin}, America/Lima.` };
       }
 
       const token = jwt.sign({ rol: "estudiante" }, secret, {

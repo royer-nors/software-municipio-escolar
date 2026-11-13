@@ -168,6 +168,7 @@ try {
         assert.equal(Object.entries(request.headers).find(([k]) => k.toLowerCase() === "authorization")?.[1], "Bearer admin-aislado");
         if (Object.hasOwn(body,"institucion")) {
           assert.equal(body.fecha,"2099-11-12"); assert.equal(body.anio,2099);
+          assert.equal(body.horaInicio,"22:00"); assert.equal(body.horaFin,"23:00");
           assert.equal(body.automatica,true); assert.equal(typeof body.revision,"number");
         } else if (configuracion.automatica) {
           assert.equal(body.confirmarCambioActivo,true); assert.ok(body.motivo);
@@ -309,13 +310,15 @@ try {
     await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Configurar centro educativo')).click()");
     await esperar("document.querySelector('#centro-fecha') && !document.querySelector('#centro-fecha').disabled && !document.querySelector('#centro-fecha').closest('fieldset').disabled");
     await evaluar("window.prompt=()=> 'Reprogramación de prueba aislada'");
-    await evaluar("(() => { const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; for(const [id,v] of [['centro-anio','2099'],['centro-fecha','2099-11-12']]) { const el=document.getElementById(id); setter.call(el,v); el.dispatchEvent(new Event('input',{bubbles:true})); } document.querySelector('[aria-labelledby=\"titulo-centro\"] input[type=checkbox]').click(); })()");
+    await evaluar("(() => { const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; for(const [id,v] of [['centro-anio','2099'],['centro-fecha','12/11/2099'],['centro-hora-inicio','22:00'],['centro-hora-fin','23:00']]) { const el=document.getElementById(id); setter.call(el,v); el.dispatchEvent(new Event('input',{bubbles:true})); } document.querySelector('[aria-labelledby=\"titulo-centro\"] input[type=checkbox]').click(); })()");
+    await esperar("document.querySelector('.centro-horario-seleccionado').textContent.includes('12 de noviembre de 2099')");
     await click("Guardar configuración electoral");
     await esperar("document.querySelector('[aria-labelledby=\"titulo-centro\"]').innerText.includes('guardada correctamente en PostgreSQL')");
     assert.equal(configuracion.automatica,true); assert.equal(configuracion.estado,"Programada");
     await evaluar("document.querySelector('[aria-label=\"Cerrar ventana\"]').click()");
     await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Configurar centro educativo')).click()");
-    await esperar("document.querySelector('#centro-fecha')?.value==='2099-11-12'");
+    await esperar("document.querySelector('#centro-fecha')?.value==='12/11/2099'");
+    assert.ok((await evaluar("document.querySelector('.centro-horario-guardado').textContent")).includes("22:00 a 23:00"));
     assert.equal(await evaluar("document.querySelector('#centro-anio').value"),"2099");
     assert.equal(await evaluar("document.querySelector('[aria-labelledby=\"titulo-centro\"] input[type=checkbox]').checked"),true);
     await evaluar("document.querySelector('[aria-label=\"Cerrar ventana\"]').click()");

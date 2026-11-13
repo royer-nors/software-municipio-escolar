@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { obtenerConfiguracion } from "../api/estudiantes";
 import { cambiarEstadoVotacion } from "../api/control-votacion";
 import "../styles/control-votacion.css";
+import { describirHorario } from "../utils/horario-electoral";
 
 export default function ControlVotacion({ token }) {
   const [configuracion, setConfiguracion] = useState(null);
@@ -10,16 +11,21 @@ export default function ControlVotacion({ token }) {
   const [mensaje, setMensaje] = useState("");
   const [revision, setRevision] = useState(0);
   const ocupado = useRef(false);
+  const lecturaActual = useRef(0);
 
   useEffect(() => {
     const controller = new AbortController();
     function leer() {
       if (ocupado.current) return;
+      const lectura = ++lecturaActual.current;
       obtenerConfiguracion(controller.signal).then(datos => {
-      if (!controller.signal.aborted && !ocupado.current) setConfiguracion(previa => !previa || !Number.isInteger(previa.revision) || datos.revision >= previa.revision ? datos : previa);
+      if (!controller.signal.aborted && !ocupado.current && lectura === lecturaActual.current) {
+        setConfiguracion(previa => !previa || !Number.isInteger(previa.revision) || datos.revision >= previa.revision ? datos : previa);
+        setError("");
+      }
     }).catch(e => {
-      if (!controller.signal.aborted) { setConfiguracion(null); setError(e.message); }
-    }).finally(() => { if (!controller.signal.aborted && !ocupado.current) setCargando(false); });
+      if (!controller.signal.aborted && lectura === lecturaActual.current && !ocupado.current) { setConfiguracion(null); setError(e.message); }
+    }).finally(() => { if (!controller.signal.aborted && !ocupado.current && lectura === lecturaActual.current) setCargando(false); });
     }
     leer();
     const intervalo = setInterval(leer, 20000);
@@ -42,7 +48,7 @@ export default function ControlVotacion({ token }) {
       if (!motivo) { setError("Indica un motivo para reemplazar el horario automático."); return; }
       opciones = { motivo, confirmarCambioActivo: true, revision: configuracion.revision };
     }
-    ocupado.current = true; setCargando(true); setError(""); setMensaje("");
+    ocupado.current = true; ++lecturaActual.current; setCargando(true); setError(""); setMensaje("");
     try {
       const actual = await cambiarEstadoVotacion(abrir, token, opciones);
       setConfiguracion(actual);
@@ -58,7 +64,7 @@ export default function ControlVotacion({ token }) {
     <h2>Control de votación</h2>
     <p>La apertura y el cierre se guardan en PostgreSQL y conservan los votos registrados.</p>
     {cargando && <p role="status">Consultando o guardando el estado…</p>}
-    {configuracion && <p className="control-votacion-estado" role="status"><strong>{configuracion.votacionAbierta ? "Votación abierta" : "Votación cerrada"}</strong></p>}
+    {configuracion && <p className="control-votacion-estado" role="status"><strong>{configuracion.automatica ? configuracion.estado : configuracion.votacionAbierta ? "Votación abierta" : "Votación cerrada"}</strong></p>}
     {error && <p role="alert">{error}</p>}
     {mensaje && <p role="status">{mensaje}</p>}
     <div className="control-votacion-acciones">
@@ -66,6 +72,7 @@ export default function ControlVotacion({ token }) {
       <button type="button" disabled={cargando} onClick={consultar}>Consultar estado actual</button>
     </div>
     {configuracion?.estado && <p>Estado electoral: <strong>{configuracion.estado}</strong> · Modo {configuracion.automatica ? "automático" : "manual"} · America/Lima</p>}
+    {configuracion?.fecha && <p><strong>Horario guardado:</strong> {describirHorario(configuracion)}</p>}
     <p>El control manual de emergencia tiene prioridad y desactiva el horario automático. Para reactivarlo, guarda la opción Apertura y cierre automáticos en Configurar centro educativo.</p>
   </section>;
 }
