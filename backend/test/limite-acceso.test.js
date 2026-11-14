@@ -1,7 +1,7 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { once } = require("node:events");
-const { createApp } = require("../app");
+const { createLegacyRouterHarness: createApp } = require("../test-support/legacy-router-harness");
 const secret = "secreto-de-pruebas-limites-no-usar-en-produccion";
 
 async function comprobar(run) {

@@ -4,11 +4,11 @@ import TarjetaLista from "../components/TarjetaLista";
 import ConfirmarVoto from "../components/ConfirmarVoto";
 import VotoRegistrado from "../components/VotoRegistrado";
 import AtencionElectoral from "../components/AtencionElectoral";
-import { obtenerConfiguracion, obtenerListas, registrarVoto } from "../api/estudiantes";
+import * as apiEstudiantes from "../api/estudiantes";
 import { coloresPorNombre } from "../utils/elecciones";
 import "../styles/elecciones.css";
 
-export default function ListasCandidatos({ token, estudiante, onFinalizar, onSalir }) {
+export default function ListasCandidatos({ token, estudiante, onFinalizar, onSalir, api = apiEstudiantes, onRegistrado, onSesionInvalida }) {
   const [listas, setListas] = useState(null);
   const [configuracion, setConfiguracion] = useState(null);
   const [error, setError] = useState("");
@@ -22,17 +22,18 @@ export default function ListasCandidatos({ token, estudiante, onFinalizar, onSal
 
   useEffect(() => {
     const controller = new AbortController();
-    Promise.all([obtenerListas(token, controller.signal), obtenerConfiguracion(controller.signal)])
+    Promise.all([api.obtenerListas(token, controller.signal), api.obtenerConfiguracion(controller.signal)])
       .then(([datos, config]) => { if (!controller.signal.aborted) { setListas(datos); setConfiguracion(config); } })
       .catch(e => {
         if (controller.signal.aborted) return;
+        if (e.status === 401 && onSesionInvalida) { onSesionInvalida(e); return; }
         setError(e.message);
         if (e.status === 401 || e.status === 409) setAtencion({ mensaje: e.message });
       });
     // Solo consultas de lectura: la protección definitiva permanece en PostgreSQL.
     async function actualizarEstado() {
       try {
-        const config = await obtenerConfiguracion(controller.signal);
+        const config = await api.obtenerConfiguracion(controller.signal);
         if (!controller.signal.aborted) setConfiguracion(config);
       } catch {
         if (!controller.signal.aborted) setConfiguracion(null);
@@ -41,7 +42,7 @@ export default function ListasCandidatos({ token, estudiante, onFinalizar, onSal
     const intervalo = setInterval(actualizarEstado, 20000);
     window.addEventListener("focus", actualizarEstado);
     return () => { controller.abort(); clearInterval(intervalo); window.removeEventListener("focus", actualizarEstado); };
-  }, [token]);
+  }, [token, api, onSesionInvalida]);
 
   const abierta = configuracion?.votacionAbierta === true;
   const seleccionValida = seleccion?.tipo === "lista"
@@ -62,15 +63,18 @@ export default function ListasCandidatos({ token, estudiante, onFinalizar, onSal
     setErrorVoto("");
     try {
       // Comprobar la configuración de nuevo antes de la única escritura.
-      const actual = await obtenerConfiguracion();
+      const actual = await api.obtenerConfiguracion();
       setConfiguracion(actual);
       if (!actual.votacionAbierta) { setDialogo(null); return; }
       if (seleccion.tipo === "blanco" && !actual.votoBlancoHabilitado) {
         setSeleccion(null); setDialogo(null); return;
       }
-      await registrarVoto(token, seleccion);
+      await api.registrarVoto(token, seleccion);
+      if (onRegistrado) { onRegistrado(); return; }
+      setSeleccion(null);
       setDialogo("registrado");
     } catch (e) {
+      if (e.status === 401 && onSesionInvalida) { onSesionInvalida(e); return; }
       if (e.incierto) {
         setDialogo(null);
         setAtencion({ mensaje: "No se pudo confirmar si tu voto fue registrado.", incierto: true });

@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const { configurarRed } = require("./config/red");
 const { configurarPuesto } = require("./config/puesto");
+const { createVotacionPuestoRouter } = require("./routes/votacion-puesto.routes");
 const { createVinculacionRepository } = require("./repositories/vinculacion.repository");
 const { createVinculacionService } = require("./services/vinculacion.service");
 const { createVinculacionAdminRouter, createPuestoRouter } = require("./routes/vinculacion.routes");
@@ -67,6 +68,9 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
     allowedHeaders: ["Content-Type", "Authorization", "X-Puesto-CSRF"],
   })));
   app.use(express.json({ limit: "10kb" }));
+  app.use(["/api/auth/estudiante", "/api/listas", "/api/votos"], (req, res) => {
+    res.set("Cache-Control", "no-store").status(401).json({ mensaje: "Utiliza la pantalla del puesto vinculado para votar.", codigo: "RUTA_REEMPLAZADA" });
+  });
   app.get("/api/archivos/:nombre", (req, res) => {
     if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.webp$/.test(req.params.nombre)) return res.sendStatus(404);
     res.set({ "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; sandbox", "Content-Type": "image/webp" });
@@ -98,6 +102,7 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
   const vinculacionService = createVinculacionService(createVinculacionRepository(pool));
   app.use("/api/computadoras", createVinculacionAdminRouter({ service: vinculacionService, autenticarAdministrador }));
   app.use("/api/puesto", createPuestoRouter({ service: vinculacionService, red, config: puesto, limite: limitesAcceso?.vinculacion }));
+  app.use("/api/puesto", createVotacionPuestoRouter({ pool, jwtSecret, red, config: puesto, limite: limitesAcceso?.estudiante }));
   app.use("/api/borrado-datos", createBorradoDatosRouter({
     service: createBorradoDatosService(createBorradoDatosRepository(pool), administradorRepository), autenticarAdministrador,
   }));

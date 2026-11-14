@@ -305,7 +305,7 @@ function AplicacionAdministrativa() {
         onSalir={() => ir("inicio")}
       >
         <Bienvenida
-          onVotar={() => entrarA("votacion")}
+          onVotar={() => window.location.assign("?puesto=1")}
           onAdministrador={() =>
             entrarA("configuracion")
           }
