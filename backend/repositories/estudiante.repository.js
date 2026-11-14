@@ -20,7 +20,7 @@ function createEstudianteRepository(pool) {
   return {
     async findByDni(dni) {
       const result = await pool.query(
-        `SELECT id, codigo AS dni, nombre, ya_voto, activo
+        `SELECT id, codigo AS dni, nombre, grado, ya_voto, activo
          FROM estudiantes
          WHERE codigo = $1
          LIMIT 1`,

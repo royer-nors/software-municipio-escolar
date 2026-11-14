@@ -8,7 +8,7 @@ const path = require("node:path");
 const { once } = require("node:events");
 const jwt = require("jsonwebtoken");
 const { PGlite } = require("@electric-sql/pglite");
-const { createApp } = require("../app");
+const { createLegacyRouterHarness: createApp } = require("../test-support/legacy-router-harness");
 const { migrar } = require("../database/migrar");
 const { JWT_ISSUER, JWT_AUDIENCE, STUDENT_JWT_AUDIENCE } = require("../config/auth");
 let db, server, url, directory;

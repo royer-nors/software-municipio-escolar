@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import VotacionPuesto from "../components/VotacionPuesto";
 import { consultarPuesto, vincularPuesto, etiquetasVinculacion } from "../api/vinculacion";
 import "../styles/control-votacion.css";
 import "../styles/padron.css";
@@ -11,6 +12,7 @@ export default function VincularPuesto() {
   const [cargando, setCargando] = useState(true);
   const [revision, setRevision] = useState(0);
   const ocupado = useRef(false);
+  const bloquear = useCallback(() => { setEstado(null); setCargando(true); setRevision(v => v + 1); }, []);
   useEffect(() => {
     const controller = new AbortController();
     async function leer() {
@@ -36,18 +38,17 @@ export default function VincularPuesto() {
     } catch (e) { setEstado(null); setError(e.message); }
     finally { ocupado.current = false; setCargando(false); }
   }
-  return <main className="control-votacion gestion-padron computadoras puesto" style={{ maxWidth: 720, margin: "40px auto" }} aria-busy={cargando}>
-    <h1>Vincular puesto</h1>
-    <p>Solicita al administrador una autorización temporal para esta computadora.</p>
+  return <div className="control-votacion gestion-padron computadoras puesto" style={{ maxWidth: 1100, margin: "24px auto" }} aria-busy={cargando}>
+    <h1>{estado?.estado === "vinculada" ? "Puesto de votación" : "Vincular puesto"}</h1>
+    {estado?.estado !== "vinculada" && <p>Solicita al administrador una autorización temporal para esta computadora.</p>}
     {cargando && <p role="status">Consultando el servidor…</p>}
     {error && <p role="alert">{error}</p>}
     {estado && <p role="status">Estado: <strong>{etiquetasVinculacion[estado.estado]}</strong></p>}
-    {estado?.estado === "vinculada" ? <section aria-label="Puesto vinculado">
+    {estado?.estado === "vinculada" ? <><section aria-label="Puesto vinculado">
       <h2>{estado.computadora.identificador} · {estado.computadora.nombre}</h2>
       <p>Asignado a {estado.computadora.grado}.º de secundaria por el servidor.</p>
       <p>Credencial vigente hasta {new Date(estado.vence_en).toLocaleString("es-PE", { timeZone: "America/Lima" })}.</p>
-      <p>Vinculación completada. La pantalla de votación se habilitará en una etapa posterior.</p>
-    </section> : <form onSubmit={vincular}>
+    </section><VotacionPuesto onBloqueo={bloquear} /></> : <form onSubmit={vincular}>
       <fieldset className="padron-formulario" disabled={cargando}>
         <label htmlFor="puesto-codigo">Código temporal</label>
         <input id="puesto-codigo" type="password" autoComplete="off" spellCheck={false} value={codigo} onChange={e => setCodigo(e.target.value)} required minLength={64} maxLength={64} />
@@ -55,5 +56,5 @@ export default function VincularPuesto() {
       </fieldset>
     </form>}
     <button type="button" disabled={cargando} onClick={() => { setCargando(true); setRevision(v => v + 1); }}>Consultar estado</button>
-  </main>;
+  </div>;
 }

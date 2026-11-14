@@ -34,7 +34,7 @@ function createTokenMiddleware(jwtSecret, audience, rol, identidad, administrado
       }
       req[identidad] = rol === "administrador"
         ? { id: Number(claims.sub), usuario: claims.usuario }
-        : { id: Number(claims.sub) };
+        : { id: Number(claims.sub), ...(typeof claims.vinculacionId === "string" ? { vinculacionId: claims.vinculacionId } : {}) };
     } catch {
       return res.status(401).json({ mensaje: "El token de acceso no es válido o ha expirado." });
     }

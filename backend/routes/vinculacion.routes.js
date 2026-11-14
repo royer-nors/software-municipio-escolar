@@ -16,6 +16,17 @@ function operacion(handler) {
   };
 }
 function sinCache(req, res, next) { res.set("Cache-Control", "no-store"); next(); }
+function validarSolicitudPuesto(req, red, config, escritura = true) {
+  const origin = req.get("Origin");
+  if (origin && (origin === "null" || !red.origenes.includes(origin))) throw new ComputadorasError(403, "Origen no autorizado para el puesto.");
+  if (escritura && (!origin || origin === "null" || !red.origenes.includes(origin) || !req.is("application/json") || req.get("X-Puesto-CSRF") !== "1")) {
+    throw new ComputadorasError(403, "Origen o protección CSRF inválidos.");
+  }
+  if (!config.secure) {
+    const locales = ["localhost", "127.0.0.1", "[::1]", "::1"];
+    if ((origin && !locales.includes(new URL(origin).hostname)) || !locales.includes(req.hostname) || !["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.ip)) throw new ComputadorasError(403, "Las cookies sin Secure solo se permiten en pruebas de loopback.");
+  } else if (!req.secure) throw new ComputadorasError(403, "La vinculación requiere HTTPS.");
+}
 function vacio(req) {
   if (req.body !== undefined && (!req.body || typeof req.body !== "object" || Array.isArray(req.body) || Object.keys(req.body).length)) {
     throw new ComputadorasError(400, "Esta operación no admite campos.");
@@ -40,18 +51,7 @@ function createPuestoRouter({ service, red, config, limite }) {
     standardHeaders: "draft-8", legacyHeaders: false,
     message: { mensaje: "Demasiados intentos de vinculación. Espera antes de volver a intentar." },
   }), operacion(async (req, res) => {
-    const origin = req.get("Origin");
-    if (!origin || origin === "null" || !red.origenes.includes(origin) || !req.is("application/json") || req.get("X-Puesto-CSRF") !== "1") {
-      throw new ComputadorasError(403, "Origen o protección CSRF inválidos.");
-    }
-    if (!config.secure) {
-      const locales = ["localhost", "127.0.0.1", "[::1]", "::1"];
-      if (!locales.includes(new URL(origin).hostname) || !locales.includes(req.hostname) || !["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.ip)) {
-        throw new ComputadorasError(403, "Las cookies sin Secure solo se permiten en pruebas de loopback.");
-      }
-    } else if (!req.secure) {
-      throw new ComputadorasError(403, "La vinculación requiere HTTPS.");
-    }
+    validarSolicitudPuesto(req, red, config);
     if ((await service.puesto(credencial(req))).estado === "vinculada") throw new ComputadorasError(409, "Este navegador ya tiene un puesto vinculado. Revócalo antes de reemplazarlo.");
     const resultado = await service.vincular(req.body);
     res.cookie(COOKIE, resultado.credencial, { httpOnly: true, secure: config.secure, sameSite: "strict", path: "/api/puesto", maxAge: 12 * 60 * 60 * 1000 });
@@ -59,4 +59,4 @@ function createPuestoRouter({ service, red, config, limite }) {
   }));
   return router;
 }
-module.exports = { createVinculacionAdminRouter, createPuestoRouter };
+module.exports = { createVinculacionAdminRouter, createPuestoRouter, credencial, validarSolicitudPuesto };
