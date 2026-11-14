@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { guardarComputadora, listarComputadoras } from "../api/computadoras";
+import VinculacionComputadora from "./VinculacionComputadora";
 import "../styles/control-votacion.css";
 import "../styles/padron.css";
 import "../styles/computadoras.css";
@@ -96,7 +97,7 @@ export default function GestionComputadoras({ token }) {
       <div className="computadoras-tabla">
         <table>
           <caption>Computadoras · página {Math.floor(offset / porPagina) + 1}</caption>
-          <thead><tr><th scope="col">Identificador</th><th scope="col">Nombre</th><th scope="col">Grado</th><th scope="col">Estado</th><th scope="col">Registro (Lima)</th><th scope="col">Acciones</th></tr></thead>
+          <thead><tr><th scope="col">Identificador</th><th scope="col">Nombre</th><th scope="col">Grado</th><th scope="col">Estado</th><th scope="col">Registro (Lima)</th><th scope="col">Acciones</th><th scope="col">Vinculación</th></tr></thead>
           <tbody>{equipos.map(equipo => <tr key={equipo.id} data-equipo={equipo.identificador}>
             <th scope="row">{equipo.identificador}</th><td>{equipo.nombre}</td><td>{equipo.grado}.º secundaria</td>
             <td>{equipo.activo ? "Habilitada" : "Deshabilitada"}</td>
@@ -105,6 +106,7 @@ export default function GestionComputadoras({ token }) {
               <button type="button" disabled={bloqueado} onClick={() => editar(equipo)} aria-label={`Editar ${equipo.identificador}`}>Editar</button>
               <button type="button" disabled={bloqueado} onClick={() => guardar({ activo: !equipo.activo }, equipo.id)} aria-label={`${equipo.activo ? "Deshabilitar" : "Habilitar"} ${equipo.identificador}`}>{equipo.activo ? "Deshabilitar" : "Habilitar"}</button>
             </div></td>
+            <td><VinculacionComputadora equipo={equipo} token={token} bloqueado={bloqueado} onCambio={() => consultar()} /></td>
           </tr>)}</tbody>
         </table>
       </div>

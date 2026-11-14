@@ -1,4 +1,5 @@
 const { ComputadorasError } = require("../errors/computadoras.error");
+const { ESTADO_VINCULACION } = require("./vinculacion.repository");
 const PUBLICOS = "id, identificador, nombre, grado, activo, fecha_registro";
 
 function createComputadorasRepository(pool) {
@@ -8,7 +9,7 @@ function createComputadorasRepository(pool) {
         VALUES ($1, $2, $3) RETURNING ${PUBLICOS}`, [identificador, nombre, grado])).rows[0];
     },
     async listar({ limit, offset }) {
-      const { rows } = await pool.query(`SELECT ${PUBLICOS} FROM computadoras ORDER BY id LIMIT $1 OFFSET $2`, [limit + 1, offset]);
+      const { rows } = await pool.query(`SELECT ${PUBLICOS}, ${ESTADO_VINCULACION} AS vinculacion FROM computadoras c ORDER BY id LIMIT $1 OFFSET $2`, [limit + 1, offset]);
       return { computadoras: rows.slice(0, limit), hayMas: rows.length > limit };
     },
     async editar(id, datos) {
