@@ -20,6 +20,7 @@ import ConfigurarVotoBlanco from "./components/ConfigurarVotoBlanco";
 import ConfigurarSeguridad from "./components/ConfigurarSeguridad";
 import BorrarDatos from "./components/BorrarDatos";
 import GestionComputadoras from "./components/GestionComputadoras";
+import VincularPuesto from "./pages/VincularPuesto";
 
 const API =
   import.meta.env.VITE_API_URL || "http://localhost:3000/api";
@@ -85,6 +86,11 @@ const opcionesConfiguracion = [
 ];
 
 export default function App() {
+  if (window.location.pathname === "/puesto" || new URLSearchParams(window.location.search).get("puesto") === "1") return <VincularPuesto />;
+  return <AplicacionAdministrativa />;
+}
+
+function AplicacionAdministrativa() {
   const [avisoSesion, setAvisoSesion] = useState("");
   const [vista, setVista] = useState("inicio");
 
@@ -304,6 +310,7 @@ export default function App() {
             entrarA("configuracion")
           }
         />
+        <p><a href="?puesto=1">Vincular una computadora de votación</a></p>
       </MarcoPantalla>
     );
   }

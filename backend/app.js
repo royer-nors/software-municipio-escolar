@@ -1,6 +1,10 @@
 const express = require("express");
 const cors = require("cors");
 const { configurarRed } = require("./config/red");
+const { configurarPuesto } = require("./config/puesto");
+const { createVinculacionRepository } = require("./repositories/vinculacion.repository");
+const { createVinculacionService } = require("./services/vinculacion.service");
+const { createVinculacionAdminRouter, createPuestoRouter } = require("./routes/vinculacion.routes");
 const { createComputadorasRepository } = require("./repositories/computadoras.repository");
 const { createComputadorasService } = require("./services/computadoras.service");
 const { createComputadorasRouter } = require("./routes/computadoras.routes");
@@ -36,8 +40,9 @@ const { createBorradoDatosRepository } = require("./repositories/borrado-datos.r
 const { createBorradoDatosService } = require("./services/borrado-datos.service");
 const { createBorradoDatosRouter } = require("./routes/borrado-datos.routes");
 
-function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createImagenesStorage(), red = configurarRed() }) {
+function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createImagenesStorage(), red = configurarRed(), puesto = configurarPuesto() }) {
   const app = express();
+  if (puesto.proxyLoopback) app.set("trust proxy", "loopback");
   const administradorRepository = createAdministradorRepository(pool);
   const authService = createAuthService({ administradorRepository, jwtSecret });
   const autenticarAdministrador = createAutenticacionMiddleware(jwtSecret, administradorRepository);
@@ -55,11 +60,12 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
     }
     return next();
   });
-  app.use(cors({
+  app.use(cors((req, callback) => callback(null, {
     origin: (origen, callback) => callback(null, origen ?? false),
+    credentials: req.path.startsWith("/api/puesto/"),
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  }));
+    allowedHeaders: ["Content-Type", "Authorization", "X-Puesto-CSRF"],
+  })));
   app.use(express.json({ limit: "10kb" }));
   app.get("/api/archivos/:nombre", (req, res) => {
     if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.webp$/.test(req.params.nombre)) return res.sendStatus(404);
@@ -89,6 +95,9 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
   app.use("/api/computadoras", createComputadorasRouter({
     service: createComputadorasService(createComputadorasRepository(pool)), autenticarAdministrador,
   }));
+  const vinculacionService = createVinculacionService(createVinculacionRepository(pool));
+  app.use("/api/computadoras", createVinculacionAdminRouter({ service: vinculacionService, autenticarAdministrador }));
+  app.use("/api/puesto", createPuestoRouter({ service: vinculacionService, red, config: puesto, limite: limitesAcceso?.vinculacion }));
   app.use("/api/borrado-datos", createBorradoDatosRouter({
     service: createBorradoDatosService(createBorradoDatosRepository(pool), administradorRepository), autenticarAdministrador,
   }));

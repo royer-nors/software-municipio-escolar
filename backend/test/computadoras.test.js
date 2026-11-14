@@ -37,7 +37,7 @@ before(async () => {
   url = `http://127.0.0.1:${server.address().port}`;
 });
 beforeEach(async () => {
-  await db.exec("TRUNCATE computadoras, administradores RESTART IDENTITY;");
+  await db.exec("TRUNCATE vinculaciones_puesto, autorizaciones_puesto, computadoras, administradores RESTART IDENTITY;");
   await db.query("INSERT INTO administradores (usuario, password_hash) VALUES ($1, $2)", ["admin", bcrypt.hashSync(clave, 4)]);
   const login = await fetch(`${url}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ usuario: "admin", password: clave }) });
   assert.equal(login.status, 200);
