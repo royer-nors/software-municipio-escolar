@@ -11,3 +11,4 @@
 .computadoras td:nth-child(2) { min-width: 140px; max-width: 240px; }
 .computadoras td:last-child { min-width: 190px; }
 .computadoras .computadoras-tabla button { padding: 8px 12px; }
+.computadoras textarea { width: 100%; min-width: 0; padding: 10px; box-sizing: border-box; overflow-wrap: anywhere; }
