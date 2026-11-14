@@ -21,6 +21,8 @@ import ConfigurarSeguridad from "./components/ConfigurarSeguridad";
 import BorrarDatos from "./components/BorrarDatos";
 import GestionComputadoras from "./components/GestionComputadoras";
 import VincularPuesto from "./pages/VincularPuesto";
+import AccesoResultados from "./pages/AccesoResultados";
+import GestionConsultores from "./components/GestionConsultores";
 
 const API =
   import.meta.env.VITE_API_URL || "http://localhost:3000/api";
@@ -45,6 +47,7 @@ const boton = {
 };
 
 const opcionesConfiguracion = [
+  ["consultores", "▣", "Consultores de resultados", "Administrar las dos cuentas de consulta de resultados publicados."],
   ["computadoras", "▣", "Administrar computadoras", "Registrar equipos y asignar grados de secundaria."],
   ["control-votacion", "✓", "Control de votación", "Abrir o cerrar la votación y consultar su estado real."],
   [
@@ -239,7 +242,7 @@ function AplicacionAdministrativa() {
 
     if (
       id === "control-votacion" ||
-      id === "computadoras" ||
+      id === "computadoras" || id === "consultores" ||
       id === "padron" ||
       id === "candidatos"
     ) {
@@ -276,7 +279,7 @@ function AplicacionAdministrativa() {
   function volver() {
     if (
       vista === "control-votacion" ||
-      vista === "computadoras" ||
+      vista === "computadoras" || vista === "consultores" ||
       vista === "padron" ||
       vista === "candidatos" ||
       vista === "borrar"
@@ -296,6 +299,8 @@ function AplicacionAdministrativa() {
     );
   }
 
+  if (vista === "consulta-resultados") return <AccesoResultados onSalir={() => ir("inicio")} />;
+
   // PANTALLA PRINCIPAL
   if (vista === "inicio") {
     return (
@@ -305,6 +310,7 @@ function AplicacionAdministrativa() {
         onSalir={() => ir("inicio")}
       >
         <Bienvenida
+          onResultados={() => ir("consulta-resultados")}
           onVotar={() => window.location.assign("?puesto=1")}
           onAdministrador={() =>
             entrarA("configuracion")
@@ -586,6 +592,7 @@ function AplicacionAdministrativa() {
 
           {vista === "control-votacion" && sesionAdmin && <ControlVotacion token={sesionAdmin.token} />}
           {vista === "computadoras" && sesionAdmin && <GestionComputadoras token={sesionAdmin.token} />}
+          {vista === "consultores" && sesionAdmin && <GestionConsultores token={sesionAdmin.token} />}
 
           {vista === "borrar" && sesionAdmin && <BorrarDatos token={sesionAdmin.token} />}
 

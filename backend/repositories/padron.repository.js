@@ -18,8 +18,8 @@ function createPadronRepository(pool) {
         // No reiniciar la secuencia: los tokens del padrón anterior no deben
         // volver a identificar a otro estudiante al reutilizar identificadores.
         await client.query("DELETE FROM estudiantes");
-        await client.query(`INSERT INTO estudiantes (codigo, nombre, grado, seccion)
-          SELECT dni, nombre, grado, seccion
+        await client.query(`INSERT INTO estudiantes (codigo, nombre, grado, seccion, origen_registro)
+          SELECT dni, nombre, grado, seccion, 'excel'
           FROM jsonb_to_recordset($1::jsonb) AS fila(dni TEXT, nombre TEXT, grado TEXT, seccion TEXT)`,
         [JSON.stringify(estudiantes)]);
         await client.query("COMMIT");

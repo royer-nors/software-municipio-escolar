@@ -1,57 +1,38 @@
 const { Router } = require("express");
-const { BorradoDatosError, OPERACIONES } = require("../services/borrado-datos.service");
-
-function createBorradoDatosRouter({ service, autenticarAdministrador }) {
+const { createLimiteAcceso } = require("../middleware/limite-acceso");
+const { BorradoDatosError } = require("../services/borrado-datos.service");
+function createBorradoDatosRouter({ service, autenticarAdministrador, red }) {
   const router = Router();
-  const autenticarBorrado = (modo = "eliminacion") => async (req, res, next) => {
-    const jsonOriginal = res.json.bind(res);
+  router.use((req, res, next) => { res.set("Cache-Control", "no-store"); next(); });
+  router.use((req, res, next) => {
+    const json = res.json.bind(res);
     res.json = body => {
-      if (res.statusCode === 401) {
-        const operacion = OPERACIONES.includes(req.body?.operacion) ? req.body.operacion : null;
-        return service.auditarIntentoNoAutenticado(operacion, modo)
-          .catch(() => undefined)
-          .then(() => jsonOriginal(body));
-      }
-      return jsonOriginal(body);
+      res.json = json;
+      if (res.statusCode === 401) return service.auditarIntentoNoAutenticado(req.body?.operacion).catch(() => {}).then(() => json(body));
+      return json(body);
     };
-    return autenticarAdministrador(req, res, next);
+    return autenticarAdministrador(req, res, () => { res.json = json; next(); });
+  });
+  router.use((req, res, next) => {
+    if (req.method !== "POST") return next();
+    const origen = req.get("Origin");
+    if (!origen || origen === "null" || !red.origenes.includes(origen) || !req.is("application/json") || req.get("X-Borrado-CSRF") !== "1") return res.status(403).json({ mensaje: "Origen o protección CSRF inválidos." });
+    next();
+  });
+  const limite = createLimiteAcceso({ limit: 5 });
+  const operar = fn => async (req, res) => {
+    try { return res.json(await fn(req)); }
+    catch (e) { return res.status(e instanceof BorradoDatosError ? e.status : 503).json({ mensaje: e instanceof BorradoDatosError ? e.message : "La gestión de borrado no está disponible." }); }
   };
-  const responderError = (res, error, generico) => {
-    if (error instanceof BorradoDatosError) return res.status(error.status).json({ mensaje: error.message });
-    return res.status(503).json({ mensaje: generico });
-  };
-
-  router.get("/resumen", autenticarBorrado("simulacion"), async (req, res) => {
-    res.set("Cache-Control", "no-store");
-    try { return res.json(await service.obtenerResumen()); }
-    catch { return res.status(503).json({ mensaje: "El resumen de datos electorales no está disponible." }); }
-  });
-
-  router.post("/simulacion", autenticarBorrado("simulacion"), async (req, res) => {
-    res.set("Cache-Control", "no-store");
-    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body) || Object.keys(req.body).length !== 1 || typeof req.body.operacion !== "string") {
-      await service.auditarFalloSimulacion(req.administrador, null, "solicitud_invalida");
-      return res.status(400).json({ mensaje: "Indica una única operación de simulación válida." });
-    }
-    try { return res.json(await service.simular(req.body.operacion, req.administrador)); }
-    catch (error) { return responderError(res, error, "No se pudo completar la simulación."); }
-  });
-
-  router.post("/ejecutar", autenticarBorrado(), async (req, res) => {
-    res.set("Cache-Control", "no-store");
-    try {
-      return res.json(await service.ejecutar({ ...(req.body ?? {}), administrador: req.administrador }));
-    } catch (error) { return responderError(res, error, "No se pudo completar la eliminación."); }
-  });
-
-  router.post("/reinicio-excepcional", autenticarBorrado("reinicio_excepcional"), async (req, res) => {
-    res.set("Cache-Control", "no-store");
-    try {
-      return res.json(await service.reiniciarPruebas({ ...(req.body ?? {}), administrador: req.administrador }));
-    } catch (error) { return responderError(res, error, "No se pudo completar el reinicio excepcional."); }
-  });
-
+  router.get("/resumen", operar(() => service.obtenerResumen()));
+  router.get("/auditoria", operar(async () => ({ auditoria: await service.listarAuditoria() })));
+  router.post("/simulacion", operar(req => {
+    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body) || Object.keys(req.body).length !== 1) throw new BorradoDatosError(400, "Indica únicamente la operación.");
+    return service.simular(req.body.operacion, req.administrador);
+  }));
+  router.post("/ejecutar", limite, operar(req => service.ejecutar({ ...req.body, administrador: req.administrador })));
+  // Alias sin autorización extra para clientes anteriores; mismo flujo seguro.
+  router.post("/reinicio-excepcional", limite, operar(req => service.reiniciarPruebas({ ...req.body, administrador: req.administrador })));
   return router;
 }
-
 module.exports = { createBorradoDatosRouter };

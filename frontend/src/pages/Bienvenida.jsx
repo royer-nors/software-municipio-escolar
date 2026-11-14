@@ -48,7 +48,7 @@ function IlustracionAlternativa() {
  * Contenido de la portada. App.jsx ya lo envuelve en MarcoPantalla:
  * no agregamos otro encabezado, pie ni escudo.
  */
-export default function Bienvenida({ onVotar, onAdministrador }) {
+export default function Bienvenida({ onVotar, onAdministrador, onResultados }) {
   const [imagenNoDisponible, setImagenNoDisponible] = useState(false);
 
   return (
@@ -96,6 +96,9 @@ export default function Bienvenida({ onVotar, onAdministrador }) {
           </button>
         </div>
 
+        <button type="button" className="bv-opcion bv-opcion-resultados" onClick={onResultados}>
+          <span className="bv-opcion-texto"><strong>Resultados</strong><small>Acceso de consultores autorizados</small></span>
+        </button>
         <p className="bv-nota">Si eres estudiante, ten a mano tu DNI para identificarte.</p>
       </div>
     </section>

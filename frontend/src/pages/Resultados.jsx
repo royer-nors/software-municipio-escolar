@@ -28,9 +28,9 @@ function GraficoCircular({ listas, total, colores }) {
   );
 }
 
-export default function Resultados({ token, onSalir }) {
+export default function Resultados({ token, onSalir, consultar = obtenerResultados, consultor = false }) {
   // Conserva sessionStorage.admin_token y admite la sesión entregada por App.
-  const tokenAdmin = token || sessionStorage.getItem("admin_token") || "";
+  const tokenAdmin = token || (!consultor && sessionStorage.getItem("admin_token")) || "";
   const [revision, setRevision] = useState(0);
   const [estado, setEstado] = useState({ data: null, error: "", cargando: true });
   const [imprimiendo, setImprimiendo] = useState(false);
@@ -41,14 +41,22 @@ export default function Resultados({ token, onSalir }) {
     const controller = new AbortController();
     Promise.resolve().then(() => {
       if (!tokenAdmin) throw new Error("No se encontró una sesión administrativa. Inicia sesión nuevamente.");
-      return obtenerResultados(tokenAdmin, controller.signal);
+      return consultar(tokenAdmin, controller.signal);
     }).then(data => {
       if (!controller.signal.aborted) setEstado({ data, error: "", cargando: false });
     }).catch(error => {
       if (!controller.signal.aborted) setEstado({ data: null, error: error.message, cargando: false });
     });
     return () => controller.abort();
-  }, [tokenAdmin, revision]);
+  }, [tokenAdmin, revision, consultar]);
+
+  useEffect(() => {
+    if (!consultor) return;
+    const actualizar = () => setRevision(r => r + 1);
+    const timer = setInterval(actualizar, 15000);
+    window.addEventListener("focus", actualizar);
+    return () => { clearInterval(timer); window.removeEventListener("focus", actualizar); };
+  }, [consultor]);
 
   function actualizar() {
     setErrorImpresion("");
@@ -67,6 +75,10 @@ export default function Resultados({ token, onSalir }) {
     try { await esperarImagenes(reporte.current.closest('.marco')); window.print(); }
     catch (e) { setErrorImpresion(e.message); }
     finally { setImprimiendo(false); }
+  }
+
+  if (consultor && error === "Los resultados estarán disponibles cuando finalice la elección") {
+    return <MarcoPantalla onSalir={onSalir}><p role="status">{error}</p></MarcoPantalla>;
   }
 
   return (

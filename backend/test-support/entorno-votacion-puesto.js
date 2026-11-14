@@ -1,7 +1,7 @@
 const { randomUUID } = require("node:crypto");
 const assert = require("node:assert/strict");
 const { migrar } = require("../database/migrar");
-async function crearEntorno({ real = process.env.ETAPA5_PG_REAL === "true" } = {}) {
+async function crearEntorno({ real = process.env.ETAPA5_PG_REAL === "true", antesDeMigrar } = {}) {
   let db, pool, control, esquema;
   try {
     if (real) {
@@ -25,8 +25,9 @@ async function crearEntorno({ real = process.env.ETAPA5_PG_REAL === "true" } = {
         async connect() { const liberar = await reservar(); return { async query(sql, values) { return values === undefined ? (await db.exec(sql)).at(-1) : db.query(sql, values); }, release: liberar }; },
       };
     }
-    await migrar(pool);
-    return { db, pool, cerrar };
+    if (antesDeMigrar) await antesDeMigrar(pool);
+    const aplicadas = await migrar(pool);
+    return { db, pool, cerrar, aplicadas };
   } catch (e) { await cerrar(); throw e; }
   async function cerrar() {
     if (control) {
