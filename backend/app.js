@@ -68,7 +68,7 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
     origin: (origen, callback) => callback(null, origen ?? false),
     credentials: req.path.startsWith("/api/puesto/"),
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Puesto-CSRF", "X-Borrado-CSRF", "X-Consultor-CSRF"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Puesto-CSRF", "X-Borrado-CSRF", "X-Consultor-CSRF", "X-Padron-CSRF"],
   })));
   app.use(express.json({ limit: "10kb" }));
   app.use(["/api/auth/estudiante", "/api/listas", "/api/votos"], (req, res) => {
@@ -120,7 +120,7 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
   const votosService = createVotosService(createVotosRepository(pool));
   app.use("/api/votos", createVotosRouter({ votosService, autenticarEstudiante }));
   const padronService = createPadronService(createPadronRepository(pool));
-  app.use("/api/padron", createPadronRouter({ padronService, autenticarAdministrador }));
+  app.use("/api/padron", createPadronRouter({ padronService, autenticarAdministrador, red }));
   app.use(
   "/api/votacion/configuracion",
   createVotacionConfiguracionRouter({

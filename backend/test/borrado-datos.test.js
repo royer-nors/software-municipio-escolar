@@ -85,7 +85,10 @@ test("selección de importados conserva manuales y registros de origen desconoci
 });
 test("nuevas importaciones se identifican como Excel y se puede preparar otra elección tras reinicio", async () => {
   await ejecutar("reinicio_pruebas");
-  await createPadronRepository(entorno.pool).reemplazar([{ dni: "88888888", nombre: "Nuevo", grado: "3", seccion: "A" }]);
+  const repository = createPadronRepository(entorno.pool);
+  const administrador = { id: 1, usuario: 'admin' };
+  const vista = await repository.previsualizar([{ dni: "88888888", nombre: "Nuevo", grado: "3", seccion: "A" }], 3, 'agregar', administrador);
+  await repository.confirmar(vista.vistaPreviaId, administrador);
   assert.equal((await db.query("SELECT origen_registro FROM estudiantes")).rows[0].origen_registro, "excel");
   await db.query("INSERT INTO listas(nombre) VALUES ('Nueva elección')");
   await db.query("INSERT INTO candidatos(nombre,lista_id) SELECT 'Nueva candidata',id FROM listas");

@@ -96,9 +96,11 @@ async function pedir(ruta, { token = admin, method = "GET", body, cookie } = {})
 }
 async function importar(nombre, dni) {
   const buffer = await writeExcelFile([["DNI", "Nombres", "Grado", "Sección"], [dni, nombre, 3, "A"]]).toBuffer();
-  const body = new FormData(); body.append("archivo", new Blob([buffer]), "padron-ficticio.xlsx");
-  const r = await fetch(url + "/api/padron/importar", { method: "POST", headers: { Authorization: `Bearer ${admin}` }, body });
-  assert.equal(r.status, 200, JSON.stringify(await r.json()));
+  const body = new FormData(); body.append("archivo", new Blob([buffer]), "padron-ficticio.xlsx"); body.append('grado', '3'); body.append('modo', 'reemplazar');
+  const r = await fetch(url + "/api/padron/previsualizar", { method: "POST", headers: { Authorization: `Bearer ${admin}`, Origin: 'http://localhost:5173', 'X-Padron-CSRF': '1' }, body });
+  const vista = await r.json(); assert.equal(r.status, 200, JSON.stringify(vista));
+  const confirmado = await fetch(url + '/api/padron/importar', { method: 'POST', headers: { Authorization: `Bearer ${admin}`, Origin: 'http://localhost:5173', 'X-Padron-CSRF': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ vistaPreviaId: vista.vistaPreviaId, confirmar: true }) });
+  assert.equal(confirmado.status, 200, JSON.stringify(await confirmado.json()));
 }
 async function tablasIdentidad() {
   return { administradores: (await db.query("SELECT * FROM administradores ORDER BY id")).rows,
@@ -106,13 +108,13 @@ async function tablasIdentidad() {
     computadoras: (await db.query("SELECT * FROM computadoras ORDER BY id")).rows };
 }
 test("validación integral aislada de migraciones, consultores y reinicio electoral", async t => {
-  await t.test("001–013 ordenadas, 012/013 conservan registros anteriores, checksums e idempotencia", async () => {
-    assert.deepEqual(entorno.aplicadas, ["012_reinicio_electoral.sql", "013_consultores_resultados.sql"]);
+  await t.test("001–014 ordenadas conservan registros anteriores, checksums e idempotencia", async () => {
+    assert.deepEqual(entorno.aplicadas, ["012_reinicio_electoral.sql", "013_consultores_resultados.sql", "014_importacion_padron_grados.sql"]);
     const registros = (await db.query("SELECT version,checksum FROM esquema_migraciones ORDER BY version")).rows;
-    assert.equal(registros.length, 13);
+    assert.equal(registros.length, 14);
     const fresco = await crearEntorno({ real });
     try {
-      assert.deepEqual(fresco.aplicadas, registros.map(r => r.version), "El ejecutor instala 001–013 también desde cero");
+      assert.deepEqual(fresco.aplicadas, registros.map(r => r.version), "El ejecutor instala 001–014 también desde cero");
       assert.deepEqual(await migrar(fresco.pool), []);
     } finally { await fresco.cerrar(); }
     for (const r of registros) assert.equal(r.checksum, sha((await readFile(path.join(directorio, r.version), "utf8")).replace(/\r\n/g, "\n")));

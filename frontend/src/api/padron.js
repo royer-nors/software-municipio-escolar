@@ -26,7 +26,7 @@ async function escribir(ruta, token, body, esJson = false) {
   try {
     const respuesta = await fetch(`${API}${ruta}`, {
       method: "POST", signal: controller.signal,
-      headers: { Authorization: `Bearer ${token}`, ...(esJson ? { "Content-Type": "application/json" } : {}) },
+      headers: { Authorization: `Bearer ${token}`, ...(ruta.startsWith('/padron/') ? { 'X-Padron-CSRF': '1' } : {}), ...(esJson ? { "Content-Type": "application/json" } : {}) },
       body: esJson ? JSON.stringify(body) : body,
     });
     const datos = await respuesta.json().catch(() => {
@@ -42,15 +42,21 @@ async function escribir(ruta, token, body, esJson = false) {
   } finally { clearTimeout(timeout); }
 }
 
-export async function importarPadron(archivo, token) {
+export async function previsualizarPadron(archivo, grado, modo, token) {
   validarArchivoPadron(archivo);
+  if (!/^[1-5]$/.test(String(grado)) || !['agregar', 'reemplazar'].includes(modo)) throw new ErrorPadron(400, 'Selecciona grado y modo válidos.');
   const form = new FormData();
   form.append("archivo", archivo);
-  // El navegador genera Content-Type y boundary; no agregar campos adicionales.
-  const datos = await escribir("/padron/importar", token, form);
-  if (!Number.isSafeInteger(datos?.total) || datos.total < 1 || !Number.isSafeInteger(datos.reemplazados) || datos.reemplazados < 0) {
-    throw new ErrorPadron(502, "El servidor no devolvió un resumen de importación válido. Verifica el padrón antes de reintentar.", [], true);
-  }
+  form.append('grado', String(grado)); form.append('modo', modo);
+  const datos = await escribir('/padron/previsualizar', token, form);
+  if (!datos?.vistaPreviaId || datos.grado !== Number(grado) || datos.modo !== modo || !Array.isArray(datos.estudiantes) || !Array.isArray(datos.eliminados) || !cantidadesValidas(datos.cantidades)) throw new ErrorPadron(502, 'No se pudo verificar la vista previa.', [], true);
+  return datos;
+}
+function cantidadesValidas(c) { return c && ['agregados', 'actualizados', 'eliminados', 'sinCambios'].every(k => Number.isSafeInteger(c[k]) && c[k] >= 0); }
+export async function importarPadron(vistaPreviaId, token) {
+  if (typeof vistaPreviaId !== 'string' || !/^[a-f0-9-]{36}$/.test(vistaPreviaId)) throw new ErrorPadron(400, 'Genera una vista previa antes de confirmar.');
+  const datos = await escribir('/padron/importar', token, { vistaPreviaId, confirmar: true }, true);
+  if (!cantidadesValidas(datos?.cantidades) || !Number.isInteger(datos.grado) || datos.grado < 1 || datos.grado > 5 || !Number.isSafeInteger(datos.total) || datos.total < 1) throw new ErrorPadron(502, 'Respuesta incompleta. Revisa el padrón antes de repetir la importación.', [], true);
   return datos;
 }
 

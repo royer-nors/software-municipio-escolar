@@ -1,6 +1,6 @@
 import { test, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { importarPadron, registrarEstudiante, validarArchivoPadron, MAX_EXCEL_BYTES, ErrorPadron } from "../src/api/padron.js";
+import { previsualizarPadron, importarPadron, registrarEstudiante, validarArchivoPadron, MAX_EXCEL_BYTES, ErrorPadron } from "../src/api/padron.js";
 
 // Solo contratos HTTP con fetch interceptado; no se usa red ni PostgreSQL.
 const original = globalThis.fetch;
@@ -14,51 +14,51 @@ test("acepta únicamente xlsx no vacío y respeta los 5 MiB del backend", () => 
   }
   assert.doesNotThrow(() => validarArchivoPadron({ name: "PADRON.XLSX", size: MAX_EXCEL_BYTES }));
 });
-test("la importación usa solo archivo en FormData, Bearer y boundary del navegador", async () => {
-  const archivo = excel();
+const idVista = '12345678-1234-1234-1234-123456789abc';
+const cantidades = { agregados: 2, actualizados: 0, eliminados: 0, sinCambios: 0 };
+test("la vista previa env?a archivo, grado y modo con JWT y CSRF sin fijar boundary", async () => {
   let llamadas = 0;
   globalThis.fetch = async (url, opciones) => {
-    llamadas++;
-    assert.ok(url.endsWith("/api/padron/importar"));
-    assert.equal(opciones.method, "POST");
-    assert.deepEqual(opciones.headers, { Authorization: "Bearer admin-prueba" });
-    assert.ok(opciones.body instanceof FormData);
-    assert.deepEqual([...opciones.body.keys()], ["archivo"]);
-    assert.equal(opciones.body.get("archivo").name, archivo.name);
-    return responder(200, { mensaje: "Padrón reemplazado correctamente.", total: 2, reemplazados: 1 });
+    llamadas++; assert.ok(url.endsWith('/api/padron/previsualizar'));
+    assert.equal(opciones.headers.Authorization, 'Bearer admin'); assert.equal(opciones.headers['X-Padron-CSRF'], '1'); assert.equal(opciones.headers['Content-Type'], undefined);
+    assert.deepEqual([...opciones.body.keys()], ['archivo', 'grado', 'modo']); assert.equal(opciones.body.get('grado'), '3'); assert.equal(opciones.body.get('modo'), 'agregar');
+    return responder(200, { vistaPreviaId: idVista, grado: 3, modo: 'agregar', estudiantes: [], eliminados: [], cantidades });
   };
-  assert.equal((await importarPadron(archivo, "admin-prueba")).total, 2);
-  assert.equal(llamadas, 1);
+  assert.equal((await previsualizarPadron(excel(), 3, 'agregar', 'admin')).vistaPreviaId, idVista); assert.equal(llamadas, 1);
 });
-test("archivo inválido o falta de sesión no envían peticiones", async () => {
-  let llamadas = 0;
-  globalThis.fetch = async () => { llamadas++; throw new Error("No debe ejecutarse"); };
-  await assert.rejects(importarPadron(new File(["x"], "otro.csv"), "admin"));
-  await assert.rejects(importarPadron(excel(), ""), e => e.status === 401);
-  assert.equal(llamadas, 0);
+test("la confirmaci?n solo env?a la vista previa y consentimiento, sin archivo ni grado falsificable", async () => {
+  globalThis.fetch = async (url, opciones) => {
+    assert.ok(url.endsWith('/api/padron/importar')); assert.equal(opciones.headers['X-Padron-CSRF'], '1'); assert.equal(opciones.headers['Content-Type'], 'application/json');
+    assert.deepEqual(JSON.parse(opciones.body), { vistaPreviaId: idVista, confirmar: true });
+    return responder(200, { grado: 3, total: 2, cantidades });
+  };
+  assert.equal((await importarPadron(idVista, 'admin')).total, 2);
 });
-test("conserva errores de DNI inválido y duplicado por fila devueltos por backend", async () => {
-  const errores = [
-    { fila: 2, campo: "dni", mensaje: "Debe tener 8 dígitos." },
-    { fila: 3, campo: "dni", mensaje: "El DNI está repetido en el archivo." },
-  ];
-  globalThis.fetch = async () => responder(422, { mensaje: "No se importó ninguna fila.", errores });
-  await assert.rejects(importarPadron(excel(), "admin"), e => e.status === 422 && JSON.stringify(e.errores) === JSON.stringify(errores));
+test("archivo, grado, modo, sesi?n o vista previa inv?lidos no env?an solicitudes", async () => {
+  let llamadas = 0; globalThis.fetch = async () => { llamadas++; throw new Error('No llamar'); };
+  await assert.rejects(previsualizarPadron(new File(['x'], 'otro.csv'), 3, 'agregar', 'admin'));
+  for (const grado of [0, 6, '']) await assert.rejects(previsualizarPadron(excel(), grado, 'agregar', 'admin'));
+  await assert.rejects(previsualizarPadron(excel(), 3, 'global', 'admin'));
+  await assert.rejects(previsualizarPadron(excel(), 3, 'agregar', ''), e => e.status === 401);
+  await assert.rejects(importarPadron('invalida', 'admin')); assert.equal(llamadas, 0);
 });
-test("muestra rechazo por votos previos y sesión inválida sin anunciar éxito", async () => {
-  for (const [status, mensaje] of [[409, "No se puede reemplazar el padrón después de que haya comenzado la votación."], [401, "La sesión fue invalidada."], [413, "El archivo supera el límite."]]) {
-    globalThis.fetch = async () => responder(status, { mensaje });
-    await assert.rejects(importarPadron(excel(), "admin"), e => e.status === status && e.message === mensaje);
+test("preserva los errores de fila de DNI y grado devueltos por el servidor", async () => {
+  const errores = [{ fila: 2, campo: 'grado', mensaje: 'No coincide' }, { fila: 3, campo: 'dni', mensaje: 'Otro grado' }];
+  globalThis.fetch = async () => responder(422, { mensaje: 'Archivo inv?lido', errores });
+  await assert.rejects(previsualizarPadron(excel(), 3, 'agregar', 'admin'), e => e.status === 422 && JSON.stringify(e.errores) === JSON.stringify(errores));
+});
+test("elecci?n abierta, votos y falta de sesi?n no anuncian ?xito", async () => {
+  for (const status of [401, 409, 413]) {
+    globalThis.fetch = async () => responder(status, { mensaje: 'Rechazado' });
+    await assert.rejects(importarPadron(idVista, 'admin'), e => e.status === status);
   }
 });
-test("no reintenta una importación con respuesta incierta", async () => {
-  let llamadas = 0;
-  globalThis.fetch = async () => { llamadas++; throw new Error("Conexión perdida"); };
-  await assert.rejects(importarPadron(excel(), "admin"), e => e.incierto === true);
-  assert.equal(llamadas, 1);
-  globalThis.fetch = async () => responder(200, {});
-  await assert.rejects(importarPadron(excel(), "admin"), e => e.incierto === true);
+test("una respuesta incierta no reintenta la confirmaci?n ni anuncia ?xito", async () => {
+  let llamadas = 0; globalThis.fetch = async () => { llamadas++; throw new Error('Red'); };
+  await assert.rejects(importarPadron(idVista, 'admin'), e => e.incierto); assert.equal(llamadas, 1);
+  globalThis.fetch = async () => responder(200, {}); await assert.rejects(importarPadron(idVista, 'admin'), e => e.incierto);
 });
+
 test("el formulario manual conserva DNI y combina nombres y apellidos para la API", async () => {
   const datos = { dni: "01234567", nombres: " Ana María ", apellidos: " Torres Quispe ", grado: "3°", seccion: "A" };
   globalThis.fetch = async (url, opciones) => {
