@@ -161,7 +161,7 @@ export default function ConfigurarCentroEducativo({ onVolver, token }) {
     try {
       const actual = await guardarConfiguracionElectoral({ ...formulario, anio, revision: configuracion.revision,
         confirmarCambioActivo: configuracion.votacionAbierta === true, motivo }, token);
-      setConfiguracion(actual); setEstadoReal(actual.estado); setTipoMensaje("exito"); setMensaje("Configuración electoral guardada correctamente en PostgreSQL.");
+      setConfiguracion(actual); setEstadoReal(actual.estado); setTipoMensaje("exito"); setMensaje("Configuración electoral guardada.");
     } catch (e) { mostrarError(e.message); }
     finally { ocupado.current = false; setGuardando(false); }
   }
@@ -221,16 +221,16 @@ export default function ConfigurarCentroEducativo({ onVolver, token }) {
             type="button"
             onClick={onVolver}
             disabled={guardando}
-            aria-label="Cerrar ventana"
+            aria-label="Volver al panel"
             style={{
               background: "transparent",
               border: "none",
               color: "white",
-              fontSize: 25,
+              fontSize: 13,
               cursor: "pointer",
             }}
           >
-            ×
+            ← Volver
           </button>
         </div>
 
@@ -246,15 +246,14 @@ export default function ConfigurarCentroEducativo({ onVolver, token }) {
                 marginBottom: 28,
               }}
             >
-              Guarda los datos institucionales y el horario electoral en America/Lima.
-              El servidor central aplica el horario aunque esta ventana esté cerrada.
+              Datos institucionales y horario de la elección (hora de Perú).
             </p>
             {configuracion && <p role="status">Estado real: <strong>{estadoReal || configuracion.estado}</strong> · Modo {configuracion.automatica ? "automático" : "manual"}</p>}
             {configuracion?.fecha && <p className="centro-horario-guardado"><strong>Horario guardado:</strong> {describirHorario(configuracion)}</p>}
             <label style={{ display: "block", marginBottom: 20 }}>
               <input type="checkbox" checked={formulario.automatica} onChange={e => setFormulario(f => ({ ...f, automatica: e.target.checked }))} /> Apertura y cierre automáticos
             </label>
-            <p>Una orden manual de emergencia desactiva el horario automático hasta que vuelvas a activar esta opción y guardes.</p>
+            <p>El control manual desactiva esta programación hasta que vuelvas a habilitarla.</p>
 
             {/* INSTITUCIÓN EDUCATIVA */}
             <div style={{ marginBottom: 20 }}>
@@ -373,17 +372,6 @@ export default function ConfigurarCentroEducativo({ onVolver, token }) {
               >
                 🕒 Horario de votación
               </h3>
-
-              <p
-                style={{
-                  fontSize: 12,
-                  color: "#58718d",
-                  marginBottom: 18,
-                }}
-              >
-                Establece a qué hora comenzará y finalizará
-                la votación escolar.
-              </p>
 
               <div
                 style={{

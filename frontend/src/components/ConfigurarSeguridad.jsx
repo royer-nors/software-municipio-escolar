@@ -142,35 +142,24 @@ export default function ConfigurarSeguridad({ onVolver, token, onPasswordCambiad
           <button
             type="button"
             onClick={onVolver}
-            aria-label="Cerrar ventana"
+            aria-label="Volver al panel"
             disabled={guardando}
             style={{
               border: "none",
               background: "transparent",
               color: "white",
-              fontSize: 25,
+              fontSize: 13,
               cursor: "pointer",
             }}
           >
-            ×
+            ← Volver
           </button>
         </div>
 
         {guardado ? (
           <div style={{ padding: 24 }}>
             <p style={{ color: "#58718d", fontSize: 13 }}>
-              Contraseña actualizada. Tu sesión anterior ha sido invalidada.
-            </p>
-
-            <p
-              style={{
-                textAlign: "center",
-                margin: "80px 0 120px",
-                fontWeight: 600,
-                color: "#17345c",
-              }}
-            >
-              La actualización de la contraseña se completó correctamente.
+              Contraseña actualizada. Inicia sesión nuevamente.
             </p>
 
             <div style={{ display: "flex", justifyContent: "flex-end" }}>

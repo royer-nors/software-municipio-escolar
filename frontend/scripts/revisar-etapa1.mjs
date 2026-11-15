@@ -23,7 +23,7 @@ async function evaluar(expression){const r=await enviar("Runtime.evaluate",{expr
 async function esperar(expression){for(let i=0;i<180;i++){if(await evaluar(expression))return;await dormir(50);}throw new Error("No se cumplió una condición de la etapa 1: "+expression);}
 const click=texto=>evaluar(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent.trim()===${JSON.stringify(texto)})?.click()`);
 async function escribir(id,valor){await evaluar(`(()=>{const el=document.getElementById(${JSON.stringify(id)});Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,${JSON.stringify(valor)});el.dispatchEvent(new Event('input',{bubbles:true}));})()`);}
-async function abrir(texto,titulo){await evaluar(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes(${JSON.stringify(texto)})).click()`);await esperar(`Boolean(document.getElementById(${JSON.stringify(titulo)}))`);}
+async function abrir(texto,titulo){if(texto==="Seguridad") await evaluar("document.querySelector('.admin-cuenta summary').click()");await evaluar(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes(${JSON.stringify(texto)})).click()`);await esperar(`Boolean(document.getElementById(${JSON.stringify(titulo)}))`);}
 try{
   for(let i=0;;i++){try{if((await fetch(origen)).ok)break;}catch{}if(i===100)throw new Error("No inició preview");await dormir(100);}
   chrome=spawn(process.env.CHROME_PATH||"C:/Program Files/Google/Chrome/Application/chrome.exe",["--headless=new","--disable-gpu","--no-first-run","--no-default-browser-check","--remote-debugging-port=0","--user-data-dir="+path.join(carpeta,"perfil"),"about:blank"],{windowsHide:true,stdio:["ignore","ignore","pipe"]});
@@ -57,18 +57,18 @@ try{
   await enviar("Fetch.enable",{patterns:[{urlPattern:"*"}]});await enviar("Page.enable");await enviar("Page.navigate",{url:origen});
   await esperar("Boolean(document.querySelector('.bv-opcion-administrador'))");await evaluar("document.querySelector('.bv-opcion-administrador').click()");
   await esperar("Boolean(document.getElementById('usuario'))");await escribir("usuario","admin");await escribir("password","ClaveAnteriorPrueba!");
-  await evaluar("document.querySelector('form').requestSubmit()");await esperar("document.body.innerText.includes('Configurar Sistema de Votación')");
-  await abrir("Configurar voto en blanco","titulo-voto-blanco");await esperar("Boolean(document.querySelector('[name=votoBlanco]:checked')) && !document.querySelector('[name=votoBlanco]').closest('fieldset').disabled");
+  await evaluar("document.querySelector('form').requestSubmit()");await esperar("Boolean(document.getElementById('admin-titulo'))");
+  await abrir("Voto en blanco","titulo-voto-blanco");await esperar("Boolean(document.querySelector('[name=votoBlanco]:checked')) && !document.querySelector('[name=votoBlanco]').closest('fieldset').disabled");
   assert.equal(await evaluar("document.querySelectorAll('[name=votoBlanco]')[0].checked"),true);
   await evaluar("document.querySelectorAll('[name=votoBlanco]')[1].click();document.querySelector('[aria-labelledby=\"titulo-voto-blanco\"] form').requestSubmit();document.querySelector('[aria-labelledby=\"titulo-voto-blanco\"] form').requestSubmit()");
   await esperar("document.body.innerText.includes('Configuración guardada: voto en blanco deshabilitado')");assert.equal(blancos,1);
-  await evaluar("document.querySelector('[aria-label=Cerrar]').click()");await abrir("Configurar voto en blanco","titulo-voto-blanco");
+  await evaluar("document.querySelector('[aria-label=\"Volver al panel\"]').click()");await abrir("Voto en blanco","titulo-voto-blanco");
   await esperar("document.querySelectorAll('[name=votoBlanco]')[1]?.checked===true && !document.querySelector('[name=votoBlanco]').closest('fieldset').disabled");
   await click("Cancelar");assert.equal(blancos,1);
   configuracion.votacionAbierta=true;
-  await abrir("Configurar voto en blanco","titulo-voto-blanco");await esperar("document.body.innerText.includes('solo se puede modificar fuera')");
+  await abrir("Voto en blanco","titulo-voto-blanco");await esperar("document.body.innerText.includes('Cierra la votación antes')");
   assert.equal(await evaluar("document.querySelector('[name=votoBlanco]').disabled"),true);
-  await evaluar("document.querySelector('[aria-label=Cerrar]').click()");
+  await evaluar("document.querySelector('[aria-label=\"Volver al panel\"]').click()");
   await abrir("Seguridad","titulo-seguridad");
   for(const nombre of ["actual","nueva","confirmar"]){
     assert.equal(await evaluar(`document.getElementById('seguridad-${nombre}').type`),"password");

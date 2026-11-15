@@ -8,7 +8,7 @@ const bcrypt = require("bcryptjs");
 const sharp = require("sharp");
 const { PGlite } = require("@electric-sql/pglite");
 const { migrar } = require("../database/migrar");
-const { createApp } = require("../app");
+const { createLegacyRouterHarness: createApp } = require("../test-support/legacy-router-harness");
 const { createImagenesStorage, normalizarImagen } = require("../services/imagenes-listas");
 let db, carpeta, storage, server, url, token, png;
 const pool = {

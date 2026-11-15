@@ -16,7 +16,7 @@ function TarjetaDni() {
   </div>;
 }
 
-export default function AutenticarVotante({ onAutenticado, onSalir }) {
+export default function AutenticarVotante({ onAutenticado, onSalir, identificar = loginEstudiante, onSesionInvalida }) {
   const [dni, setDni] = useState("");
   const [error, setError] = useState("");
   const [atencion, setAtencion] = useState("");
@@ -33,10 +33,11 @@ export default function AutenticarVotante({ onAutenticado, onSalir }) {
     setCargando(true);
     setError("");
     try {
-      const datos = await loginEstudiante(dni);
+      const datos = await identificar(dni);
       if (activo.current) onAutenticado({ token: datos.token, estudiante: datos.estudiante });
     } catch (err) {
       if (activo.current) {
+        if (err.codigo === "PUESTO_INVALIDO") { onSesionInvalida?.(err); return; }
         if (err.status === 409) setAtencion(`DNI ${dni}: ${err.message}`);
         else setError(err.message);
       }

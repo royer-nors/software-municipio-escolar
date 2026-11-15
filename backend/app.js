@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const { configurarRed } = require("./config/red");
 const { configurarPuesto } = require("./config/puesto");
+const { createVotacionPuestoRouter } = require("./routes/votacion-puesto.routes");
 const { createVinculacionRepository } = require("./repositories/vinculacion.repository");
 const { createVinculacionService } = require("./services/vinculacion.service");
 const { createVinculacionAdminRouter, createPuestoRouter } = require("./routes/vinculacion.routes");
@@ -39,6 +40,9 @@ const { createCandidaturasRouter } = require("./routes/candidaturas.routes");
 const { createBorradoDatosRepository } = require("./repositories/borrado-datos.repository");
 const { createBorradoDatosService } = require("./services/borrado-datos.service");
 const { createBorradoDatosRouter } = require("./routes/borrado-datos.routes");
+const { createConsultoresResultadosRepository } = require("./repositories/consultores-resultados.repository");
+const { createConsultoresResultadosService } = require("./services/consultores-resultados.service");
+const { createConsultoresResultadosRouter } = require("./routes/consultores-resultados.routes");
 
 function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createImagenesStorage(), red = configurarRed(), puesto = configurarPuesto() }) {
   const app = express();
@@ -64,9 +68,12 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
     origin: (origen, callback) => callback(null, origen ?? false),
     credentials: req.path.startsWith("/api/puesto/"),
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Puesto-CSRF"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Puesto-CSRF", "X-Borrado-CSRF", "X-Consultor-CSRF", "X-Padron-CSRF"],
   })));
   app.use(express.json({ limit: "10kb" }));
+  app.use(["/api/auth/estudiante", "/api/listas", "/api/votos"], (req, res) => {
+    res.set("Cache-Control", "no-store").status(401).json({ mensaje: "Utiliza la pantalla del puesto vinculado para votar.", codigo: "RUTA_REEMPLAZADA" });
+  });
   app.get("/api/archivos/:nombre", (req, res) => {
     if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.webp$/.test(req.params.nombre)) return res.sendStatus(404);
     res.set({ "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; sandbox", "Content-Type": "image/webp" });
@@ -98,18 +105,22 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
   const vinculacionService = createVinculacionService(createVinculacionRepository(pool));
   app.use("/api/computadoras", createVinculacionAdminRouter({ service: vinculacionService, autenticarAdministrador }));
   app.use("/api/puesto", createPuestoRouter({ service: vinculacionService, red, config: puesto, limite: limitesAcceso?.vinculacion }));
+  app.use("/api/puesto", createVotacionPuestoRouter({ pool, jwtSecret, red, config: puesto, limite: limitesAcceso?.estudiante }));
   app.use("/api/borrado-datos", createBorradoDatosRouter({
-    service: createBorradoDatosService(createBorradoDatosRepository(pool), administradorRepository), autenticarAdministrador,
+    service: createBorradoDatosService(createBorradoDatosRepository(pool), administradorRepository), autenticarAdministrador, red,
   }));
   const resultadosService = createResultadosService(createResultadosRepository(pool));
   app.use("/api/resultados", createResultadosRouter({ resultadosService, autenticarAdministrador }));
+  app.use("/api/consultores", createConsultoresResultadosRouter({
+    service: createConsultoresResultadosService(createConsultoresResultadosRepository(pool), jwtSecret), autenticarAdministrador, red,
+  }));
   const listasService = createListasService(createListasRepository(pool));
   const autenticarEstudiante = createAutenticacionEstudianteMiddleware(jwtSecret);
   app.use("/api/listas", createListasRouter({ listasService, autenticarEstudiante }));
   const votosService = createVotosService(createVotosRepository(pool));
   app.use("/api/votos", createVotosRouter({ votosService, autenticarEstudiante }));
   const padronService = createPadronService(createPadronRepository(pool));
-  app.use("/api/padron", createPadronRouter({ padronService, autenticarAdministrador }));
+  app.use("/api/padron", createPadronRouter({ padronService, autenticarAdministrador, red }));
   app.use(
   "/api/votacion/configuracion",
   createVotacionConfiguracionRouter({

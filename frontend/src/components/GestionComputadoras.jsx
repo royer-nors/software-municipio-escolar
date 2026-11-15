@@ -66,7 +66,7 @@ export default function GestionComputadoras({ token }) {
 
   return <section className="control-votacion gestion-padron computadoras" aria-labelledby="titulo-computadoras" aria-busy={cargando || guardando}>
     <h2 id="titulo-computadoras">Computadoras de votación</h2>
-    <p>Registra y asigna equipos a grados de secundaria. Habilitar un registro no vincula el navegador ni concede acceso a votación.</p>
+    <p>Vincula el navegador después de registrar el equipo para habilitar la votación.</p>
     {error && <p role="alert" className="padron-aviso padron-error">{error}</p>}
     {mensaje && <p role="status" className="padron-aviso padron-exito">{mensaje}</p>}
     {(cargando || guardando) && <p role="status">{guardando ? "Guardando computadora…" : "Consultando computadoras…"}</p>}

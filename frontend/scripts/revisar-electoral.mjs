@@ -289,8 +289,8 @@ try {
   await esperar("Boolean(document.querySelector('#usuario'))");
   await escribir("#usuario", "revision-aislada"); await escribir("#password", "ClaveSoloDePrueba");
   await evaluar("document.querySelector('form').requestSubmit()");
-  await esperar("document.body.innerText.includes('Configurar Sistema de Votación') || document.querySelectorAll('.electoral-resultado').length === 4");
-  if (await evaluar("document.body.innerText.includes('Configurar Sistema de Votación')")) {
+  await esperar("Boolean(document.getElementById('admin-titulo')) || document.querySelectorAll('.electoral-resultado').length === 4");
+  if (await evaluar("Boolean(document.getElementById('admin-titulo'))")) {
     await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Control de votación')).click()");
     await esperar("document.querySelector('.control-votacion-estado')?.textContent === 'Votación abierta'");
     await evaluar("window.confirm=()=>false");
@@ -306,29 +306,29 @@ try {
     await click("Abrir votación");
     await esperar("document.querySelector('.control-votacion-estado')?.textContent === 'Votación abierta'");
     assert.equal(configuracion.votacionAbierta, true);
-    await click("← Volver a configuración");
-    await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Configurar centro educativo')).click()");
+    await click("Volver al panel");
+    await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Centro educativo')).click()");
     await esperar("document.querySelector('#centro-fecha') && !document.querySelector('#centro-fecha').disabled && !document.querySelector('#centro-fecha').closest('fieldset').disabled");
     await evaluar("window.prompt=()=> 'Reprogramación de prueba aislada'");
     await evaluar("(() => { const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; for(const [id,v] of [['centro-anio','2099'],['centro-fecha','12/11/2099'],['centro-hora-inicio','22:00'],['centro-hora-fin','23:00']]) { const el=document.getElementById(id); setter.call(el,v); el.dispatchEvent(new Event('input',{bubbles:true})); } document.querySelector('[aria-labelledby=\"titulo-centro\"] input[type=checkbox]').click(); })()");
     await esperar("document.querySelector('.centro-horario-seleccionado').textContent.includes('12 de noviembre de 2099')");
     await click("Guardar configuración electoral");
-    await esperar("document.querySelector('[aria-labelledby=\"titulo-centro\"]').innerText.includes('guardada correctamente en PostgreSQL')");
+    await esperar("document.querySelector('[aria-labelledby=\"titulo-centro\"]').innerText.includes('electoral guardada.')");
     assert.equal(configuracion.automatica,true); assert.equal(configuracion.estado,"Programada");
-    await evaluar("document.querySelector('[aria-label=\"Cerrar ventana\"]').click()");
-    await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Configurar centro educativo')).click()");
+    await evaluar("document.querySelector('[aria-label=\"Volver al panel\"]').click()");
+    await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Centro educativo')).click()");
     await esperar("document.querySelector('#centro-fecha')?.value==='12/11/2099'");
     assert.ok((await evaluar("document.querySelector('.centro-horario-guardado').textContent")).includes("22:00 a 23:00"));
     assert.equal(await evaluar("document.querySelector('#centro-anio').value"),"2099");
     assert.equal(await evaluar("document.querySelector('[aria-labelledby=\"titulo-centro\"] input[type=checkbox]').checked"),true);
-    await evaluar("document.querySelector('[aria-label=\"Cerrar ventana\"]').click()");
+    await evaluar("document.querySelector('[aria-label=\"Volver al panel\"]').click()");
     await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Control de votación')).click()");
     await esperar("document.querySelector('.control-votacion')?.innerText.includes('Programada')");
     await click("Abrir votación");
     await esperar("document.querySelector('.control-votacion-estado')?.textContent === 'Votación abierta'");
     assert.equal(configuracion.automatica,false);
-    await click("← Volver a configuración");
-    await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Gestionar estudiantes')).click()");
+    await click("Volver al panel");
+    await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Padrón electoral')).click()");
     await esperar("document.body.innerText.includes('Registrar Nuevo Votante')");
     await escribir('input[name="dni"]', "01234567");
     await escribir('input[name="nombres"]', "Ana");
@@ -361,9 +361,9 @@ try {
       if (modo === "errores") assert.equal(await evaluar("document.querySelector('.padron-errores')?.textContent.includes('El DNI está repetido')"), true);
       if (modo === "bloqueado") assert.equal(await evaluar("document.querySelector('.padron-error')?.textContent.includes('comenzado la votación')"), true);
     }
-    await click("Volver");
-    await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Agregar candidatos')).click()");
-    await esperar("document.body.innerText.includes('Registrar Lista de Candidatos')");
+    await click("Volver al panel");
+    await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Listas y candidatos')).click()");
+    await esperar("document.body.innerText.includes('Registrar lista de candidatos')");
     await escribir('input[name="numeroLista"]', "7");
     await escribir('input[name="nombreLista"]', "Lista desde formulario");
     await escribir('input[name="candidatoAlcalde"]', "Candidata desde formulario");
@@ -375,7 +375,7 @@ try {
     await esperar("Boolean(document.querySelector('.candidatura-exito'))");
     assert.equal(candidaturas.length, 1);
     await esperar("Array.from(document.querySelectorAll('.candidatura-exito img')).every(img=>img.complete && img.naturalWidth>0)");
-    await click("Volver");
+    await click("Volver al panel");
     await click("Ver resultados");
   }
   await esperar("document.querySelectorAll('.electoral-resultado').length === 4");

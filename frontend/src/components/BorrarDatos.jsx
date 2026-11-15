@@ -1,265 +1,101 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Dialogo from "./Dialogo";
-import {
-  ejecutarBorradoDatos,
-  obtenerResumenBorrado,
-  reiniciarDatosPrueba,
-  simularBorradoDatos,
-} from "../api/borrado-datos.js";
+import { ejecutarBorradoDatos, obtenerResumenBorrado, obtenerAuditoriaBorrado, simularBorradoDatos } from "../api/borrado-datos";
 import "../styles/borrar-datos.css";
-
-const FRASE_CONFIRMACION = "BORRAR DATOS DE PRUEBA";
-const FRASE_REINICIO = "REINICIAR COMPLETAMENTE DATOS DE PRUEBA";
 const OPERACIONES = [
-  ["solo_votos", "Solo votos (y restablecer marcas ya_voto)"],
-  ["candidatos_listas", "Votos, candidatos y listas"],
-  ["estudiantes", "Estudiantes"],
+  ["solo_votos", "Votos y marcas de participación"],
+  ["estudiantes_importados", "Solo estudiantes importados desde Excel"],
+  ["estudiantes", "Todo el padrón de estudiantes"],
+  ["solo_candidatos", "Solo candidatos"], ["solo_listas", "Solo listas sin candidatos"],
+  ["candidatos_listas", "Votos, candidatos y listas"], ["reinicio_pruebas", "Reinicio electoral completo"],
 ];
-const ETIQUETAS = { estudiantes: "Estudiantes", listas: "Listas", candidatos: "Candidatos", votos: "Votos" };
-
-function MensajeError({ error }) {
-  if (!error) return null;
-  return <p className="borrar-datos-mensaje borrar-datos-error" role="alert">{error}</p>;
+const CAMPOS = { estudiantes: "Estudiantes", listas: "Listas", candidatos: "Candidatos", votos: "Votos", marcasYaVotoRestablecidas: "Marcas de participación restablecidas" };
+function Cantidades({ datos, titulo }) {
+  return <section className="borrar-datos-cantidades"><h3>{titulo}</h3><dl>{Object.entries(CAMPOS).map(([k, nombre]) => <div key={k}><dt>{nombre}</dt><dd>{datos?.[k] ?? 0}</dd></div>)}</dl></section>;
 }
-
-function Cantidades({ datos, titulo = "Cantidades que se revisarían" }) {
-  if (!datos) return null;
-  return (
-    <section className="borrar-datos-cantidades" aria-label={titulo}>
-      <h3>{titulo}</h3>
-      <dl>
-        {Object.entries(ETIQUETAS).map(([campo, etiqueta]) => (
-          <div key={campo}><dt>{etiqueta}</dt><dd>{datos[campo] ?? 0}</dd></div>
-        ))}
-      </dl>
-    </section>
-  );
-}
-
 export default function BorrarDatos({ token }) {
-  const [resumen, setResumen] = useState(null);
-  const [operacion, setOperacion] = useState(OPERACIONES[0][0]);
-  const [simulacion, setSimulacion] = useState(null);
-  const [error, setError] = useState("");
-  const [aviso, setAviso] = useState("");
-  const [cargando, setCargando] = useState(true);
-  const [trabajando, setTrabajando] = useState(false);
-  const [dialogo, setDialogo] = useState(null);
-  const formularioRef = useRef(null);
-  const produccionFrontend = import.meta.env.PROD;
-
-  const cargarResumen = useCallback(async (signal, limpiarError = true) => {
+  const [resumen, setResumen] = useState(null), [auditoria, setAuditoria] = useState([]);
+  const [operacion, setOperacion] = useState("solo_votos"), [simulacion, setSimulacion] = useState(null);
+  const [error, setError] = useState(""), [aviso, setAviso] = useState("");
+  const [trabajando, setTrabajando] = useState(false), [confirmando, setConfirmando] = useState(false);
+  const ocupado = useRef(false), formulario = useRef(null);
+  const cargar = useCallback(async signal => {
     try {
-      const datos = await obtenerResumenBorrado(token, signal);
-      setResumen(datos);
-      if (limpiarError) setError("");
-    } catch (err) {
-      if (!signal?.aborted) setError(err.message || "No se pudo cargar el resumen.");
-    } finally {
-      if (!signal?.aborted) setCargando(false);
-    }
+      const [r, a] = await Promise.all([obtenerResumenBorrado(token, signal), obtenerAuditoriaBorrado(token, signal)]);
+      if (!signal?.aborted) { setResumen(r); setAuditoria(a.auditoria || []); }
+    } catch (e) { if (!signal?.aborted) setError(e.message); }
   }, [token]);
-
   useEffect(() => {
     const controller = new AbortController();
-    queueMicrotask(() => {
-      if (!controller.signal.aborted) void cargarResumen(controller.signal);
-    });
+    queueMicrotask(() => { if (!controller.signal.aborted) void cargar(controller.signal); });
     return () => controller.abort();
-  }, [cargarResumen]);
-
-  function cambiarOperacion(valor) {
-    setOperacion(valor);
-    setSimulacion(null);
-    setAviso("");
-    setError("");
+  }, [cargar]);
+  async function simular() {
+    if (ocupado.current) return;
+    ocupado.current = true; setTrabajando(true); setError(""); setAviso(""); setSimulacion(null);
+    try { setSimulacion(await simularBorradoDatos(token, operacion)); }
+    catch (e) { setError(e.message); }
+    finally { ocupado.current = false; setTrabajando(false); }
   }
-
-  async function simular(valor = operacion) {
-    setTrabajando(true);
-    setError("");
-    setAviso("");
-    setSimulacion(null);
+  async function ejecutar(e) {
+    e.preventDefault();
+    if (ocupado.current || !simulacion || simulacion.bloqueada) return;
+    const datos = new FormData(formulario.current);
+    if (datos.get("aceptar") !== "si") return;
+    const password = datos.get("password"); formulario.current.reset();
+    ocupado.current = true; setTrabajando(true); setError(""); setAviso("");
+    const previa = simulacion; setSimulacion(null);
     try {
-      const resultado = await simularBorradoDatos(token, valor);
-      setSimulacion(resultado);
-      if (resultado.bloqueada) setAviso("La operación está bloqueada por las condiciones indicadas. No se borró ningún dato.");
-    } catch (err) {
-      setError(err.message || "No se pudo completar la simulación.");
-    } finally {
-      setTrabajando(false);
-    }
+      await ejecutarBorradoDatos(token, { operacion: previa.operacion, simulacionId: previa.simulacionId, password,
+        confirmacion: previa.operacion === "reinicio_pruebas" ? "REINICIAR COMPLETAMENTE DATOS DE PRUEBA" : "BORRAR DATOS DE PRUEBA" });
+      setAviso("Operación completada y auditada. Se conservaron administradores, consultores y computadoras. Los puestos deben vincularse nuevamente.");
+    } catch (err) { setError(err.message); }
+    finally { setConfirmando(false); ocupado.current = false; setTrabajando(false); await cargar(); }
   }
-
-  function abrirConfirmacion(tipo) {
-    setError("");
-    setDialogo(tipo);
-  }
-
-  function cerrarConfirmacion() {
-    formularioRef.current?.reset();
-    setDialogo(null);
-  }
-
-  async function confirmarEjecucion(event) {
-    event.preventDefault();
-    if (!formularioRef.current) return;
-    const formulario = new FormData(formularioRef.current);
-    const tipo = dialogo;
-    const credenciales = {
-      operacion: tipo === "reinicio" ? "reinicio_pruebas" : operacion,
-      simulacionId: simulacion?.simulacionId,
-      confirmacion: formulario.get("confirmacion"),
-      password: formulario.get("password"),
-      ...(tipo === "reinicio" ? { autorizacionAdicional: formulario.get("autorizacionAdicional") } : {}),
-    };
-    formularioRef.current.reset();
-    setTrabajando(true);
-    setError("");
-    setAviso("");
-    // El intento consume la simulación aunque el servidor rechace la operación.
-    setSimulacion(null);
-    try {
-      const resultado = tipo === "reinicio"
-        ? await reiniciarDatosPrueba(token, credenciales)
-        : await ejecutarBorradoDatos(token, credenciales);
-      setAviso(tipo === "reinicio" ? "Reinicio excepcional completado." : "Eliminación completada.");
-      setResumen(actual => actual ? {
-        ...actual,
-        estudiantes: Math.max(0, actual.estudiantes - (resultado.cantidades?.estudiantes || 0)),
-        listas: Math.max(0, actual.listas - (resultado.cantidades?.listas || 0)),
-        candidatos: Math.max(0, actual.candidatos - (resultado.cantidades?.candidatos || 0)),
-        votos: Math.max(0, actual.votos - (resultado.cantidades?.votos || 0)),
-      } : actual);
-    } catch (err) {
-      const motivoEntorno = err.status === 403;
-      if (motivoEntorno) setAviso(`El backend bloqueó la operación por producción o configuración: ${err.message}`);
-      else setError(err.message || "No se pudo completar la operación.");
-    } finally {
-      formularioRef.current?.reset();
-      setDialogo(null);
-      setTrabajando(false);
-      await cargarResumen(undefined, false);
-    }
-  }
-
-  const motivosBloqueo = [
-    resumen?.votacionAbierta && "La elección está abierta.",
-    resumen?.votosRegistrados && "Hay votos registrados.",
-    resumen?.estudiantesYaVotaron && "Hay estudiantes marcados como votantes.",
-  ].filter(Boolean);
-  const simValida = simulacion && simulacion.operacion === operacion && !simulacion.bloqueada;
-  const bloqueadaEnProduccion = produccionFrontend;
-  const confirmarDisabled = trabajando || !simValida || bloqueadaEnProduccion;
-
-  return (
-    <main className="borrar-datos">
-      <header className="borrar-datos-encabezado">
-        <div>
-          <p className="borrar-datos-etiqueta">Panel administrativo</p>
-          <h2>Borrar datos</h2>
-          <p>Herramienta de limpieza electoral para bases de prueba. Cada ejecución se verifica y queda auditada.</p>
-        </div>
-      </header>
-
-      {produccionFrontend ? (
-        <div className="borrar-datos-aviso borrar-datos-aviso-error" role="alert">
-          Esta interfaz está compilada en modo producción. La eliminación real está deshabilitada.
-        </div>
-      ) : (
-        <div className="borrar-datos-aviso" role="note">
-          La ejecución solo puede habilitarse en el backend para la base de pruebas configurada. Si producción o la configuración la bloquean, el servidor mostrará el motivo y registrará el intento.
-        </div>
-      )}
-
-      <section className="borrar-datos-panel">
-        <div className="borrar-datos-titulo-fila">
-          <h3>Datos actuales</h3>
-          <button type="button" className="borrar-datos-boton secundario" onClick={() => cargarResumen()} disabled={cargando || trabajando}>
-            {cargando ? "Cargando…" : "Actualizar"}
-          </button>
-        </div>
-        <MensajeError error={error && !resumen ? error : ""} />
-        <Cantidades datos={resumen} titulo="Registros actuales" />
-        {resumen && !resumen.configuracionDisponible && <div className="borrar-datos-aviso borrar-datos-aviso-error" role="alert">No se encontró la configuración de votación; las operaciones quedarán bloqueadas.</div>}
-        {motivosBloqueo.length > 0 && (
-          <div className="borrar-datos-aviso borrar-datos-aviso-error" role="alert">
-            Las operaciones normales están bloqueadas: {motivosBloqueo.join(" ")}
-          </div>
-        )}
-      </section>
-
-      <section className="borrar-datos-panel">
-        <h3>Simulación y limpieza normal</h3>
-        <label className="borrar-datos-campo" htmlFor="borrar-operacion">¿Qué datos de prueba quieres limpiar?</label>
-        <select id="borrar-operacion" value={operacion} onChange={event => cambiarOperacion(event.target.value)} disabled={trabajando}>
-          {OPERACIONES.map(([valor, etiqueta]) => <option key={valor} value={valor}>{etiqueta}</option>)}
-        </select>
-        <button type="button" className="borrar-datos-boton" onClick={() => simular()} disabled={trabajando || cargando || !resumen}>
-          {trabajando ? "Procesando…" : "Simular operación"}
-        </button>
-        {simulacion?.operacion === operacion && (
-          <div className="borrar-datos-resultado" aria-live="polite">
-            <h4>Resultado de la simulación</h4>
-            <p>{simulacion.bloqueada ? "Bloqueada: no se eliminaría nada." : "Simulación lista. No se ha eliminado ningún registro."}</p>
-            <Cantidades datos={simulacion.proyeccion} titulo="Cantidades proyectadas" />
-            {simulacion.bloqueos?.length > 0 && <ul>{simulacion.bloqueos.map(motivo => <li key={motivo}>{motivo}</li>)}</ul>}
-          </div>
-        )}
-        <button type="button" className="borrar-datos-boton peligro" onClick={() => abrirConfirmacion("normal")} disabled={confirmarDisabled}>
-          Confirmar eliminación real
-        </button>
-        {!simValida && <p className="borrar-datos-ayuda">Primero realiza una simulación sin bloqueos para esta operación.</p>}
-      </section>
-
-      <section className="borrar-datos-panel borrar-datos-excepcional">
-        <p className="borrar-datos-etiqueta">Procedimiento separado</p>
-        <h3>Reinicio excepcional de pruebas</h3>
-        <div className="borrar-datos-aviso borrar-datos-aviso-error">
-          Elimina estudiantes, listas, candidatos y votos. Puede reiniciar una elección abierta o con votos y requiere una habilitación adicional del backend. Úsalo solo con autorización expresa en una base de pruebas.
-        </div>
-        <button type="button" className="borrar-datos-boton peligro" onClick={() => simular("reinicio_pruebas")} disabled={trabajando || cargando || !resumen}>
-          Simular reinicio excepcional
-        </button>
-        {simulacion?.operacion === "reinicio_pruebas" && (
-          <div className="borrar-datos-resultado" aria-live="polite">
-            <h4>Resultado de la simulación excepcional</h4>
-            <p>{simulacion.bloqueada ? "Bloqueada: revisa el motivo informado." : "Simulación lista. No se ha eliminado ningún registro."}</p>
-            <Cantidades datos={simulacion.proyeccion} titulo="Cantidades proyectadas" />
-            {simulacion.bloqueos?.length > 0 && <ul>{simulacion.bloqueos.map(motivo => <li key={motivo}>{motivo}</li>)}</ul>}
-          </div>
-        )}
-        <button type="button" className="borrar-datos-boton peligro-oscuro" onClick={() => abrirConfirmacion("reinicio")} disabled={trabajando || !simulacion || simulacion.operacion !== "reinicio_pruebas" || simulacion.bloqueada || bloqueadaEnProduccion}>
-          Autorizar reinicio excepcional
-        </button>
-      </section>
-
-      <MensajeError error={error && resumen ? error : ""} />
-      {aviso && <p className="borrar-datos-mensaje" role="status">{aviso}</p>}
-
-      {dialogo && (
-        <Dialogo titulo={dialogo === "reinicio" ? "Confirmar reinicio excepcional" : "Confirmar eliminación real"} onCerrar={trabajando ? undefined : cerrarConfirmacion}>
-          <form ref={formularioRef} className="borrar-datos-formulario" onSubmit={confirmarEjecucion}>
-            <p className="dialogo-pregunta">{dialogo === "reinicio" ? "Esta acción elimina todos los datos electorales de prueba." : "Esta acción eliminará los registros indicados por la simulación."}</p>
-            <p className="dialogo-aviso">Escribe exactamente: <strong>{dialogo === "reinicio" ? FRASE_REINICIO : FRASE_CONFIRMACION}</strong></p>
-            <label className="borrar-datos-campo" htmlFor="borrar-confirmacion">Frase de confirmación</label>
-            <input id="borrar-confirmacion" name="confirmacion" autoComplete="off" required />
-            <label className="borrar-datos-campo" htmlFor="borrar-password">Contraseña administrativa</label>
-            <input id="borrar-password" name="password" type="password" autoComplete="current-password" required />
-            {dialogo === "reinicio" && <>
-              <label className="borrar-datos-campo" htmlFor="borrar-autorizacion">Autorización adicional</label>
-              <input id="borrar-autorizacion" name="autorizacionAdicional" type="password" autoComplete="off" required />
-            </>}
-            {error && <p className="dialogo-error" role="alert">{error}</p>}
-            <div className="dialogo-botones">
-              <button type="button" className="btn-claro" onClick={cerrarConfirmacion} disabled={trabajando}>Cancelar</button>
-              <button type="submit" className="btn-verde" disabled={trabajando || (dialogo === "normal" && !simValida)}>
-                {trabajando ? "Procesando…" : "Confirmar y ejecutar"}
-              </button>
-            </div>
-          </form>
-        </Dialogo>
-      )}
-    </main>
-  );
+  const valida = simulacion && simulacion.operacion === operacion && !simulacion.bloqueada;
+  return <main className="borrar-datos">
+    <header className="borrar-datos-encabezado"><h2>Borrar datos</h2><p>Selecciona los datos y revisa la vista previa antes de confirmar con tu contraseña.</p></header>
+    {error && <p role="alert" className="borrar-datos-mensaje borrar-datos-error">{error}</p>}
+    {aviso && <p role="status">{aviso}</p>}
+    {!resumen && <p role="status">Consultando datos…</p>}
+    {resumen && <>
+      <Cantidades datos={resumen} titulo="Registros actuales" />
+      <p>Excel identificados: {resumen.estudiantesImportados}. Origen anterior desconocido: {resumen.estudiantesOrigenDesconocido}. Estos últimos no se incluyen en “solo importados”.</p>
+      {!resumen.habilitado && <p role="alert">{resumen.motivoEntorno}</p>}
+      {resumen.autorizacionReinicio?.tipo === "administrativa" && <p>Reinicio de la base real habilitado. Requiere tu contraseña vigente y la confirmación de la vista previa.</p>}
+      {resumen.votacionAbierta && <p role="alert">La elección está abierta. Ciérrala antes de ejecutar cualquier borrado.</p>}
+    </>}
+    <section className="borrar-datos-panel">
+      <label htmlFor="borrar-operacion">¿Qué deseas borrar?</label>
+      <select id="borrar-operacion" disabled={trabajando} value={operacion} onChange={e => { setOperacion(e.target.value); setSimulacion(null); setAviso(""); setError(""); }}>
+        {OPERACIONES.map(([k, nombre]) => <option key={k} value={k}>{nombre}</option>)}
+      </select>
+      <button type="button" className="borrar-datos-boton" disabled={trabajando || !resumen} onClick={simular}>Simular operación</button>
+      {simulacion && <div className="borrar-datos-resultado">
+        <Cantidades datos={simulacion.proyeccion} titulo="Datos que se eliminarán" />
+        <p>La simulación no elimina registros y vence en 10 minutos.</p>
+        {simulacion.bloqueos?.map(b => <p role="alert" key={b}>{b}</p>)}
+        <ul>{simulacion.efectos?.map(efecto => <li key={efecto}>{efecto}</li>)}</ul>
+      </div>}
+      <button type="button" className="borrar-datos-boton peligro" disabled={trabajando || !valida || !resumen?.habilitado} onClick={() => setConfirmando(true)}>Revisar y confirmar</button>
+      <button type="button" disabled={trabajando} onClick={() => cargar()}>Actualizar</button>
+    </section>
+    <section className="borrar-datos-panel"><h3>Auditoría reciente</h3><ul>{auditoria.map(a => <li key={a.id}>
+      {new Date(a.creado_en).toLocaleString("es-PE", { timeZone: "America/Lima" })} · {a.administrador_usuario} · {a.operacion || "Solicitud inválida"} · {a.resultado}
+      {a.cantidades && <span> · {Object.entries(CAMPOS).map(([k, nombre]) => `${nombre}: ${a.cantidades[k] ?? 0}`).join("; ")}</span>}
+    </li>)}</ul></section>
+    {confirmando && valida && <Dialogo titulo="Confirmar borrado de datos" onCerrar={trabajando ? undefined : () => setConfirmando(false)}>
+      <form ref={formulario} onSubmit={ejecutar}>
+        <p>{OPERACIONES.find(([k]) => k === operacion)?.[1]}. Esta acción no se puede deshacer desde el panel.</p>
+        <Cantidades datos={simulacion.proyeccion} titulo="Cantidades afectadas" />
+        <ul>{simulacion.efectos?.map(efecto => <li key={efecto}>{efecto}</li>)}</ul>
+        <p>Las cuentas administrativas, sus contraseñas, consultores, computadoras, migraciones y auditorías permanecerán registradas.</p>
+        <label><input type="checkbox" name="aceptar" value="si" required disabled={trabajando} />He revisado los datos y confirmo su eliminación.</label>
+        <label htmlFor="borrar-password">Vuelve a introducir tu contraseña de administrador</label>
+        <input id="borrar-password" name="password" type="password" autoComplete="current-password" required disabled={trabajando} />
+        <div className="dialogo-botones"><button type="button" disabled={trabajando} onClick={() => setConfirmando(false)}>Cancelar</button>
+          <button type="submit" disabled={trabajando}>Confirmar y ejecutar</button></div>
+      </form>
+    </Dialogo>}
+  </main>;
 }
