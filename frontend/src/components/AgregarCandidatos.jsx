@@ -38,7 +38,7 @@ function CampoImagen({ titulo, onArchivo, disabled }) {
 }
 
 const inicial = { numeroLista: "", nombreLista: "", candidatoAlcalde: "", propuesta1: "", propuesta2: "" };
-export default function AgregarCandidatos({ onVolver, token }) {
+export default function AgregarCandidatos({ token }) {
   const [lista, setLista] = useState(inicial);
   const [logo, setLogo] = useState(null);
   const [foto, setFoto] = useState(null);
@@ -62,8 +62,8 @@ export default function AgregarCandidatos({ onVolver, token }) {
     finally { ocupado.current = false; setGuardando(false); }
   }
   return <div className="candidatura-formulario">
-    <div className="candidatura-cabecera"><h2>Registrar Lista de Candidatos</h2><button type="button" className="btn-claro" onClick={onVolver} disabled={guardando}>Volver</button></div>
-    <p>Registra la lista y su candidato a alcalde o alcaldesa antes de abrir la votación.</p>
+    <div className="candidatura-cabecera"><h2>Registrar lista de candidatos</h2></div>
+    <p>Las candidaturas se registran antes de abrir la votación.</p>
     <form onSubmit={guardar}><fieldset disabled={guardando}>
       <label>Número de Lista<input type="number" name="numeroLista" value={lista.numeroLista} onChange={cambiar} min="1" max="2147483647" step="1" required /></label>
       <label>Nombre de la Lista<input name="nombreLista" value={lista.nombreLista} onChange={cambiar} maxLength={100} required /></label>

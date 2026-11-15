@@ -1,0 +1,214 @@
+.pantalla-administracion .marco { background: #f2f6fb; color-scheme: light; line-height: 1.5; }
+.pantalla-administracion *, .pantalla-administracion *::before, .pantalla-administracion *::after { box-sizing: border-box; }
+.pantalla-administracion :where(button, input, select, textarea) { font-family: inherit; }
+.pantalla-administracion button { cursor: pointer; }
+.pantalla-administracion button:disabled { cursor: not-allowed; }
+.pantalla-administracion :is(button, input, select, textarea, summary):focus-visible { outline: 3px solid #1558c0; outline-offset: 3px; }
+.admin-contenedor { width: 100%; min-width: 0; max-width: 1160px; margin: 0 auto; flex: 1; display: flex; flex-direction: column; }
+.admin-transicion { animation: admin-aparecer .18s ease-out; }
+@keyframes admin-aparecer { from { opacity: .2; } to { opacity: 1; } }
+@keyframes admin-ventana { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.admin-navegacion { display: flex; align-items: center; padding-bottom: 18px; color: #16345a; }
+.admin-regresar { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 13px; border: 1px solid #ccdaec; border-radius: 8px; background: #fff; color: #1454a2; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.admin-regresar:hover { background: #e9f1fc; border-color: #96b6de; }
+.admin-enlace { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 12px; border: 0; border-radius: 7px; background: #e4eefb; color: #1454a2; font-size: 12px; font-weight: 600; }
+.admin-enlace:hover { background: #d6e5f8; }
+.admin-panel { flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 24px; color: #16345a; font-size: 14px; line-height: 1.5; }
+.admin-panel button { font-family: inherit; cursor: pointer; }
+.admin-panel button:focus-visible { outline: 3px solid #1558c0; outline-offset: 4px; }
+.admin-panel svg { flex-shrink: 0; }
+.admin-avatar { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #e0ebfa; color: #1558c0; font-size: 12px; }
+.admin-portada { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.admin-panel .admin-portada h2 { color: #16345a; font-size: 25px; font-weight: 650; line-height: 1.25; }
+.admin-panel .admin-introduccion { margin-top: 6px; color: #62758d; font-size: 13px; }
+.admin-panel .admin-resultados:focus-visible { outline-color: white; }
+.admin-seccion { margin: 0; }
+.admin-seccion-titulo { display: flex; align-items: center; gap: 12px; margin-bottom: 13px; }
+.admin-numero { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; border: 1px solid #cfdef0; border-radius: 8px; background: #e8f0fb; color: #1558c0; font-size: 11px; font-weight: 700; }
+.admin-panel h3 { margin: 0; color: #16345a; font-size: 16px; line-height: 1.4; font-weight: 650; }
+.admin-seccion-titulo p { color: #62758d; font-size: 12px; }
+.admin-modulos { display: grid; gap: 13px; }
+.admin-modulos-preparacion { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.admin-modulos-preparacion > .admin-modulo { grid-column: span 4; }
+.admin-modulos-preparacion > .admin-modulo:nth-last-child(-n+2) { grid-column: span 6; }
+.admin-modulos-jornada { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.admin-modulo { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; padding: 19px; border: 1px solid #d9e3f0; border-radius: 11px; background: white; color: #16345a; text-align: left; transition: border-color .15s, box-shadow .15s; }
+.admin-modulo:hover { border-color: #8bb1e0; box-shadow: 0 4px 14px #143e7610; }
+.admin-modulo-icono { display: grid; place-items: center; flex-shrink: 0; width: 56px; height: 56px; margin-bottom: 16px; border: 1px solid #ffffff30; border-radius: 15px; background: linear-gradient(140deg, #10479f, #337eea); color: #fff; box-shadow: 0 6px 12px #1558c026, inset 0 1px 0 #ffffff52; }
+.admin-modulo-icono.admin-icono-estudiantes { background: linear-gradient(140deg, #08755d, #19a880); box-shadow: 0 6px 12px #168a5026, inset 0 1px 0 #ffffff52; }
+.admin-modulo-icono.admin-icono-listas { background: linear-gradient(140deg, #1d4c9a, #4c87e3); }
+.admin-modulo-icono.admin-icono-computadora { background: linear-gradient(140deg, #103a79, #2473b6); }
+.admin-modulo-icono.admin-icono-documento { background: linear-gradient(140deg, #0d6595, #1e9ab7); }
+.admin-modulo-icono.admin-icono-escudo { background: linear-gradient(140deg, #125698, #228b8a); }
+.admin-modulo-nombre { font-size: 14px; font-weight: 650; line-height: 1.4; }
+.admin-modulo-descripcion { margin: 7px 0 17px; color: #62758d; font-size: 12px; line-height: 1.6; }
+.admin-modulo-verde { border-color: #bedfce; }
+.admin-modulo-verde .admin-modulo-icono { color: #fff; background: linear-gradient(140deg, #087143, #1dab69); box-shadow: 0 6px 12px #168a5026, inset 0 1px 0 #ffffff52; }
+.admin-modulo-verde:hover { border-color: #70b58f; }
+.admin-datos { display: flex; align-items: center; gap: 13px; margin-top: 0; padding: 16px 19px; border: 1px solid #e4dce0; border-radius: 10px; background: #fff; }
+.admin-datos-icono { display: grid; place-items: center; flex-shrink: 0; width: 42px; height: 42px; border: 1px solid #eddae0; border-radius: 11px; background: #fff1f3; color: #a14d5e; }
+.admin-datos h3 { font-size: 13px; }
+.admin-datos p { color: #62758d; font-size: 12px; }
+.admin-datos button { display: inline-flex; align-items: center; justify-content: center; gap: 12px; flex-shrink: 0; margin-left: auto; padding: 9px 13px; border: 1px solid #e4cfd4; border-radius: 7px; background: #fff; color: #914653; font-size: 12px; font-weight: 600; }
+.admin-datos button:hover { background: #fff5f6; }
+.admin-aviso { padding: 12px; margin-top: 16px; border-radius: 8px; background: #fff3cd; color: #624b0b; }
+
+@media screen {
+  .pantalla-administracion .marco .marco-cabecera { min-height: 80px; padding: 12px max(28px, calc((100vw - 1160px) / 2)); gap: 16px; background: linear-gradient(110deg, #103a79, #1558c0); }
+  .pantalla-administracion .marco .marco-logo { width: 42px; height: 52px; flex-shrink: 0; }
+  .pantalla-administracion .marco .marco-colegio { max-width: 440px; }
+  .pantalla-administracion .marco .marco-colegio h1 { font-size: 18px; line-height: 1.3; }
+  .pantalla-administracion .marco .marco-colegio p { margin-top: 6px; font-size: 12px; opacity: .9; }
+  .pantalla-administracion .marco .marco-lema { display: block; margin-left: auto; max-width: 200px; font-size: 15px; line-height: 1.5; }
+  .pantalla-administracion .marco .marco-marca { display: flex; margin-left: auto; min-width: 185px; gap: 5px; }
+  .pantalla-administracion .marco .marco-marca strong { font-size: 17px; letter-spacing: .2px; }
+  .pantalla-administracion .marco .marco-contenido { width: 100%; max-width: none; margin: 0; padding: 24px 28px; display: flex; flex-direction: column; }
+  .pantalla-administracion .marco .marco-pie { min-height: 44px; padding: 10px max(28px, calc((100vw - 1160px) / 2)); font-size: 12px; gap: 24px; }
+  .pantalla-administracion .marco .marco-fecha { width: auto; }
+  .pantalla-administracion .marco .marco-hora { margin-left: auto; margin-right: 0; }
+  .pantalla-administracion .marco .btn-salir { min-width: 95px; padding: 9px 18px; font-size: 13px; border: 1px solid #8aaee0; }
+  .pantalla-administracion :is(.control-votacion, .computadoras, .gestion-padron, .candidatura-formulario) { border: 1px solid #d8e3f0; border-radius: 13px; background: #fff; box-shadow: 0 3px 15px #143e7605; }
+  .pantalla-administracion :is(.gestion-padron, .candidatura-formulario) { width: 100%; max-width: 900px !important; padding: 28px !important; }
+  .pantalla-administracion .control-votacion { padding: 28px; }
+  .pantalla-administracion :is(.control-votacion, .computadoras) > p { margin: 12px 0; color: #59718c; font-size: 13px; }
+  .pantalla-administracion .control-votacion > p[role=alert] { color: #a32727; }
+  .pantalla-administracion :is(.control-votacion, .gestion-padron, .computadoras, .candidatura-formulario) h2 { color: #173b6b; font-size: 21px; font-weight: 650; line-height: 1.4; }
+  .pantalla-administracion .control-votacion .control-votacion-estado { margin: 24px 0; border: 1px solid #bedfce; border-left: 4px solid #168a50; border-radius: 8px; background: #edf8f2; color: #17663f; padding: 18px; }
+  .pantalla-administracion .control-votacion-acciones { margin: 20px 0; }
+  .pantalla-administracion .control-votacion-acciones button { font-size: 13px; }
+  .pantalla-administracion .control-votacion-acciones button:last-child { background: #e9f1fb; color: #1454a2; }
+  .pantalla-administracion :is(.gestion-padron, .computadoras) :is(input:not([type=checkbox]):not([type=radio]), select, textarea) { border: 1px solid #c8d7e9; border-radius: 7px; background: #fafcff; color: #17345c; }
+  .pantalla-administracion [role=dialog] { max-height: calc(100dvh - 32px); overflow-y: auto !important; border-radius: 14px !important; color: #17345c; animation: admin-ventana .18s ease-out; }
+  .pantalla-administracion [role=dialog] > div:first-child { gap: 14px; flex-wrap: wrap; }
+  .pantalla-administracion [role=dialog] button[aria-label="Volver al panel"] { flex-shrink: 0; padding: 7px 10px; border: 1px solid #ffffff80 !important; border-radius: 6px; }
+  .pantalla-administracion [role=dialog] button[aria-label="Volver al panel"]:hover { background: #ffffff18 !important; }
+  .pantalla-administracion [role=dialog] button:focus-visible { outline-color: #72b0ff; }
+  .pantalla-administracion.admin-vista-resultados .electoral-resultados { padding-top: 4px; }
+  .pantalla-administracion.admin-vista-resultados .electoral-encabezado-resultados { padding: 24px; border: 1px solid #d8e3f0; border-radius: 13px; background: #fff; }
+  .pantalla-administracion.admin-vista-resultados .electoral-titulo-con-icono h2 { font-size: 23px; letter-spacing: normal; }
+  .pantalla-administracion.admin-vista-resultados .electoral-titulo-con-icono p { font-size: 13px; }
+  .pantalla-administracion.admin-vista-resultados .electoral-icono { width: 62px; height: 62px; border: 1px solid #ffffff30; border-radius: 16px; background: linear-gradient(140deg, #10479f, #337eea); color: #fff; box-shadow: 0 6px 12px #1558c026, inset 0 1px 0 #ffffff52; }
+  .pantalla-administracion.admin-vista-resultados .electoral-acciones { flex-wrap: wrap; }
+  .pantalla-administracion.admin-vista-resultados .electoral-acciones button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; }
+  .pantalla-administracion.admin-vista-resultados .electoral-acciones .btn-claro { border: 1px solid #c8d9ec; background: #fff; color: #1454a2; }
+  .pantalla-administracion.admin-vista-resultados .electoral-acciones .electoral-btn-azul { background: #168a50; }
+  .pantalla-administracion.admin-vista-resultados .electoral-fecha-reporte { font-size: 12px; margin: 18px 0 10px; }
+  .pantalla-administracion.admin-vista-resultados .electoral-total-votos { font-size: 13px; margin-bottom: 18px; }
+  .pantalla-administracion.admin-vista-resultados .electoral-estadisticas { margin-top: 24px; }
+  .pantalla-administracion.admin-vista-resultados .electoral-estadisticas h3 { font-size: 16px; }
+  .pantalla-administracion.admin-vista-resultados .electoral-resumen dl > div { font-size: 13px; padding: 6px 0; }
+  .pantalla-administracion.admin-vista-resultados .electoral-sin-votos { font-size: 13px; }
+  .pantalla-administracion.admin-vista-resultados .electoral-nota { font-size: 12px; }
+  .pantalla-administracion.admin-vista-resultados .electoral-detalle { border-color: #d8e3f0; }
+  .pantalla-administracion.admin-vista-resultados .electoral-detalle summary { font-size: 13px; }
+  .admin-modulo { transition: border-color .15s, box-shadow .15s, transform .15s; }
+  .admin-modulo:hover { transform: translateY(-2px); }
+}
+
+@media screen and (max-width: 1000px) {
+  .pantalla-administracion .marco .marco-lema { display: none; }
+}
+
+@media screen and (max-width: 700px) {
+  .pantalla-administracion .marco .marco-cabecera { min-height: 84px; padding: 14px 18px; gap: 12px; }
+  .pantalla-administracion .marco .marco-logo { width: 44px; height: 54px; }
+  .pantalla-administracion .marco .marco-colegio h1 { font-size: 17px; }
+  .pantalla-administracion .marco .marco-colegio p { font-size: 11px; }
+  .pantalla-administracion .marco .marco-marca { display: none; }
+  .pantalla-administracion .marco .marco-contenido { padding: 20px 18px; }
+  .pantalla-administracion .marco .marco-pie { padding: 14px 18px; gap: 14px; flex-wrap: wrap; }
+  .admin-navegacion { gap: 14px; }
+  .pantalla-administracion.admin-vista-resultados .electoral-encabezado-resultados { padding: 20px; }
+  .pantalla-administracion.admin-vista-resultados .electoral-titulo-con-icono h2 { font-size: 20px; }
+  .pantalla-administracion.admin-vista-resultados .electoral-acciones { width: 100%; }
+  .pantalla-administracion.admin-vista-resultados .electoral-acciones button { flex: 1; }
+  .pantalla-administracion.admin-vista-resultados .electoral-resumen-contenido { flex-wrap: wrap; }
+  .pantalla-administracion.admin-vista-resultados .electoral-resumen dl { min-width: 180px; }
+  .pantalla-administracion :is(.gestion-padron, .candidatura-formulario, .control-votacion) { padding: 20px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pantalla-administracion .admin-transicion, .pantalla-administracion [role=dialog] { animation: none; }
+  .pantalla-administracion .admin-modulo { transition: none; }
+  .pantalla-administracion .admin-modulo:hover { transform: none; }
+}
+
+@media print {
+  .pantalla-administracion .admin-navegacion { display: none; }
+  .pantalla-administracion .admin-transicion { animation: none; }
+}
+
+@media (max-width: 1050px) {
+  .admin-modulos-preparacion { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-portada { gap: 16px; }
+}
+
+@media (max-width: 700px) {
+  .pantalla-administracion .marco-contenido { padding: 0 18px 20px; }
+  .pantalla-administracion .marco-cabecera { padding: 14px 18px; gap: 12px; }
+  .pantalla-administracion .marco-logo { width: 44px; height: 54px; }
+  .pantalla-administracion .marco-colegio h1 { font-size: 17px; }
+  .pantalla-administracion .marco-colegio p { font-size: 11px; }
+  .pantalla-administracion .marco-marca { display: none; }
+  .admin-portada { flex-direction: column; align-items: flex-start; }
+  .admin-modulos-jornada { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-datos { flex-wrap: wrap; }
+  .admin-datos > div { flex: 1; min-width: 180px; }
+  .pantalla-administracion .marco-pie { flex-wrap: wrap; padding: 14px 18px; gap: 14px; font-size: 12px; }
+}
+
+@media (max-width: 430px) {
+  .admin-modulos-preparacion, .admin-modulos-jornada { grid-template-columns: 1fr; }
+  .admin-modulo { padding: 17px; }
+  .admin-portada { padding: 0; }
+  .admin-seccion-titulo { align-items: flex-start; }
+}
+
+.admin-actualizacion { display: grid; justify-items: end; gap: 5px; }
+.admin-actualizacion small { color: #62758d; font-size: 11px; }
+.admin-modulo-dato { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; margin-top: auto; padding-top: 12px; border-top: 1px solid #edf1f7; color: #1558c0; font-size: 12px; font-weight: 650; }
+.admin-modulo-verde .admin-modulo-dato { color: #137344; }
+.admin-modulo-secundario .admin-modulo-icono { background: #e9eff7; color: #526e91; box-shadow: none; --admin-icono-acento: #526e91; }
+.admin-modulo-secundario .admin-modulo-dato { color: #526e91; }
+.admin-utilidades { display: flex; align-items: center; gap: 20px; margin-left: auto; flex-shrink: 0; }
+.admin-etiqueta-area { color: #d7e6ff; font-size: 12px; }
+.admin-cuenta { position: relative; font-size: 13px; }
+.admin-cuenta > summary { display: flex; align-items: center; gap: 9px; padding: 7px 11px; border: 1px solid #ffffff4d; border-radius: 8px; color: #fff; list-style: none; cursor: pointer; }
+.admin-cuenta > summary::-webkit-details-marker { display: none; }
+.admin-cuenta > summary:hover, .admin-cuenta[open] > summary { background: #ffffff14; }
+.admin-avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #ffffff24; color: #fff; font-size: 12px; font-weight: 650; }
+.admin-cuenta-opciones { position: absolute; top: calc(100% + 10px); right: 0; z-index: 50; width: 260px; padding: 7px; border: 1px solid #d6e1ef; border-radius: 11px; background: #fff; box-shadow: 0 12px 30px #102f6429; }
+.admin-cuenta-opciones button { display: flex; align-items: center; gap: 11px; width: 100%; padding: 12px; border: 0; border-radius: 7px; background: #fff; color: #17345c; text-align: left; --admin-icono-acento: #168a50; }
+.admin-cuenta-opciones button:hover { background: #edf4fd; }
+.admin-cuenta-opciones strong { display: block; font-size: 13px; font-weight: 600; }
+.admin-cuenta-opciones small { display: block; margin-top: 3px; color: #62758d; font-size: 11px; }
+.admin-cuenta-opciones .admin-cuenta-salir { border-top: 1px solid #e3eaf3; border-radius: 0 0 7px 7px; color: #963e4a; }
+.pantalla-administracion .admin-contenedor > :is(.gestion-padron, .candidatura-formulario, .control-votacion) { margin: 0 auto; }
+@media screen and (max-width: 1050px) {
+  .admin-modulos-preparacion > .admin-modulo, .admin-modulos-preparacion > .admin-modulo:nth-last-child(-n+2) { grid-column: auto; }
+  .admin-modulos-preparacion > .admin-modulo:last-child { grid-column: 1 / -1; }
+  .admin-etiqueta-area { display: none; }
+}
+@media screen and (max-width: 700px) {
+  .pantalla-administracion .marco .marco-cabecera { min-height: 76px; padding: 12px 18px; }
+  .pantalla-administracion .marco .marco-colegio { min-width: 0; }
+  .pantalla-administracion .marco .marco-colegio h1 { font-size: 15px; }
+  .pantalla-administracion .marco .marco-logo { width: 34px; height: 44px; }
+  .pantalla-administracion .marco .marco-pie { padding: 10px 18px; }
+  .admin-portada { align-items: flex-start; }
+  .admin-actualizacion { justify-items: start; }
+  .admin-utilidades { gap: 0; }
+  .admin-cuenta > summary { padding: 6px 8px; gap: 6px; }
+  .admin-cuenta > summary .admin-avatar { display: none; }
+  .admin-panel { gap: 22px; }
+}
+@media screen and (max-width: 430px) {
+  .admin-modulos-preparacion > .admin-modulo:last-child { grid-column: auto; }
+  .admin-modulos-jornada { grid-template-columns: 1fr; }
+  .pantalla-administracion .marco .marco-colegio p { font-size: 10px; }
+}
+@media print { .admin-utilidades { display: none; } }
+
+.admin-ayuda { margin-top: 20px; padding-top: 14px; border-top: 1px solid #e0e8f3; color: #59718c; font-size: 13px; }
+.admin-ayuda summary { cursor: pointer; font-weight: 600; }
+.admin-ayuda p { margin-top: 9px; }

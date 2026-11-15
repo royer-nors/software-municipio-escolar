@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import MarcoPantalla from "../components/MarcoPantalla";
+import MarcoAdministrativo from "../components/MarcoAdministrativo";
+import NavegacionAdministrativa from "../components/NavegacionAdministrativa";
+import Icono from "../components/IconoAdministrativo";
 import Avatar from "../components/Avatar";
 import ImagenElectoral from "../components/ImagenElectoral";
 import { esperarImagenes } from "../utils/imagenes";
@@ -28,7 +31,7 @@ function GraficoCircular({ listas, total, colores }) {
   );
 }
 
-export default function Resultados({ token, onSalir, consultar = obtenerResultados, consultor = false }) {
+export default function Resultados({ token, usuario, onVolver, onSeguridad, onConsultores, onSalir, consultar = obtenerResultados, consultor = false }) {
   // Conserva sessionStorage.admin_token y admite la sesión entregada por App.
   const tokenAdmin = token || (!consultor && sessionStorage.getItem("admin_token")) || "";
   const [revision, setRevision] = useState(0);
@@ -81,15 +84,21 @@ export default function Resultados({ token, onSalir, consultar = obtenerResultad
     return <MarcoPantalla onSalir={onSalir}><p role="status">{error}</p></MarcoPantalla>;
   }
 
+  const MarcoResultados = consultor ? MarcoPantalla : MarcoAdministrativo;
+  const opcionesMarco = consultor ? { electoral: true, onSalir } : {
+    electoral: true, usuario, onSeguridad, onConsultores, onCerrarSesion: onSalir,
+  };
   return (
-    <MarcoPantalla electoral onSalir={onSalir}>
+    <MarcoResultados {...opcionesMarco}>
+      <div className={consultor ? undefined : "admin-contenedor admin-transicion"}>
+      {!consultor && <NavegacionAdministrativa onVolver={onVolver} />}
       <section ref={reporte} className="electoral-resultados" aria-busy={cargando}>
         <div className="electoral-encabezado-resultados">
-          <div className="electoral-titulo-con-icono"><span className="electoral-icono" aria-hidden="true">▣</span>
-            <div><h2>RESULTADOS DE LA ELECCIÓN</h2><p>Municipio Escolar · Resultados por lista</p></div></div>
+          <div className="electoral-titulo-con-icono"><span className="electoral-icono" aria-hidden="true"><Icono nombre="grafico" width="34" height="34" /></span>
+            <div><h2>Resultados de la elección</h2><p>Conteo por lista electoral</p></div></div>
           <div className="electoral-acciones">
-            <button type="button" className="btn-claro" disabled={cargando || imprimiendo} onClick={actualizar}>Actualizar</button>
-            <button type="button" className="electoral-btn-azul" disabled={!data || cargando || Boolean(error) || imprimiendo} onClick={imprimir}>{imprimiendo ? 'Preparando imágenes…' : 'Imprimir resultados'}</button>
+            <button type="button" className="btn-claro" disabled={cargando || imprimiendo} onClick={actualizar}><Icono nombre="actualizar" width="18" height="18" />Actualizar</button>
+            <button type="button" className="electoral-btn-azul" disabled={!data || cargando || Boolean(error) || imprimiendo} onClick={imprimir}><Icono nombre="imprimir" width="18" height="18" />{imprimiendo ? 'Preparando imágenes…' : 'Imprimir resultados'}</button>
           </div>
         </div>
         {cargando && <div className="estado" role="status"><span className="electoral-cargando" aria-hidden="true" />Consultando resultados del proceso electoral…</div>}
@@ -102,7 +111,7 @@ export default function Resultados({ token, onSalir, consultar = obtenerResultad
           {resumen.votosValidos > 0 && primeros.length > 0 && <p className="electoral-ganadora">
             <strong>{primeros.length === 1 ? 'Lista ganadora según el conteo actual: ' : 'Empate en el primer lugar: '}</strong>{primeros.map(l => l.nombre).join(' · ')}
           </p>}
-          {data.listas.length === 0 && <p className="electoral-alerta">No hay listas electorales registradas para mostrar.</p>}
+          {data.listas.length === 0 && <div className="admin-resultados-vacio"><strong>Aún no hay listas electorales registradas</strong><p>Cuando registres las candidaturas, podrás consultar aquí sus votos y porcentajes.</p></div>}
           <div className="electoral-ranking">
             {data.listas.map(lista => <article key={lista.nombre} className={`electoral-resultado tarjeta-${colores.get(lista.nombre)}`}>
               <div className="electoral-resultado-cabecera"><span>{lista.numero ? `Lista ${lista.numero}` : lista.id ? `ID ${lista.id}` : 'Lista electoral'}</span><strong>{posicion(lista.posicion)}</strong></div>
@@ -150,9 +159,10 @@ export default function Resultados({ token, onSalir, consultar = obtenerResultad
               <tbody>{data.listas.map(lista => <tr key={lista.nombre}><td>{posicion(lista.posicion)}</td><th scope="row">{lista.nombre}</th><td>{cantidad(lista.votos)}</td><td>{porcentaje(lista.porcentaje)}</td></tr>)}</tbody>
             </table></div>
           </details>
-          <p className="electoral-nota">Los porcentajes por lista corresponden a los votos válidos. La participación corresponde a los votos emitidos sobre estudiantes habilitados. Las posiciones y los empates son los informados por el servidor.</p>
+          <p className="electoral-nota">Porcentajes sobre votos válidos. Participación sobre estudiantes habilitados.</p>
         </>}
       </section>
-    </MarcoPantalla>
+      </div>
+    </MarcoResultados>
   );
 }

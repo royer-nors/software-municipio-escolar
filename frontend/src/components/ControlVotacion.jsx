@@ -62,7 +62,7 @@ export default function ControlVotacion({ token }) {
 
   return <section className="control-votacion" aria-busy={cargando}>
     <h2>Control de votación</h2>
-    <p>La apertura y el cierre se guardan en PostgreSQL y conservan los votos registrados.</p>
+    <p>Abrir o cerrar la jornada conserva los votos registrados.</p>
     {cargando && <p role="status">Consultando o guardando el estado…</p>}
     {configuracion && <p className="control-votacion-estado" role="status"><strong>{configuracion.automatica ? configuracion.estado : configuracion.votacionAbierta ? "Votación abierta" : "Votación cerrada"}</strong></p>}
     {error && <p role="alert">{error}</p>}
@@ -71,8 +71,8 @@ export default function ControlVotacion({ token }) {
       {configuracion && <button type="button" disabled={cargando} onClick={cambiar}>{configuracion.votacionAbierta ? "Cerrar votación" : "Abrir votación"}</button>}
       <button type="button" disabled={cargando} onClick={consultar}>Consultar estado actual</button>
     </div>
-    {configuracion?.estado && <p>Estado electoral: <strong>{configuracion.estado}</strong> · Modo {configuracion.automatica ? "automático" : "manual"} · America/Lima</p>}
+    {configuracion && <p>Modo {configuracion.automatica ? "automático" : "manual"} · Hora de Perú</p>}
     {configuracion?.fecha && <p><strong>Horario guardado:</strong> {describirHorario(configuracion)}</p>}
-    <p>El control manual de emergencia tiene prioridad y desactiva el horario automático. Para reactivarlo, guarda la opción Apertura y cierre automáticos en Configurar centro educativo.</p>
+    <details className="admin-ayuda"><summary>Sobre el control manual</summary><p>Una orden manual desactiva el horario automático. Puedes reactivarlo en Centro educativo.</p></details>
   </section>;
 }

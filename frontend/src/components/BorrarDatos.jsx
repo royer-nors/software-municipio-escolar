@@ -54,7 +54,7 @@ export default function BorrarDatos({ token }) {
   }
   const valida = simulacion && simulacion.operacion === operacion && !simulacion.bloqueada;
   return <main className="borrar-datos">
-    <header className="borrar-datos-encabezado"><h2>Borrar datos</h2><p>Selecciona los datos, revisa la vista previa y confirma con tu contraseña. No se solicitan códigos externos.</p></header>
+    <header className="borrar-datos-encabezado"><h2>Borrar datos</h2><p>Selecciona los datos y revisa la vista previa antes de confirmar con tu contraseña.</p></header>
     {error && <p role="alert" className="borrar-datos-mensaje borrar-datos-error">{error}</p>}
     {aviso && <p role="status">{aviso}</p>}
     {!resumen && <p role="status">Consultando datos…</p>}

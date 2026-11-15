@@ -3,7 +3,7 @@ import ImportarPadronGrado from './ImportarPadronGrado';
 import { registrarEstudiante } from '../api/padron.js';
 import '../styles/padron.css';
 
-export default function AgregarVotante({ onVolver, token }) {
+export default function AgregarVotante({ token }) {
   const tokenAdmin = token || sessionStorage.getItem('admin_token') || '';
   const [guardando, setGuardando] = useState(false);
   const [avisoManual, setAvisoManual] = useState(null);
@@ -40,7 +40,6 @@ export default function AgregarVotante({ onVolver, token }) {
     <div className="gestion-padron" style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', maxWidth: '600px', margin: 'auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>👤 Registrar Nuevo Votante</h2>
-        <button onClick={onVolver} disabled={bloqueado} style={{ padding: '6px 12px', cursor: 'pointer' }}>Volver</button>
       </div>
 
       {!tokenAdmin && <p className="padron-aviso padron-error" role="alert">Inicia sesión como administrador para gestionar el padrón.</p>}

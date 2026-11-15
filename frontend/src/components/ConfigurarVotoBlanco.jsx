@@ -113,17 +113,17 @@ export default function ConfigurarVotoBlanco({ onVolver, token }) {
           <button
             type="button"
             onClick={onVolver}
-            aria-label="Cerrar"
+            aria-label="Volver al panel"
             disabled={guardando}
             style={{
               border: "none",
               background: "transparent",
               color: "#fff",
-              fontSize: 26,
+              fontSize: 13,
               cursor: "pointer",
             }}
           >
-            ×
+            ← Volver
           </button>
         </div>
 
@@ -131,7 +131,7 @@ export default function ConfigurarVotoBlanco({ onVolver, token }) {
         <div style={{ padding: "12px 24px 0" }}>
           <button type="button" disabled={cargando || guardando} onClick={() => { setCargando(true); setMensaje(""); setRevision(r => r + 1); }}>Consultar configuración</button>
           {cargando && <p role="status">Consultando configuración guardada…</p>}
-          {configuracion?.votacionAbierta && <p role="status">La votación está abierta. El voto en blanco solo se puede modificar fuera de la votación abierta.</p>}
+          {configuracion?.votacionAbierta && <p role="status">Cierra la votación antes de modificar esta opción.</p>}
         </div>
         <form onSubmit={guardar}>
           <fieldset disabled={cargando || guardando || !configuracion || !token} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
@@ -141,11 +141,10 @@ export default function ConfigurarVotoBlanco({ onVolver, token }) {
                 color: "#58718d",
                 fontSize: 13,
                 marginTop: 0,
-                marginBottom: 42,
+                marginBottom: 20,
               }}
             >
-              Activa o desactiva la opción de voto en blanco
-              en la cédula.
+              Elige si se mostrará esta opción en la cédula.
             </p>
 
             <div
@@ -199,7 +198,7 @@ export default function ConfigurarVotoBlanco({ onVolver, token }) {
               style={{
                 color: "#58718d",
                 fontSize: 12,
-                marginTop: 28,
+                marginTop: 18,
               }}
             >
               Los cambios se aplican al pulsar Guardar.

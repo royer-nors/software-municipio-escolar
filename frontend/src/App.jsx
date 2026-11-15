@@ -2,8 +2,11 @@
 import { useEffect, useState } from "react";
 
 import MarcoPantalla from "./components/MarcoPantalla";
+import MarcoAdministrativo from "./components/MarcoAdministrativo";
 import Bienvenida from "./pages/Bienvenida";
 import LoginAdmin from "./pages/LoginAdmin";
+import PanelAdministrativo from "./components/PanelAdministrativo";
+import NavegacionAdministrativa from "./components/NavegacionAdministrativa";
 
 import AgregarVotante from "./components/AgregarVotante";
 import AgregarCandidatos from "./components/AgregarCandidatos";
@@ -29,11 +32,13 @@ const API =
 
 const azul = "#0759b8";
 
-const tarjeta = {
-  background: "#edf5fd",
-  border: "1px solid #c0d6ef",
-  borderRadius: 7,
-  padding: 20,
+const nombresModulos = {
+  "control-votacion": "Control de votación",
+  computadoras: "Computadoras de votación",
+  consultores: "Consultores de resultados",
+  padron: "Padrón electoral",
+  candidatos: "Listas y candidatos",
+  borrar: "Datos de prueba",
 };
 
 const boton = {
@@ -45,48 +50,6 @@ const boton = {
   cursor: "pointer",
   fontSize: 15,
 };
-
-const opcionesConfiguracion = [
-  ["consultores", "▣", "Consultores de resultados", "Administrar las dos cuentas de consulta de resultados publicados."],
-  ["computadoras", "▣", "Administrar computadoras", "Registrar equipos y asignar grados de secundaria."],
-  ["control-votacion", "✓", "Control de votación", "Abrir o cerrar la votación y consultar su estado real."],
-  [
-    "centro",
-    "🏫",
-    "Configurar centro educativo",
-    "Datos de la I.E. y del proceso electoral.",
-  ],
-  [
-    "padron",
-    "👥",
-    "Gestionar estudiantes",
-    "Registrar estudiantes habilitados para votar.",
-  ],
-  [
-    "candidatos",
-    "👤",
-    "Agregar candidatos",
-    "Registrar listas y candidatos.",
-  ],
-  [
-    "blanco",
-    "☑️",
-    "Configurar voto en blanco",
-    "Parámetros de voto en blanco.",
-  ],
-  [
-    "seguridad",
-    "🔒",
-    "Seguridad",
-    "Control de accesos del sistema.",
-  ],
-  [
-    "borrar",
-    "🗑️",
-    "Borrar datos",
-    "Simular y ejecutar limpieza de datos de prueba.",
-  ],
-];
 
 export default function App() {
   if (window.location.pathname === "/puesto" || new URLSearchParams(window.location.search).get("puesto") === "1") return <VincularPuesto />;
@@ -178,6 +141,9 @@ function AplicacionAdministrativa() {
     setMostrarSeguridad(false);
     setMensaje("");
     setVista(nuevaVista);
+    if (nuevaVista === "configuracion" || nuevaVista === "resultados" || Object.hasOwn(nombresModulos, nuevaVista)) {
+      window.scrollTo(0, 0);
+    }
   }
 
   // Cerrar sesión administrativa.
@@ -257,6 +223,7 @@ function AplicacionAdministrativa() {
     }
 
     if (id === "seguridad") {
+      ir("configuracion");
       setMostrarSeguridad(true);
       setMensaje("");
       return;
@@ -398,184 +365,42 @@ function AplicacionAdministrativa() {
     return (
       <Resultados
         token={sesionAdmin.token}
-        onSalir={() => ir("inicio")}
+        usuario={sesionAdmin.administrador?.usuario}
+        onVolver={() => ir("configuracion")}
+        onSeguridad={() => seleccionarOpcion("seguridad")}
+        onConsultores={() => seleccionarOpcion("consultores")}
+        onSalir={cerrarSesionAdmin}
       />
     );
   }
 
   // PANEL ADMINISTRATIVO
   return (
-    <div
-      style={{
-        background: "#dce6f2",
-        minHeight: "100vh",
-      }}
+    <MarcoAdministrativo
+      usuario={sesionAdmin?.administrador?.usuario}
+      onSeguridad={() => seleccionarOpcion("seguridad")}
+      onConsultores={() => seleccionarOpcion("consultores")}
+      onCerrarSesion={cerrarSesionAdmin}
     >
-      <MarcoPantalla
-        mostrarMarca={vista !== "inicio"}
-        onSalir={
-          sesionAdmin
-            ? cerrarSesionAdmin
-            : () => ir("inicio")
-        }
-      >
-        <div
-          style={{
-            maxWidth: 1050,
-            margin: "auto",
-            padding: "18px 12px 30px",
-          }}
-        >
+        <div key={vista} className="admin-contenedor admin-transicion">
           {/* ENCABEZADO ADMINISTRATIVO */}
           {sesionAdmin &&
-            vista !== "inicio" && (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: 12,
-                  marginBottom: 16,
-                }}
-              >
-                <span>
-                  Panel administrativo — Usuario:{" "}
-                  {
-                    sesionAdmin
-                      .administrador?.usuario
-                  }
-                </span>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <button
-                    style={boton}
-                    onClick={() =>
-                      entrarA("resultados")
-                    }
-                  >
-                    Ver resultados
-                  </button>
-
-                  <button
-                    style={{
-                      ...boton,
-                      background: "#dc3545",
-                    }}
-                    onClick={
-                      cerrarSesionAdmin
-                    }
-                  >
-                    Cerrar sesión
-                  </button>
-                </div>
-              </div>
+            vista !== "inicio" && vista !== "configuracion" && (
+              <NavegacionAdministrativa
+                onVolver={volver}
+              />
             )}
 
           {/* MENÚ DE CONFIGURACIÓN */}
           {vista === "configuracion" &&
             sesionAdmin && (
-              <section style={tarjeta}>
-                <h2
-                  style={{
-                    color: azul,
-                    marginTop: 0,
-                  }}
-                >
-                  ⚙️ Configurar Sistema de Votación
-                </h2>
-
-                <p>
-                  Selecciona la opción que
-                  deseas configurar.
-                </p>
-
-                {opcionesConfiguracion.map(
-                  ([
-                    id,
-                    icono,
-                    nombre,
-                    descripcion,
-                  ]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() =>
-                        seleccionarOpcion(id)
-                      }
-                      style={{
-                        width: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        background: "white",
-                        border:
-                          "1px solid #c5d7eb",
-                        borderRadius: 7,
-                        padding: 12,
-                        marginBottom: 7,
-                        textAlign: "left",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 25,
-                        }}
-                      >
-                        {icono}
-                      </span>
-
-                      <span
-                        style={{
-                          flex: 1,
-                        }}
-                      >
-                        <strong
-                          style={{
-                            color: azul,
-                          }}
-                        >
-                          {nombre}
-                        </strong>
-
-
-                        <small
-                          style={{
-                            display: "block",
-                            color: "#64748b",
-                            marginTop: 3,
-                          }}
-                        >
-                          {descripcion}
-                        </small>
-                      </span>
-
-                      <span>❯</span>
-                    </button>
-                  )
-                )}
-
-                {mensaje && (
-                  <p
-                    role="status"
-                    style={{
-                      padding: 12,
-                      background:
-                        "#fff3cd",
-                      borderRadius: 7,
-                    }}
-                  >
-                    {mensaje}
-                  </p>
-                )}
-              </section>
+              <PanelAdministrativo
+                token={sesionAdmin.token}
+                onSeleccionar={seleccionarOpcion}
+                onResultados={() => entrarA("resultados")}
+                modalAbierto={mostrarCentro || mostrarVotoBlanco || mostrarSeguridad}
+                mensaje={mensaje}
+              />
             )}
 
           {/* CONFIGURAR CENTRO EDUCATIVO */}
@@ -629,9 +454,6 @@ function AplicacionAdministrativa() {
                 token={
                   sesionAdmin.token
                 }
-                onVolver={() =>
-                  ir("configuracion")
-                }
               />
             )}
 
@@ -642,35 +464,10 @@ function AplicacionAdministrativa() {
                 token={
                   sesionAdmin.token
                 }
-                onVolver={() =>
-                  ir("configuracion")
-                }
               />
             )}
 
-          {/* BOTÓN DE NAVEGACIÓN */}
-          {vista !== "inicio" && (
-            <button
-              style={{
-                ...boton,
-                marginTop: 20,
-              }}
-              onClick={volver}
-            >
-              ← Volver{" "}
-              {[
-                "control-votacion",
-                "computadoras",
-                "padron",
-                "candidatos",
-                "borrar",
-              ].includes(vista)
-                ? "a configuración"
-                : "al inicio"}
-            </button>
-          )}
         </div>
-      </MarcoPantalla>
-    </div>
+    </MarcoAdministrativo>
   );
 }
