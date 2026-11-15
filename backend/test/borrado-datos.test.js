@@ -34,7 +34,7 @@ beforeEach(async () => {
   process.env.NODE_ENV = "test"; process.env.BORRADO_DATOS_HABILITADO = "true";
   process.env.BORRADO_DATOS_DB_PRUEBAS = real ? "db_municipio_escolar_pruebas" : "postgres";
   // Exclusivamente la instancia efímera o esquema aleatorio nuevo del helper.
-  await db.exec(`TRUNCATE votos,candidatos,listas,estudiantes,vinculaciones_puesto,autorizaciones_puesto,computadoras,administradores,auditoria_borrado_datos RESTART IDENTITY CASCADE;
+  await db.exec(`TRUNCATE auditoria_importaciones_padron,vistas_previas_padron,votos,candidatos,listas,estudiantes,vinculaciones_puesto,autorizaciones_puesto,computadoras,administradores,auditoria_borrado_datos RESTART IDENTITY CASCADE;
     UPDATE configuracion_votacion SET votacion_abierta=FALSE,automatica=FALSE,fecha_votacion=NULL,hora_inicio=NULL,hora_fin=NULL,anio_electoral=NULL;
     INSERT INTO computadoras(identificador,nombre,grado) VALUES ('PC-01','Equipo prueba',3);
     INSERT INTO estudiantes(codigo,nombre,grado,origen_registro,ya_voto) VALUES ('01234567','Excel','3','excel',TRUE),('12345678','Manual','3','manual',FALSE),('22222222','Anterior','3','desconocido',FALSE);
@@ -65,6 +65,24 @@ test("solo votos restablece participación y mantiene padrón/listas/candidatos"
   assert.equal((await ejecutar("solo_votos")).status, 200);
   assert.deepEqual(await conteos(), { estudiantes: 3, listas: 1, candidatos: 2, votos: 0 });
   assert.equal((await db.query("SELECT count(*)::int n FROM estudiantes WHERE ya_voto")).rows[0].n, 0);
+});
+test("reinicio retira datos temporales Excel sin eliminar vistas auditadas, consultores ni migraciones", async () => {
+  const pendiente = '10000000-0000-4000-8000-000000000001', consumida = '10000000-0000-4000-8000-000000000002';
+  await db.query(`INSERT INTO vistas_previas_padron(id,administrador_id,grado,modo,estudiantes,huella)
+    VALUES($1,1,3,'agregar',$2::jsonb,repeat('a',64))`, [pendiente, JSON.stringify([{ dni: '88888888', nombre: 'Temporal ficticio', grado: '3' }])]);
+  await db.query(`INSERT INTO vistas_previas_padron(id,administrador_id,grado,modo,estudiantes,huella,consumida_en)
+    VALUES($1,1,3,'agregar',NULL,repeat('b',64),clock_timestamp())`, [consumida]);
+  await db.query(`INSERT INTO auditoria_importaciones_padron(administrador_id,administrador_usuario,vista_previa_id,grado,modo,cantidades)
+    VALUES(1,'admin',$1,3,'agregar','{"agregados":1}')`, [consumida]);
+  const auditoria = (await db.query('SELECT * FROM auditoria_importaciones_padron')).rows;
+  const consultores = (await db.query('SELECT * FROM consultores_resultados ORDER BY id')).rows;
+  const migraciones = (await db.query('SELECT * FROM esquema_migraciones ORDER BY version')).rows;
+  const r = await ejecutar('reinicio_pruebas'); assert.equal(r.status, 200); assert.equal(r.body.revocaciones.vistasPrevias, 1);
+  const vistas = (await db.query('SELECT estudiantes,consumida_en FROM vistas_previas_padron')).rows;
+  assert.equal(vistas.length, 2); assert.ok(vistas.every(v => v.estudiantes === null && v.consumida_en));
+  assert.deepEqual((await db.query('SELECT * FROM auditoria_importaciones_padron')).rows, auditoria);
+  assert.deepEqual((await db.query('SELECT * FROM consultores_resultados ORDER BY id')).rows, consultores);
+  assert.deepEqual((await db.query('SELECT * FROM esquema_migraciones ORDER BY version')).rows, migraciones);
 });
 test("impide operaciones inconsistentes y permite eliminar candidatos y listas juntos", async () => {
   for (const op of ["estudiantes", "estudiantes_importados", "solo_candidatos", "solo_listas"]) assert.equal((await simular(op)).body.bloqueada, true);
@@ -136,11 +154,15 @@ test("ejecuciones simultáneas de una vista previa solo confirman una transacci�
 });
 test("un fallo de auditoría de éxito revierte eliminación, configuración y consumo de simulación", async () => {
   const antes = await conteos(), s = (await simular("reinicio_pruebas")).body;
+  await db.query(`INSERT INTO vistas_previas_padron(id,administrador_id,grado,modo,estudiantes,huella)
+    VALUES('20000000-0000-4000-8000-000000000001',1,3,'agregar','[]',repeat('c',64))`);
+  const vistasAntes = (await db.query('SELECT * FROM vistas_previas_padron')).rows;
   await db.exec(`CREATE FUNCTION bloquear_auditoria_exito() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.resultado='ejecutado' THEN RAISE EXCEPTION 'fallo de prueba'; END IF; RETURN NEW; END $$;
     CREATE TRIGGER fallo_auditoria BEFORE INSERT ON auditoria_borrado_datos FOR EACH ROW EXECUTE FUNCTION bloquear_auditoria_exito();`);
   try {
     assert.equal((await pedir("ejecutar", { body: { operacion: "reinicio_pruebas", simulacionId: s.simulacionId, password, confirmacion: FRASE_REINICIO } })).status, 503);
     assert.deepEqual(await conteos(), antes);
+    assert.deepEqual((await db.query('SELECT * FROM vistas_previas_padron')).rows, vistasAntes);
     assert.equal((await db.query("SELECT consumida_en FROM auditoria_borrado_datos WHERE id=$1", [s.simulacionId])).rows[0].consumida_en, null);
   } finally { await db.exec("DROP TRIGGER fallo_auditoria ON auditoria_borrado_datos; DROP FUNCTION bloquear_auditoria_exito();"); }
 });
@@ -172,4 +194,41 @@ test("borrado revoca credenciales, conserva computadoras y no reactiva sesiones 
   await db.query("UPDATE configuracion_votacion SET votacion_abierta=TRUE");
   r = await fetch(url + "/api/puesto/listas", { headers: { ...headers, Cookie: cookie, Authorization: `Bearer ${sesion.token}` } }); assert.equal(r.status, 401); await r.json();
   assert.equal((await db.query("SELECT count(*)::int n FROM computadoras")).rows[0].n, 1);
+});
+
+
+test("reinicio real en produccion conserva cuentas y exige habilitacion vigente", async () => {
+  // Solo la base efimera: adaptar su nombre observado, nunca conectar la real.
+  const valores = { NODE_ENV: "production", REINICIO_ELECTORAL_HABILITADO: "true", REINICIO_ELECTORAL_BASE: "db_municipio_escolar" };
+  const anteriores = Object.fromEntries(Object.keys(valores).map(k => [k, process.env[k]]));
+  const adaptar = cliente => ({
+    async query(...args) { const r = await cliente.query(...args); for (const fila of r.rows || []) if (Object.hasOwn(fila, "nombre_base")) fila.nombre_base = "db_municipio_escolar"; return r; },
+    release() { cliente.release?.(); }
+  });
+  try {
+    await new Promise(resolve => { server.close(resolve); server.closeAllConnections(); });
+    const pool = { query: (...args) => adaptar(entorno.pool).query(...args), connect: async () => adaptar(await entorno.pool.connect()) };
+    Object.assign(process.env, valores);
+    server = createApp({ pool, jwtSecret: secreto, puesto: { secure: false } }).listen(0, "127.0.0.1");
+    await once(server, "listening"); url = 'http://127.0.0.1:' + server.address().port;
+    const cuentas = (await db.query("SELECT * FROM administradores ORDER BY id")).rows;
+    const consultores = (await db.query("SELECT * FROM consultores_resultados ORDER BY id")).rows;
+    const migraciones = (await db.query("SELECT * FROM esquema_migraciones ORDER BY version")).rows;
+    const equipos = (await db.query("SELECT * FROM computadoras ORDER BY id")).rows;
+    const tablas = (await db.query("SELECT tablename FROM pg_tables WHERE schemaname=current_schema() ORDER BY tablename")).rows;
+    const previa = (await simular("reinicio_pruebas")).body; assert.equal(previa.bloqueada, false);
+    process.env.REINICIO_ELECTORAL_HABILITADO = "false";
+    assert.equal((await pedir("ejecutar", { body: { operacion: "reinicio_pruebas", simulacionId: previa.simulacionId, password, confirmacion: FRASE_REINICIO } })).status, 403);
+    assert.equal((await conteos()).votos, 1);
+    process.env.REINICIO_ELECTORAL_HABILITADO = "true";
+    assert.equal((await ejecutar("reinicio_pruebas")).status, 200);
+    assert.deepEqual(await conteos(), { estudiantes: 0, listas: 0, candidatos: 0, votos: 0 });
+    assert.deepEqual((await db.query("SELECT * FROM administradores ORDER BY id")).rows, cuentas);
+    assert.deepEqual((await db.query("SELECT * FROM consultores_resultados ORDER BY id")).rows, consultores);
+    assert.deepEqual((await db.query("SELECT * FROM esquema_migraciones ORDER BY version")).rows, migraciones);
+    assert.deepEqual((await db.query("SELECT * FROM computadoras ORDER BY id")).rows, equipos);
+    assert.deepEqual((await db.query("SELECT tablename FROM pg_tables WHERE schemaname=current_schema() ORDER BY tablename")).rows, tablas);
+    const a = (await db.query("SELECT detalle FROM auditoria_borrado_datos WHERE resultado='ejecutado'")).rows[0];
+    assert.equal(a.detalle.autorizacion.tipo, "administrativa"); assert.equal(a.detalle.autorizacion.base, "db_municipio_escolar");
+  } finally { for (const [k,v] of Object.entries(anteriores)) { if(v === undefined) delete process.env[k]; else process.env[k]=v; } }
 });

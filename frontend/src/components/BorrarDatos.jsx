@@ -48,7 +48,7 @@ export default function BorrarDatos({ token }) {
     try {
       await ejecutarBorradoDatos(token, { operacion: previa.operacion, simulacionId: previa.simulacionId, password,
         confirmacion: previa.operacion === "reinicio_pruebas" ? "REINICIAR COMPLETAMENTE DATOS DE PRUEBA" : "BORRAR DATOS DE PRUEBA" });
-      setAviso("Operación completada y auditada. Se conservaron administradores y computadoras. Los puestos deben vincularse nuevamente.");
+      setAviso("Operación completada y auditada. Se conservaron administradores, consultores y computadoras. Los puestos deben vincularse nuevamente.");
     } catch (err) { setError(err.message); }
     finally { setConfirmando(false); ocupado.current = false; setTrabajando(false); await cargar(); }
   }
@@ -62,6 +62,7 @@ export default function BorrarDatos({ token }) {
       <Cantidades datos={resumen} titulo="Registros actuales" />
       <p>Excel identificados: {resumen.estudiantesImportados}. Origen anterior desconocido: {resumen.estudiantesOrigenDesconocido}. Estos últimos no se incluyen en “solo importados”.</p>
       {!resumen.habilitado && <p role="alert">{resumen.motivoEntorno}</p>}
+      {resumen.autorizacionReinicio?.tipo === "administrativa" && <p>Reinicio de la base real habilitado. Requiere tu contraseña vigente y la confirmación de la vista previa.</p>}
       {resumen.votacionAbierta && <p role="alert">La elección está abierta. Ciérrala antes de ejecutar cualquier borrado.</p>}
     </>}
     <section className="borrar-datos-panel">
@@ -88,7 +89,7 @@ export default function BorrarDatos({ token }) {
         <p>{OPERACIONES.find(([k]) => k === operacion)?.[1]}. Esta acción no se puede deshacer desde el panel.</p>
         <Cantidades datos={simulacion.proyeccion} titulo="Cantidades afectadas" />
         <ul>{simulacion.efectos?.map(efecto => <li key={efecto}>{efecto}</li>)}</ul>
-        <p>Las cuentas administrativas, computadoras y auditorías permanecerán registradas.</p>
+        <p>Las cuentas administrativas, sus contraseñas, consultores, computadoras, migraciones y auditorías permanecerán registradas.</p>
         <label><input type="checkbox" name="aceptar" value="si" required disabled={trabajando} />He revisado los datos y confirmo su eliminación.</label>
         <label htmlFor="borrar-password">Vuelve a introducir tu contraseña de administrador</label>
         <input id="borrar-password" name="password" type="password" autoComplete="current-password" required disabled={trabajando} />

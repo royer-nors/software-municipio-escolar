@@ -42,10 +42,12 @@ function createBorradoDatosRepository(pool) {
         const a = (await client.query("SELECT id,usuario,password_hash,activo FROM administradores WHERE id=$1 FOR SHARE NOWAIT", [administrador.id])).rows[0];
         if (!a?.activo || !(await verificarPassword(a.password_hash))) throw new BorradoDatosError(401, "La contraseña administrativa es incorrecta o la cuenta está inactiva.");
         const r = await resumen(client);
-        if (!exigirConfiguracion(r.nombre_base)) throw new BorradoDatosError(403, "La conexión no apunta a la base de pruebas permitida.");
+        const permiso = exigirConfiguracion(r.nombre_base);
+        if (!permiso.habilitado) throw new BorradoDatosError(403, permiso.motivo);
         const sim = (await client.query(`UPDATE auditoria_borrado_datos SET consumida_en=clock_timestamp()
           WHERE id=$1 AND administrador_id=$2 AND operacion=$3 AND modo='simulacion' AND resultado='simulado'
           AND consumida_en IS NULL AND creado_en>clock_timestamp()-interval '10 minutes' RETURNING detalle`, [simulacionId, a.id, operacion])).rows[0];
+        if (sim && (sim.detalle.huellaPolitica || null) !== (permiso.huella || null)) throw new BorradoDatosError(409, "La autorización cambió. Simula de nuevo.");
         if (!sim) throw new BorradoDatosError(409, "Realiza una simulación vigente, propia y sin bloqueos antes de continuar.");
         const bloqueos = obtenerBloqueos(operacion, r);
         if (bloqueos.length) throw new BorradoDatosError(409, bloqueos.join(" "));
@@ -64,13 +66,18 @@ function createBorradoDatosRepository(pool) {
         if (["solo_listas", "candidatos_listas", "reinicio_pruebas"].includes(operacion)) await borrar("DELETE FROM listas", "listas");
         if (["estudiantes", "reinicio_pruebas"].includes(operacion)) await borrar("DELETE FROM estudiantes", "estudiantes");
         if (operacion === "estudiantes_importados") await borrar("DELETE FROM estudiantes WHERE origen_registro='excel'", "estudiantes");
+        // Conserva los identificadores referenciados por auditoría, pero retira
+        // el padrón temporal y evita reutilizar preparaciones de otra elección.
+        const vistas = await client.query("UPDATE vistas_previas_padron SET estudiantes=NULL,consumida_en=clock_timestamp() WHERE consumida_en IS NULL");
         const autorizaciones = await client.query("UPDATE autorizaciones_puesto SET revocada_en=clock_timestamp() WHERE revocada_en IS NULL AND consumida_en IS NULL");
         const vinculaciones = await client.query("UPDATE vinculaciones_puesto SET revocada_en=clock_timestamp() WHERE revocada_en IS NULL");
         await client.query(`UPDATE configuracion_votacion SET votacion_abierta=FALSE,automatica=FALSE,revision=revision+1,actualizado_en=clock_timestamp()
           ${operacion === "reinicio_pruebas" ? ",fecha_votacion=NULL,hora_inicio=NULL,hora_fin=NULL,anio_electoral=NULL" : ""} WHERE id=1`);
-        const revocaciones = { autorizaciones: autorizaciones.rowCount, vinculaciones: vinculaciones.rowCount };
+        const revocaciones = { autorizaciones: autorizaciones.rowCount, vinculaciones: vinculaciones.rowCount, vistasPrevias: vistas.rowCount };
+        const vigente = exigirConfiguracion(r.nombre_base);
+        if (!vigente.habilitado || (vigente.huella || null) !== (permiso.huella || null)) throw new BorradoDatosError(403, "La configuración de reinicio cambió durante la operación.");
         await auditar(client, { administradorId: a.id, administradorUsuario: a.usuario, operacion, modo: "eliminacion", resultado: "ejecutado",
-          detalle: { cantidades, revocaciones, simulacionId, configuracion: "cerrada_sin_programacion_automatica", anterior: r.huella } });
+          detalle: { autorizacion: permiso.autorizacion, cantidades, revocaciones, simulacionId, configuracion: "cerrada_sin_programacion_automatica", anterior: r.huella } });
         await client.query("COMMIT");
         return { cantidades, revocaciones };
       } catch (e) { await client.query("ROLLBACK"); throw e; }
