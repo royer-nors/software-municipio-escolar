@@ -127,3 +127,129 @@
   .id-grid, .barra-votar { grid-template-columns: 1fr; }
   .marco-lema { display: none; }
 }
+
+/* =====================================
+   MUNICIPIO ESCOLAR
+   DISEÑO AZUL MARINO Y VERDE
+   ===================================== */
+
+:root {
+  --institucional-azul: #102d50;
+  --institucional-verde: #c49a38;
+  --institucional-fondo: #f3f6fb;
+}
+
+/* Estructura principal */
+.marco {
+  min-height: 100vh;
+  background: var(--institucional-fondo);
+}
+
+/* Encabezado institucional */
+.marco-cabecera {
+  background: linear-gradient(
+    120deg,
+    #102d50 0%,
+    #173f68 100%
+  );
+  color: #ffffff;
+  border-bottom: 5px solid #c49a38;
+  box-shadow: 0 5px 18px rgba(16, 45, 80, 0.15);
+}
+
+/* Logo original del colegio */
+.marco-logo {
+  object-fit: contain;
+}
+
+/* Nombre del colegio */
+.marco-colegio h1 {
+  color: #ffffff;
+  font-weight: 750;
+  letter-spacing: -0.4px;
+}
+
+.marco-colegio p {
+  color: #dce9f5;
+}
+
+/* Lema institucional */
+.marco-lema {
+  color: #e4f4ed;
+  font-style: italic;
+}
+
+/* Marca Municipio Escolar */
+.marco-marca {
+  color: #ffffff;
+}
+
+.marco-marca strong {
+  color: #ffffff;
+}
+
+.marco-marca span {
+  color: #bce9d1;
+}
+
+/* Etiqueta opcional */
+.marco-etiqueta-cabecera {
+  background: rgba(22, 132, 91, 0.22);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  padding: 7px 12px;
+}
+
+/* Contenido */
+.marco-contenido {
+  background: var(--institucional-fondo);
+}
+
+/* Pie de página */
+.marco-pie {
+  background: #102d50;
+  color: #ffffff;
+  border-top: 3px solid #c49a38;
+}
+
+.marco-fecha,
+.marco-hora {
+  color: #ffffff;
+}
+
+/* Botón Salir */
+.marco-pie .btn-salir {
+  background: #c49a38;
+  color: #ffffff;
+  border: 1px solid #c49a38;
+  border-radius: 9px;
+  padding: 10px 22px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.marco-pie .btn-salir:hover:not(:disabled) {
+  background: #a67c23;
+}
+
+.marco-pie .btn-salir:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Adaptación móvil */
+@media (max-width: 768px) {
+  .marco-cabecera {
+    gap: 12px;
+  }
+
+  .marco-colegio h1 {
+    font-size: 18px;
+  }
+
+  .marco-pie {
+    gap: 12px;
+  }
+}

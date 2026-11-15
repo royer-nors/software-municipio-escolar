@@ -1,6 +1,15 @@
-
+import {
+  Monitor,
+  Vote,
+  School,
+  UsersRound,
+  UserRoundCheck,
+  ClipboardCheck,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useState } from "react";
-
+import "./admin-profesional.css";
 import MarcoPantalla from "./components/MarcoPantalla";
 import Bienvenida from "./pages/Bienvenida";
 import LoginAdmin from "./pages/LoginAdmin";
@@ -44,46 +53,58 @@ const boton = {
   fontSize: 15,
 };
 
+
 const opcionesConfiguracion = [
-  ["computadoras", "▣", "Administrar computadoras", "Registrar equipos y asignar grados de secundaria."],
-  ["control-votacion", "✓", "Control de votación", "Abrir o cerrar la votación y consultar su estado real."],
+  [
+    "computadoras",
+    Monitor,
+    "Administrar computadoras",
+    "Registrar equipos y asignar grados de secundaria.",
+  ],
+  [
+    "control-votacion",
+    Vote,
+    "Control de votación",
+    "Abrir o cerrar la votación y consultar su estado real.",
+  ],
   [
     "centro",
-    "🏫",
+    School,
     "Configurar centro educativo",
     "Datos de la I.E. y del proceso electoral.",
   ],
   [
     "padron",
-    "👥",
+    UsersRound,
     "Gestionar estudiantes",
     "Registrar estudiantes habilitados para votar.",
   ],
   [
     "candidatos",
-    "👤",
+    UserRoundCheck,
     "Agregar candidatos",
     "Registrar listas y candidatos.",
   ],
   [
     "blanco",
-    "☑️",
+    ClipboardCheck,
     "Configurar voto en blanco",
     "Parámetros de voto en blanco.",
   ],
   [
     "seguridad",
-    "🔒",
+    ShieldCheck,
     "Seguridad",
     "Control de accesos del sistema.",
   ],
   [
     "borrar",
-    "🗑️",
+    Trash2,
     "Borrar datos",
     "Simular y ejecutar limpieza de datos de prueba.",
   ],
 ];
+
 
 export default function App() {
   if (window.location.pathname === "/puesto" || new URLSearchParams(window.location.search).get("puesto") === "1") return <VincularPuesto />;
@@ -206,6 +227,7 @@ function AplicacionAdministrativa() {
       ir("acceso");
     }
   }
+
 
   // Inicio de sesión correcto.
   function loginCorrecto(datos) {
@@ -401,7 +423,7 @@ function AplicacionAdministrativa() {
   return (
     <div
       style={{
-        background: "#dce6f2",
+        background: "#f3f6fb",
         minHeight: "100vh",
       }}
     >
@@ -413,164 +435,93 @@ function AplicacionAdministrativa() {
             : () => ir("inicio")
         }
       >
-        <div
-          style={{
-            maxWidth: 1050,
-            margin: "auto",
-            padding: "18px 12px 30px",
-          }}
-        >
+        <div className="admin-contenido">
           {/* ENCABEZADO ADMINISTRATIVO */}
-          {sesionAdmin &&
-            vista !== "inicio" && (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: 12,
-                  marginBottom: 16,
-                }}
-              >
-                <span>
-                  Panel administrativo — Usuario:{" "}
-                  {
-                    sesionAdmin
-                      .administrador?.usuario
-                  }
-                </span>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <button
-                    style={boton}
-                    onClick={() =>
-                      entrarA("resultados")
-                    }
-                  >
-                    Ver resultados
-                  </button>
-
-                  <button
-                    style={{
-                      ...boton,
-                      background: "#dc3545",
-                    }}
-                    onClick={
-                      cerrarSesionAdmin
-                    }
-                  >
-                    Cerrar sesión
-                  </button>
-                </div>
-              </div>
-            )}
-
-          {/* MENÚ DE CONFIGURACIÓN */}
-          {vista === "configuracion" &&
-            sesionAdmin && (
-              <section style={tarjeta}>
-                <h2
-                  style={{
-                    color: azul,
-                    marginTop: 0,
-                  }}
-                >
-                  ⚙️ Configurar Sistema de Votación
-                </h2>
-
-                <p>
-                  Selecciona la opción que
-                  deseas configurar.
+          {sesionAdmin && vista !== "inicio" && (
+            <div className="admin-encabezado">
+              <div className="admin-encabezado-info">
+                <span className="admin-etiqueta">PANEL DE ADMINISTRACIÓN</span>
+                <h2 className="admin-encabezado-titulo">Municipio Escolar</h2>
+                <p className="admin-usuario">
+                  Sesión iniciada: <strong>{sesionAdmin.administrador?.usuario}</strong>
                 </p>
+              </div>
+              <div className="admin-acciones">
+                <button
+                  type="button"
+                  className="admin-boton"
+                  onClick={() => entrarA("resultados")}
+                >
+                  Ver resultados
+                </button>
+                <button
+                  type="button"
+                  className="admin-boton admin-boton-salir"
+                  onClick={cerrarSesionAdmin}
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            </div>
+          )}
 
-                {opcionesConfiguracion.map(
-                  ([
-                    id,
-                    icono,
-                    nombre,
-                    descripcion,
-                  ]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() =>
-                        seleccionarOpcion(id)
-                      }
-                      style={{
-                        width: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        background: "white",
-                        border:
-                          "1px solid #c5d7eb",
-                        borderRadius: 7,
-                        padding: 12,
-                        marginBottom: 7,
-                        textAlign: "left",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 25,
-                        }}
-                      >
-                        {icono}
-                      </span>
+          {/* CONFIGURAR CENTRO EDUCATIVO */}
+          {vista === "configuracion" && sesionAdmin && (
+  <section className="admin-seccion">
+    <h2 className="admin-titulo">
+      Configurar Sistema de Votación
+    </h2>
 
-                      <span
-                        style={{
-                          flex: 1,
-                        }}
-                      >
-                        <strong
-                          style={{
-                            color: azul,
-                          }}
-                        >
-                          {nombre}
-                        </strong>
+    <p className="admin-descripcion">
+      Administra las funciones y configuraciones
+      del proceso electoral de tu institución educativa.
+    </p>
 
+    <div className="admin-grid">
+      
+{opcionesConfiguracion.map(
+  ([id, Icono, nombre, descripcion]) => (
+    <button
+      key={id}
+      type="button"
+      className="admin-tarjeta"
+      onClick={() => seleccionarOpcion(id)}
+    >
+      <span className="admin-icono">
+        <Icono size={30} strokeWidth={1.8} aria-hidden="true" />
+      </span>
 
-                        <small
-                          style={{
-                            display: "block",
-                            color: "#64748b",
-                            marginTop: 3,
-                          }}
-                        >
-                          {descripcion}
-                        </small>
-                      </span>
+      <span className="admin-tarjeta-texto">
+        <strong className="admin-tarjeta-titulo">
+          {nombre}
+        </strong>
 
-                      <span>❯</span>
-                    </button>
-                  )
-                )}
+        <small className="admin-tarjeta-descripcion">
+          {descripcion}
+        </small>
+      </span>
 
-                {mensaje && (
-                  <p
-                    role="status"
-                    style={{
-                      padding: 12,
-                      background:
-                        "#fff3cd",
-                      borderRadius: 7,
-                    }}
-                  >
-                    {mensaje}
-                  </p>
-                )}
-              </section>
-            )}
+      <span className="admin-flecha" aria-hidden="true">
+        ›
+      </span>
+    </button>
+  )
+)}
+
+    </div>
+
+    {mensaje && (
+      <p role="status" style={{
+        marginTop: 20,
+        padding: 14,
+        background: "#fff3cd",
+        borderRadius: 10
+      }}>
+        {mensaje}
+      </p>
+    )}
+  </section>
+)}
 
           {/* CONFIGURAR CENTRO EDUCATIVO */}
           {vista === "configuracion" &&
