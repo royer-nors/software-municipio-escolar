@@ -3,7 +3,7 @@ import Dialogo from './Dialogo';
 import { importarPadron, registrarEstudiante, validarArchivoPadron } from '../api/padron.js';
 import '../styles/padron.css';
 
-export default function AgregarVotante({ onVolver, token }) {
+export default function AgregarVotante({ token }) {
   const tokenAdmin = token || sessionStorage.getItem('admin_token') || '';
   const [guardando, setGuardando] = useState(false);
   const [avisoManual, setAvisoManual] = useState(null);
@@ -87,7 +87,6 @@ export default function AgregarVotante({ onVolver, token }) {
     <div className="gestion-padron" style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', maxWidth: '600px', margin: 'auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>👤 Registrar Nuevo Votante</h2>
-        <button onClick={onVolver} disabled={bloqueado} style={{ padding: '6px 12px', cursor: 'pointer' }}>Volver</button>
       </div>
 
       {!tokenAdmin && <p className="padron-aviso padron-error" role="alert">Inicia sesión como administrador para gestionar el padrón.</p>}
@@ -161,8 +160,7 @@ export default function AgregarVotante({ onVolver, token }) {
       </section>
       {confirmar && <Dialogo titulo="Confirmar importación del padrón" onCerrar={importando ? undefined : () => setConfirmar(false)}>
         <p className="dialogo-pregunta">¿Deseas importar <strong>{archivo?.name}</strong>?</p>
-        <p className="dialogo-aviso">Se reemplazarán todos los estudiantes actuales por los del Excel. No es una carga que solo agregue estudiantes. Si ya existen votos, el backend bloqueará la operación.</p>
-        <p className="dialogo-aviso">Verifica que el backend esté conectado a <strong>db_municipio_escolar_pruebas</strong> antes de confirmar.</p>
+        <p className="dialogo-aviso">Se reemplazará todo el padrón por el Excel seleccionado. Esta operación no está permitida si ya hay votos.</p>
         {importando && <p role="status">Importando estudiantes… Espera la respuesta del servidor.</p>}
         <div className="dialogo-botones">
           <button type="button" className="btn-claro" disabled={importando} onClick={() => setConfirmar(false)}>Cancelar</button>

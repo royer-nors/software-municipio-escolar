@@ -20,7 +20,7 @@ function useAhora() {
 //  - mostrarMarca: false oculta "MUNICIPIO ESCOLAR" (la pantalla de bienvenida no lo lleva).
 //  - pie: función ({ fecha, hora }) => JSX que reemplaza el pie azul por defecto.
 //  - etiquetaCabecera: leyenda opcional de la portada actualizada.
-export default function MarcoPantalla({ children, onSalir, mostrarMarca = true, pie, etiquetaCabecera = null, electoral = false, salidaDeshabilitada = false }) {
+export default function MarcoPantalla({ children, onSalir, mostrarMarca = true, mostrarLema = true, complementoCabecera = null, pie, etiquetaCabecera = null, electoral = false, salidaDeshabilitada = false }) {
   const ahora = useAhora();
   const fecha = `${DIAS[ahora.getDay()]}, ${ahora.getDate()} de ${MESES[ahora.getMonth()]} de ${ahora.getFullYear()}`;
   const hora = ahora.toLocaleTimeString("es-PE", { hour: "numeric", minute: "2-digit", hour12: true });
@@ -38,7 +38,7 @@ export default function MarcoPantalla({ children, onSalir, mostrarMarca = true, 
           <h1>I.E Micaela Bastidas Puyucahua</h1>
           <p>Tamburco - Abancay - Apurímac</p>
         </div>
-        <p className="marco-lema">Tu voz también construye una mejor institución</p>
+        {mostrarLema && <p className="marco-lema">Tu voz también construye una mejor institución</p>}
         {etiquetaCabecera && (
           <span className="marco-etiqueta-cabecera">{etiquetaCabecera}</span>
         )}
@@ -48,6 +48,7 @@ export default function MarcoPantalla({ children, onSalir, mostrarMarca = true, 
             <span>Participa • Propón • Construye</span>
           </div>
         )}
+        {complementoCabecera}
       </header>
 
       <main className="marco-contenido">{children}</main>

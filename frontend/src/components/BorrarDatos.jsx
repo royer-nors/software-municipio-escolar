@@ -156,9 +156,8 @@ export default function BorrarDatos({ token }) {
     <main className="borrar-datos">
       <header className="borrar-datos-encabezado">
         <div>
-          <p className="borrar-datos-etiqueta">Panel administrativo</p>
           <h2>Borrar datos</h2>
-          <p>Herramienta de limpieza electoral para bases de prueba. Cada ejecución se verifica y queda auditada.</p>
+          <p>Limpieza de datos electorales de prueba.</p>
         </div>
       </header>
 
@@ -168,7 +167,7 @@ export default function BorrarDatos({ token }) {
         </div>
       ) : (
         <div className="borrar-datos-aviso" role="note">
-          La ejecución solo puede habilitarse en el backend para la base de pruebas configurada. Si producción o la configuración la bloquean, el servidor mostrará el motivo y registrará el intento.
+          La eliminación requiere habilitación para esta base de pruebas. Cada intento queda registrado.
         </div>
       )}
 
