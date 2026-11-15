@@ -13,6 +13,7 @@ const pool = {
     queryCount++;
     if (databaseUnavailable) throw new Error("Contraseña y detalles privados de PostgreSQL");
     if (sql.includes("FROM administradores")) return { rows: [{ id: 7, usuario: "admin", activo: true, version_token: 0 }] };
+    if (sql.includes("FROM configuracion_votacion")) throw new Error("La consulta administrativa no debe depender del estado electoral.");
     return { rows: [{ habilitados: "10", emitidos: "5", blancos: "1", listas: [{ nombre: "Lista A", votos: 4 }] }] };
   },
 };
@@ -55,6 +56,32 @@ test("el administrador obtiene resultados actuales sin información de los votan
   assert.equal(body.resumen.votosValidos, 4);
   assert.deepEqual(body.listas, [{ nombre: "Lista A", votos: 4, porcentaje: 100, posicion: 1 }]);
   assert.deepEqual(Object.keys(body).sort(), ["generadoEn", "listas", "resumen"]);
+});
+
+test("la consulta administrativa en tiempo real no depende del cierre ni de la publicación", async () => {
+  // El pool solo admite identidad y conteos: consultar estado/publicación
+  // sería una regresión para este endpoint exclusivamente administrativo.
+  const antes = queryCount;
+  const response = await fetch(`${baseUrl}/api/resultados`, { headers: { Authorization: `Bearer ${token()}` } });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).resumen.votosEmitidos, 5);
+  assert.equal(queryCount - antes, 2);
+});
+
+test("CONSULTOR_RESULTADOS no puede usar resultados ni funciones administrativas aun con JWT firmado", async () => {
+  const credenciales = [token("CONSULTOR_RESULTADOS"), jwt.sign({ rol: "CONSULTOR_RESULTADOS", version_token: 0 }, secret, {
+    algorithm: "HS256", subject: "7", issuer: JWT_ISSUER, audience: "municipio-escolar-consultor-resultados", expiresIn: 900,
+  })];
+  const antes = queryCount;
+  for (const credential of credenciales) {
+    for (const ruta of ["resultados", "administradores", "estudiantes", "computadoras", "auth/me", "borrado-datos/resumen"]) {
+      const response = await fetch(`${baseUrl}/api/${ruta}`, { headers: { Authorization: `Bearer ${credential}` } });
+      assert.equal(response.status, 401, ruta);
+      await response.json();
+    }
+  }
+  // Cada acceso rechazado a Borrar datos registra su intento en auditoría.
+  assert.equal(queryCount, antes + credenciales.length);
 });
 
 test("la caída de PostgreSQL devuelve 503 sin filtrar detalles privados", async () => {

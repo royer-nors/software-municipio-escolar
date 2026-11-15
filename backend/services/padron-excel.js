@@ -1,5 +1,6 @@
 const { readSheet } = require("read-excel-file/node");
 const { PadronError } = require("../errors/padron.error");
+const { gradoSecundaria } = require("./grado-secundaria");
 const MAX_ESTUDIANTES = 10000;
 const MAX_ARCHIVO_BYTES = 5 * 1024 * 1024;
 
@@ -36,7 +37,8 @@ function texto(value, permitirNumero = false) {
   return null;
 }
 
-async function leerPadronExcel(buffer) {
+async function leerPadronExcel(buffer, gradoSeleccionado) {
+  if (gradoSeleccionado !== undefined && (!Number.isInteger(gradoSeleccionado) || gradoSeleccionado < 1 || gradoSeleccionado > 5)) throw new PadronError(400, "Selecciona un grado entre 1 y 5.");
   if (!Buffer.isBuffer(buffer) || buffer.length === 0) throw new PadronError(400, "Selecciona un archivo Excel válido.");
   if (buffer.length > MAX_ARCHIVO_BYTES) throw new PadronError(413, "El archivo Excel no puede superar 5 MiB.");
   let filas;
@@ -63,11 +65,13 @@ async function leerPadronExcel(buffer) {
     const apellidos = columnas.apellidos === undefined ? "" : texto(fila[columnas.apellidos]);
     const nombre = nombres && apellidos !== null ? [nombres, apellidos].filter(Boolean).join(" ") : null;
     if (!nombre || nombre.length > 100) agregarError("nombre", "El nombre completo es obligatorio y admite hasta 100 caracteres.");
-    const grado = columnas.grado === undefined ? "" : texto(fila[columnas.grado], true);
+    const valorGrado = columnas.grado === undefined ? undefined : texto(fila[columnas.grado], true);
+    const grado = valorGrado === undefined ? gradoSeleccionado : gradoSecundaria(valorGrado);
     const seccion = columnas.seccion === undefined ? "" : texto(fila[columnas.seccion], true);
-    if (grado === null || grado.length > 20) agregarError("grado", "El grado admite hasta 20 caracteres.");
+    if (!grado) agregarError("grado", "El grado debe ser de 1.º a 5.º de secundaria. Si incluyes la columna Grado, complétala en todas las filas.");
+    else if (gradoSeleccionado !== undefined && grado !== gradoSeleccionado) agregarError("grado", "El grado del Excel no coincide con el seleccionado. No se cambiará automáticamente.");
     if (seccion === null || seccion.length > 10) agregarError("seccion", "La sección admite hasta 10 caracteres.");
-    estudiantes.push({ dni, nombre, grado: grado || null, seccion: seccion || null });
+    estudiantes.push({ dni, nombre, grado: grado ? String(grado) : null, seccion: seccion || null, fila: index + 1 });
     if (errores.length >= 100) break;
   }
   if (errores.length) throw new PadronError(422, "El padrón contiene errores. No se importó ninguna fila.", errores.slice(0, 100));

@@ -1,20 +1,14 @@
 import { useRef, useState } from 'react';
-import Dialogo from './Dialogo';
-import { importarPadron, registrarEstudiante, validarArchivoPadron } from '../api/padron.js';
+import ImportarPadronGrado from './ImportarPadronGrado';
+import { registrarEstudiante } from '../api/padron.js';
 import '../styles/padron.css';
 
 export default function AgregarVotante({ token }) {
   const tokenAdmin = token || sessionStorage.getItem('admin_token') || '';
   const [guardando, setGuardando] = useState(false);
   const [avisoManual, setAvisoManual] = useState(null);
-  const [archivo, setArchivo] = useState(null);
-  const [importando, setImportando] = useState(false);
-  const [confirmar, setConfirmar] = useState(false);
-  const [avisoExcel, setAvisoExcel] = useState(null);
-  const [erroresExcel, setErroresExcel] = useState([]);
-  const selectorArchivo = useRef(null);
   const ocupado = useRef(false);
-  const bloqueado = guardando || importando;
+  const bloqueado = guardando;
   const [formData, setFormData] = useState({
     dni: '',
     nombres: '',
@@ -41,47 +35,6 @@ export default function AgregarVotante({ token }) {
     finally { ocupado.current = false; setGuardando(false); }
   };
 
-  function seleccionarArchivo(e) {
-    setArchivo(null);
-    setAvisoExcel(null);
-    setErroresExcel([]);
-    const elegido = e.target.files?.[0];
-    if (!elegido) return;
-    try { validarArchivoPadron(elegido); setArchivo(elegido); }
-    catch (error) { setAvisoExcel({ tipo: 'error', mensaje: error.message }); e.target.value = ''; }
-  }
-
-  function solicitarImportacion() {
-    setAvisoExcel(null);
-    setErroresExcel([]);
-    try {
-      validarArchivoPadron(archivo);
-      if (!tokenAdmin) throw new Error('Inicia sesión como administrador antes de importar.');
-      setConfirmar(true);
-    } catch (error) { setAvisoExcel({ tipo: 'error', mensaje: error.message }); }
-  }
-
-  async function confirmarImportacion() {
-    if (ocupado.current) return;
-    ocupado.current = true;
-    setImportando(true);
-    setAvisoManual(null);
-    setAvisoExcel(null);
-    setErroresExcel([]);
-    try {
-      const datos = await importarPadron(archivo, tokenAdmin);
-      setAvisoExcel({ tipo: 'exito', mensaje: `Importación completada: ${datos.total} ${datos.total === 1 ? 'estudiante importado' : 'estudiantes importados'}; ${datos.reemplazados} ${datos.reemplazados === 1 ? 'estudiante anterior reemplazado' : 'estudiantes anteriores reemplazados'}.` });
-      setArchivo(null);
-      if (selectorArchivo.current) selectorArchivo.current.value = '';
-    } catch (error) {
-      setAvisoExcel({ tipo: 'error', mensaje: error.message, incierto: error.incierto });
-      setErroresExcel(error.errores || []);
-    } finally {
-      ocupado.current = false;
-      setImportando(false);
-      setConfirmar(false);
-    }
-  }
 
   return (
     <div className="gestion-padron" style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', maxWidth: '600px', margin: 'auto' }}>
@@ -135,38 +88,7 @@ export default function AgregarVotante({ token }) {
       </form>
       {avisoManual && <p className={`padron-aviso padron-${avisoManual.tipo}`} role={avisoManual.tipo === 'error' ? 'alert' : 'status'}>{avisoManual.mensaje}</p>}
 
-      <section className="padron-importacion" aria-labelledby="padron-importacion-titulo" aria-busy={importando}>
-        <h3 id="padron-importacion-titulo">Importar estudiantes desde Excel</h3>
-        <p>Carga el padrón completo en formato .xlsx. Tamaño máximo: 5 MiB.</p>
-        <p className="padron-formato">Columnas recomendadas: <strong>DNI, Nombre completo, Grado y Sección</strong>. Guarda el DNI como texto para conservar sus ocho dígitos.</p>
-        <p className="padron-advertencia">Esta operación reemplaza el padrón actual. Si ya hay votos registrados, el servidor rechazará la importación.</p>
-        <input ref={selectorArchivo} id="padron-archivo" type="file" accept=".xlsx" hidden onChange={seleccionarArchivo} disabled={bloqueado} />
-        <div className="padron-archivo-fila">
-          <button type="button" className="padron-seleccionar" onClick={() => selectorArchivo.current?.click()} disabled={bloqueado}>Seleccionar archivo Excel</button>
-          <span className="padron-archivo-nombre" aria-live="polite">{archivo ? archivo.name : 'Ningún archivo seleccionado'}</span>
-        </div>
-        <button type="button" className="padron-importar" disabled={!archivo || bloqueado || !tokenAdmin} onClick={solicitarImportacion}>Importar estudiantes</button>
-        {importando && <p role="status" className="padron-progreso">Importando estudiantes… No cierres esta pantalla.</p>}
-        {avisoExcel && <div className={`padron-aviso padron-${avisoExcel.tipo}`} role={avisoExcel.tipo === 'error' ? 'alert' : 'status'}>
-          <p>{avisoExcel.mensaje}</p>
-          {avisoExcel.incierto && <p>No se reintentará automáticamente. Verifica el estado del padrón con el encargado antes de repetir la importación.</p>}
-        </div>}
-        {erroresExcel.length > 0 && <div className="padron-errores" role="region" aria-label="Errores del archivo Excel" tabIndex={0}>
-          <table><caption>Corrige estas filas y vuelve a seleccionar el archivo</caption>
-            <thead><tr><th scope="col">Fila</th><th scope="col">Campo</th><th scope="col">Error</th></tr></thead>
-            <tbody>{erroresExcel.map((error, i) => <tr key={i}><td>{error.fila}</td><td>{error.campo}</td><td>{error.mensaje}</td></tr>)}</tbody>
-          </table>
-        </div>}
-      </section>
-      {confirmar && <Dialogo titulo="Confirmar importación del padrón" onCerrar={importando ? undefined : () => setConfirmar(false)}>
-        <p className="dialogo-pregunta">¿Deseas importar <strong>{archivo?.name}</strong>?</p>
-        <p className="dialogo-aviso">Se reemplazará todo el padrón por el Excel seleccionado. Esta operación no está permitida si ya hay votos.</p>
-        {importando && <p role="status">Importando estudiantes… Espera la respuesta del servidor.</p>}
-        <div className="dialogo-botones">
-          <button type="button" className="btn-claro" disabled={importando} onClick={() => setConfirmar(false)}>Cancelar</button>
-          <button type="button" className="padron-importar" disabled={importando} onClick={confirmarImportacion}>{importando ? 'Importando…' : 'Confirmar importación'}</button>
-        </div>
-      </Dialogo>}
+      <ImportarPadronGrado token={tokenAdmin} bloqueado={bloqueado} />
     </div>
   );
 }

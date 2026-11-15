@@ -4,7 +4,7 @@ const { once } = require("node:events");
 const { PGlite } = require("@electric-sql/pglite");
 const bcrypt = require("bcryptjs");
 const { migrar } = require("../database/migrar");
-const { createApp } = require("../app");
+const { createLegacyRouterHarness: createApp } = require("../test-support/legacy-router-harness");
 let db, server, url, token;
 const secret = "secreto-aislado-usuarios-no-usar-en-produccion";
 const clave = "ClavePrueba2026!";

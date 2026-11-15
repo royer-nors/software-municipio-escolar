@@ -22,6 +22,7 @@ async function pedir(ruta, token, { method = "GET", body, signal } = {}) {
       cache: "no-store",
       headers: {
         Authorization: `Bearer ${token}`,
+        ...(method === "POST" ? { "X-Borrado-CSRF": "1" } : {}),
         ...(body ? { "Content-Type": "application/json" } : {}),
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
@@ -33,7 +34,7 @@ async function pedir(ruta, token, { method = "GET", body, signal } = {}) {
     return datos;
   } catch (error) {
     if (error instanceof ErrorBorradoDatos || signal?.aborted) throw error;
-    throw new ErrorBorradoDatos(0, "No se pudo confirmar la respuesta del servidor. Comprueba la conexión.");
+    throw new ErrorBorradoDatos(0, "Respuesta no confirmada. Consulta el resumen y la auditoría antes de volver a ejecutar; no se reintentó la operación.");
   } finally {
     clearTimeout(timeout);
   }
@@ -58,5 +59,8 @@ export function ejecutarBorradoDatos(token, datos) {
 }
 
 export function reiniciarDatosPrueba(token, datos) {
-  return pedir("/borrado-datos/reinicio-excepcional", token, { method: "POST", body: datos });
+  return ejecutarBorradoDatos(token, { ...datos, operacion: "reinicio_pruebas" });
+}
+export function obtenerAuditoriaBorrado(token, signal) {
+  return pedir("/borrado-datos/auditoria", token, { signal });
 }

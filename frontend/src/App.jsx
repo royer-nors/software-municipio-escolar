@@ -24,6 +24,8 @@ import ConfigurarSeguridad from "./components/ConfigurarSeguridad";
 import BorrarDatos from "./components/BorrarDatos";
 import GestionComputadoras from "./components/GestionComputadoras";
 import VincularPuesto from "./pages/VincularPuesto";
+import AccesoResultados from "./pages/AccesoResultados";
+import GestionConsultores from "./components/GestionConsultores";
 
 const API =
   import.meta.env.VITE_API_URL || "http://localhost:3000/api";
@@ -33,6 +35,7 @@ const azul = "#0759b8";
 const nombresModulos = {
   "control-votacion": "Control de votación",
   computadoras: "Computadoras de votación",
+  consultores: "Consultores de resultados",
   padron: "Padrón electoral",
   candidatos: "Listas y candidatos",
   borrar: "Datos de prueba",
@@ -205,7 +208,7 @@ function AplicacionAdministrativa() {
 
     if (
       id === "control-votacion" ||
-      id === "computadoras" ||
+      id === "computadoras" || id === "consultores" ||
       id === "padron" ||
       id === "candidatos"
     ) {
@@ -243,7 +246,7 @@ function AplicacionAdministrativa() {
   function volver() {
     if (
       vista === "control-votacion" ||
-      vista === "computadoras" ||
+      vista === "computadoras" || vista === "consultores" ||
       vista === "padron" ||
       vista === "candidatos" ||
       vista === "borrar"
@@ -263,6 +266,8 @@ function AplicacionAdministrativa() {
     );
   }
 
+  if (vista === "consulta-resultados") return <AccesoResultados onSalir={() => ir("inicio")} />;
+
   // PANTALLA PRINCIPAL
   if (vista === "inicio") {
     return (
@@ -272,7 +277,8 @@ function AplicacionAdministrativa() {
         onSalir={() => ir("inicio")}
       >
         <Bienvenida
-          onVotar={() => entrarA("votacion")}
+          onResultados={() => ir("consulta-resultados")}
+          onVotar={() => window.location.assign("?puesto=1")}
           onAdministrador={() =>
             entrarA("configuracion")
           }
@@ -362,6 +368,7 @@ function AplicacionAdministrativa() {
         usuario={sesionAdmin.administrador?.usuario}
         onVolver={() => ir("configuracion")}
         onSeguridad={() => seleccionarOpcion("seguridad")}
+        onConsultores={() => seleccionarOpcion("consultores")}
         onSalir={cerrarSesionAdmin}
       />
     );
@@ -372,6 +379,7 @@ function AplicacionAdministrativa() {
     <MarcoAdministrativo
       usuario={sesionAdmin?.administrador?.usuario}
       onSeguridad={() => seleccionarOpcion("seguridad")}
+      onConsultores={() => seleccionarOpcion("consultores")}
       onCerrarSesion={cerrarSesionAdmin}
     >
         <div key={vista} className="admin-contenedor admin-transicion">
@@ -409,6 +417,7 @@ function AplicacionAdministrativa() {
 
           {vista === "control-votacion" && sesionAdmin && <ControlVotacion token={sesionAdmin.token} />}
           {vista === "computadoras" && sesionAdmin && <GestionComputadoras token={sesionAdmin.token} />}
+          {vista === "consultores" && sesionAdmin && <GestionConsultores token={sesionAdmin.token} />}
 
           {vista === "borrar" && sesionAdmin && <BorrarDatos token={sesionAdmin.token} />}
 

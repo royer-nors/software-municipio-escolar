@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import MarcoPantalla from "../components/MarcoPantalla";
 import MarcoAdministrativo from "../components/MarcoAdministrativo";
 import NavegacionAdministrativa from "../components/NavegacionAdministrativa";
 import Icono from "../components/IconoAdministrativo";
@@ -30,9 +31,9 @@ function GraficoCircular({ listas, total, colores }) {
   );
 }
 
-export default function Resultados({ token, usuario, onVolver, onSeguridad, onSalir }) {
+export default function Resultados({ token, usuario, onVolver, onSeguridad, onConsultores, onSalir, consultar = obtenerResultados, consultor = false }) {
   // Conserva sessionStorage.admin_token y admite la sesión entregada por App.
-  const tokenAdmin = token || sessionStorage.getItem("admin_token") || "";
+  const tokenAdmin = token || (!consultor && sessionStorage.getItem("admin_token")) || "";
   const [revision, setRevision] = useState(0);
   const [estado, setEstado] = useState({ data: null, error: "", cargando: true });
   const [imprimiendo, setImprimiendo] = useState(false);
@@ -43,14 +44,22 @@ export default function Resultados({ token, usuario, onVolver, onSeguridad, onSa
     const controller = new AbortController();
     Promise.resolve().then(() => {
       if (!tokenAdmin) throw new Error("No se encontró una sesión administrativa. Inicia sesión nuevamente.");
-      return obtenerResultados(tokenAdmin, controller.signal);
+      return consultar(tokenAdmin, controller.signal);
     }).then(data => {
       if (!controller.signal.aborted) setEstado({ data, error: "", cargando: false });
     }).catch(error => {
       if (!controller.signal.aborted) setEstado({ data: null, error: error.message, cargando: false });
     });
     return () => controller.abort();
-  }, [tokenAdmin, revision]);
+  }, [tokenAdmin, revision, consultar]);
+
+  useEffect(() => {
+    if (!consultor) return;
+    const actualizar = () => setRevision(r => r + 1);
+    const timer = setInterval(actualizar, 15000);
+    window.addEventListener("focus", actualizar);
+    return () => { clearInterval(timer); window.removeEventListener("focus", actualizar); };
+  }, [consultor]);
 
   function actualizar() {
     setErrorImpresion("");
@@ -71,10 +80,18 @@ export default function Resultados({ token, usuario, onVolver, onSeguridad, onSa
     finally { setImprimiendo(false); }
   }
 
+  if (consultor && error === "Los resultados estarán disponibles cuando finalice la elección") {
+    return <MarcoPantalla onSalir={onSalir}><p role="status">{error}</p></MarcoPantalla>;
+  }
+
+  const MarcoResultados = consultor ? MarcoPantalla : MarcoAdministrativo;
+  const opcionesMarco = consultor ? { electoral: true, onSalir } : {
+    electoral: true, usuario, onSeguridad, onConsultores, onCerrarSesion: onSalir,
+  };
   return (
-    <MarcoAdministrativo electoral usuario={usuario} onSeguridad={onSeguridad} onCerrarSesion={onSalir}>
-      <div className="admin-contenedor admin-transicion">
-      <NavegacionAdministrativa onVolver={onVolver} />
+    <MarcoResultados {...opcionesMarco}>
+      <div className={consultor ? undefined : "admin-contenedor admin-transicion"}>
+      {!consultor && <NavegacionAdministrativa onVolver={onVolver} />}
       <section ref={reporte} className="electoral-resultados" aria-busy={cargando}>
         <div className="electoral-encabezado-resultados">
           <div className="electoral-titulo-con-icono"><span className="electoral-icono" aria-hidden="true"><Icono nombre="grafico" width="34" height="34" /></span>
@@ -146,6 +163,6 @@ export default function Resultados({ token, usuario, onVolver, onSeguridad, onSa
         </>}
       </section>
       </div>
-    </MarcoAdministrativo>
+    </MarcoResultados>
   );
 }
