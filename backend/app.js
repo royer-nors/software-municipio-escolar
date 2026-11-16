@@ -45,6 +45,7 @@ const { createBorradoDatosRouter } = require("./routes/borrado-datos.routes");
 const { createConsultoresResultadosRepository } = require("./repositories/consultores-resultados.repository");
 const { createConsultoresResultadosService } = require("./services/consultores-resultados.service");
 const { createConsultoresResultadosRouter } = require("./routes/consultores-resultados.routes");
+const { createInicializacionRouter } = require("./routes/inicializacion.routes");
 
 function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createImagenesStorage(), red = configurarRed(), puesto = configurarPuesto() }) {
   const app = express();
@@ -99,6 +100,7 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
     }
   });
   app.use("/api/auth", createAuthRouter({ authService, estudianteAuthService, administradoresService, autenticarAdministrador, limitesAcceso }));
+  app.use("/api/instalacion", createInicializacionRouter(pool));
   app.use("/api/administradores", createUsuariosRouter({ service: administradoresService, autenticarAdministrador, entidad: "administrador" }));
   app.use("/api/estudiantes", createUsuariosRouter({ service: estudiantesService, autenticarAdministrador, entidad: "estudiante" }));
   app.use("/api/computadoras", createComputadorasRouter({

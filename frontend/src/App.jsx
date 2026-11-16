@@ -26,6 +26,7 @@ import GestionComputadoras from "./components/GestionComputadoras";
 import VincularPuesto from "./pages/VincularPuesto";
 import AccesoResultados from "./pages/AccesoResultados";
 import GestionConsultores from "./components/GestionConsultores";
+import ConfiguracionInicial from "./pages/ConfiguracionInicial";
 
 const API =
   import.meta.env.VITE_API_URL || "http://localhost:3000/api";
@@ -53,12 +54,24 @@ const boton = {
 
 export default function App() {
   if (window.location.pathname === "/puesto" || new URLSearchParams(window.location.search).get("puesto") === "1") return <VincularPuesto />;
-  return <AplicacionAdministrativa />;
+  return <ComprobarAdministradorInicial />;
+}
+
+function ComprobarAdministradorInicial() {
+  const [requiere, setRequiere] = useState(null);
+  useEffect(() => {
+    fetch(`${API}/instalacion/estado`)
+      .then(respuesta => respuesta.ok ? respuesta.json() : null)
+      .then(datos => setRequiere(datos?.requiereAdministrador === true))
+      .catch(() => setRequiere(false));
+  }, []);
+  if (requiere === null) return <p role="status" style={{ padding: 30 }}>Verificando configuración inicial…</p>;
+  return requiere ? <ConfiguracionInicial /> : <AplicacionAdministrativa />;
 }
 
 function AplicacionAdministrativa() {
   const [avisoSesion, setAvisoSesion] = useState("");
-  const [vista, setVista] = useState("inicio");
+  const [vista, setVista] = useState(() => new URLSearchParams(window.location.search).get("administrador") === "1" ? "acceso" : "inicio");
 
   const [destino, setDestino] = useState(null);
 
@@ -108,6 +121,7 @@ function AplicacionAdministrativa() {
           token,
           administrador: datos.administrador,
         });
+        if (new URLSearchParams(window.location.search).get("administrador") === "1") setVista("configuracion");
       })
       .catch(() => {
         sessionStorage.removeItem("admin_token");
