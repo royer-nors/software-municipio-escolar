@@ -1,6 +1,7 @@
 const { Router } = require("express");
 const { rateLimit } = require("express-rate-limit");
 const { ComputadorasError } = require("../errors/computadoras.error");
+const { ipLocal } = require("../config/red");
 const COOKIE = "sme_puesto";
 function credencial(req) {
   const cookies = (req.get("Cookie") || "").split(";").map(c => c.trim()).filter(c => c.startsWith(`${COOKIE}=`));
@@ -16,15 +17,20 @@ function operacion(handler) {
   };
 }
 function sinCache(req, res, next) { res.set("Cache-Control", "no-store"); next(); }
+function origenPermitido(red, origen) { return red.origenPermitido?.(origen) ?? red.origenes.includes(origen); }
 function validarSolicitudPuesto(req, red, config, escritura = true) {
   const origin = req.get("Origin");
-  if (origin && (origin === "null" || !red.origenes.includes(origin))) throw new ComputadorasError(403, "Origen no autorizado para el puesto.");
-  if (escritura && (!origin || origin === "null" || !red.origenes.includes(origin) || !req.is("application/json") || req.get("X-Puesto-CSRF") !== "1")) {
+  if (origin && (origin === "null" || !origenPermitido(red, origin))) throw new ComputadorasError(403, "Origen no autorizado para el puesto.");
+  if (escritura && (!origin || origin === "null" || !origenPermitido(red, origin) || !req.is("application/json") || req.get("X-Puesto-CSRF") !== "1")) {
     throw new ComputadorasError(403, "Origen o protección CSRF inválidos.");
   }
   if (!config.secure) {
     const locales = ["localhost", "127.0.0.1", "[::1]", "::1"];
-    if ((origin && !locales.includes(new URL(origin).hostname)) || !locales.includes(req.hostname) || !["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.ip)) throw new ComputadorasError(403, "Las cookies sin Secure solo se permiten en pruebas de loopback.");
+    const hostValido = config.modoLan ? ipLocal(req.hostname) : locales.includes(req.hostname);
+    const origenHost = origin ? new URL(origin).hostname : undefined;
+    const origenValido = !origin || (config.modoLan ? ipLocal(origenHost) : locales.includes(origenHost));
+    const clienteValido = config.modoLan ? ipLocal(req.ip) : ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.ip);
+    if (!hostValido || !origenValido || !clienteValido) throw new ComputadorasError(403, "Las cookies sin Secure solo se permiten en loopback o en la LAN habilitada.");
   } else if (!req.secure) throw new ComputadorasError(403, "La vinculación requiere HTTPS.");
 }
 function vacio(req) {

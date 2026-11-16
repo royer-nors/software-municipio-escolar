@@ -20,7 +20,7 @@ function createConsultoresResultadosRouter({ service, autenticarAdministrador, r
   r.get("/administracion", operar(async (req, res) => res.json({ consultores: await service.listar() })));
   r.put("/administracion/:id", (req, res, next) => {
     const origen = req.get("Origin");
-    if (!origen || origen === "null" || !red.origenes.includes(origen) || !req.is("application/json") || req.get("X-Consultor-CSRF") !== "1") return res.status(403).json({ mensaje: "Origen o protección CSRF inválidos." });
+    if (!origen || origen === "null" || !(red.origenPermitido?.(origen) ?? red.origenes.includes(origen)) || !req.is("application/json") || req.get("X-Consultor-CSRF") !== "1") return res.status(403).json({ mensaje: "Origen o protección CSRF inválidos." });
     next();
   }, operar(async (req, res) => res.json({ consultor: await service.guardar(req.params.id, req.body, req.administrador) })));
   return r;

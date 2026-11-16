@@ -211,6 +211,7 @@ test("límite de intentos de vinculación devuelve 429", async () => {
 test("Secure es obligatorio por defecto y no se confía en X-Forwarded-Proto sin configurar proxy", async () => {
   assert.equal(configurarPuesto().secure, true);
   assert.throws(() => configurarPuesto({ PUESTO_COOKIE_SECURE: "false", NODE_ENV: "production" }));
+  assert.throws(() => configurarPuesto({ MODO_LAN: "true", NODE_ENV: "production" }));
   await new Promise(resolve => { server.close(resolve); server.closeAllConnections(); });
   server = createApp({ pool, jwtSecret: secret }).listen(0, "127.0.0.1");
   await once(server, "listening"); url = `http://127.0.0.1:${server.address().port}`;
