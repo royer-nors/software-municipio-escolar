@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+    <title>Puesto de votación</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; background: #edf3fa; color: #17324d; font-family: Arial, sans-serif; }
+      main { width: min(760px, 100%); padding: 42px; border-radius: 16px; background: white; box-shadow: 0 10px 35px #17324d1c; }
+      h1 { margin-top: 0; color: #073b78; font-size: clamp(28px, 5vw, 42px); }
+      p { font-size: 20px; line-height: 1.55; }
+      label { display: block; margin: 28px 0 10px; font-size: 18px; font-weight: 700; }
+      input { width: 100%; padding: 15px; border: 1px solid #a8bed8; border-radius: 8px; font-size: 20px; }
+      button { margin-top: 16px; padding: 14px 20px; border: 0; border-radius: 8px; background: #0759b8; color: white; font-size: 18px; font-weight: 700; cursor: pointer; }
+      button:disabled { opacity: .55; cursor: wait; }
+      [role="alert"], [role="status"] { min-height: 1.5em; color: #9b1c1c; }
+      .ayuda { color: #536b83; font-size: 15px; }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section id="configuracion" hidden>
+        <h1>Configurar puesto de votación</h1>
+        <p>Escribe la dirección LAN que muestra la aplicación del servidor.</p>
+        <form id="formulario-servidor">
+          <label for="servidor-url">IP o URL del servidor</label>
+          <input id="servidor-url" name="servidorUrl" type="text" inputmode="url" autocomplete="url" placeholder="http://192.168.1.20:3000" required>
+          <button id="guardar" type="submit">Conectar con el servidor</button>
+        </form>
+        <p class="ayuda">Esta dirección se guarda en esta computadora. La app abrirá la pantalla de vinculación para ingresar el código del administrador.</p>
+      </section>
+      <section id="sin-conexion" hidden>
+        <h1>Sin conexión con el servidor</h1>
+        <p id="direccion-guardada"></p>
+        <p>Comprueba que el servidor esté encendido y que este puesto esté conectado a la misma red.</p>
+        <button id="reintentar" type="button">Reintentar ahora</button>
+        <p class="ayuda">La aplicación volverá a intentar conectarse automáticamente.</p>
+      </section>
+      <p id="mensaje" role="alert" aria-live="polite"></p>
+      <p id="estado" role="status" aria-live="polite"></p>
+    </main>
+    <script src="renderer.cjs"></script>
+  </body>
+</html>
