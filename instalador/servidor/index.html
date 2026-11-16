@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; frame-src http://localhost:3000; style-src 'self' 'unsafe-inline'; script-src 'self'">
+    <title>Municipio Escolar · Servidor</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; height: 100vh; display: grid; grid-template-rows: auto 1fr; color: #17324d; font-family: Arial, sans-serif; }
+      header { display: flex; align-items: center; gap: 18px; padding: 12px 20px; background: #073b78; color: white; box-shadow: 0 2px 8px #0003; z-index: 1; }
+      .identidad { min-width: 210px; }
+      .identidad strong { display: block; font-size: 16px; }
+      .identidad span { display: block; margin-top: 4px; color: #d7e8ff; font-size: 12px; }
+      .direccion { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+      label { font-size: 13px; font-weight: 700; white-space: nowrap; }
+      select { min-width: 240px; max-width: 580px; padding: 9px 11px; border: 1px solid #c4d4e8; border-radius: 6px; color: #183654; background: white; font-size: 14px; }
+      button { padding: 10px 15px; border: 0; border-radius: 6px; background: #2a91e8; color: white; font-weight: 700; cursor: pointer; }
+      button:disabled { opacity: .55; cursor: default; }
+      #aviso { min-width: 120px; color: #d7e8ff; font-size: 12px; }
+      iframe { display: block; width: 100%; height: 100%; border: 0; background: white; }
+      @media (max-width: 760px) { header { flex-wrap: wrap; } .direccion { flex-wrap: wrap; } select { flex: 1; min-width: 180px; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="identidad"><strong>Municipio Escolar · Servidor</strong><span>URL para los puestos de votación</span></div>
+      <div class="direccion">
+        <label for="url-lan">Dirección LAN</label>
+        <select id="url-lan" aria-label="Dirección LAN del servidor"></select>
+        <button id="copiar" type="button" disabled>Copiar</button>
+        <span id="aviso" role="status" aria-live="polite"></span>
+      </div>
+    </header>
+    <iframe src="http://localhost:3000" title="Panel de administración del Municipio Escolar"></iframe>
+    <script src="renderer.js"></script>
+  </body>
+</html>

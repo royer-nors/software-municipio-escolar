@@ -1,0 +1,15 @@
+{
+  "name": "software-municipio-escolar-servidor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Aplicación Electron para el servidor del Municipio Escolar",
+  "main": "servidor/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "pack:servidor": "electron-builder --dir --config electron-builder.cjs"
+  },
+  "devDependencies": {
+    "electron": "^45.2.1",
+    "electron-builder": "26.18.0"
+  }
+}
