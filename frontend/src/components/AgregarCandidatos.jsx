@@ -10,7 +10,7 @@ function CampoImagen({ titulo, onArchivo, disabled }) {
   const [nombre, setNombre] = useState("");
   const [error, setError] = useState("");
   useEffect(() => () => { if (urlActual.current) URL.revokeObjectURL(urlActual.current); }, []);
-  function limpiar() {
+  function limpiar() {  
     if (urlActual.current) URL.revokeObjectURL(urlActual.current);
     urlActual.current = ""; setVista(""); setNombre(""); onArchivo(null);
     if (input.current) input.current.value = "";

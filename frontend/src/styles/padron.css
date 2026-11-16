@@ -24,3 +24,358 @@
 .gestion-padron .padron-errores caption { padding: 12px; text-align: left; font-weight: 600; }
 .gestion-padron .padron-errores th, .gestion-padron .padron-errores td { padding: 9px; border-bottom: 1px solid #e3eaf2; text-align: left; }
 .gestion-padron .padron-errores thead { background: #edf4fb; }
+
+/* ========================================
+   GESTIÓN DE ESTUDIANTES
+   DISEÑO INSTITUCIONAL
+   AZUL MARINO + DORADO
+======================================== */
+
+.gestion-padron {
+  width: 100%;
+  max-width: 950px;
+  margin: 0 auto;
+  padding: 32px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+  border-top: 5px solid #c49a38;
+  box-shadow: 0 12px 35px rgba(16, 45, 80, 0.08);
+  color: #102d50;
+}
+
+.gestion-padron > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 26px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.gestion-padron h2 {
+  color: #102d50;
+  font-size: 25px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.gestion-padron > div:first-child > button {
+  background: #102d50;
+  color: white;
+  border: none;
+  border-radius: 9px;
+  padding: 11px 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gestion-padron > div:first-child > button:hover {
+  background: #214c75;
+}
+
+/* FORMULARIO */
+
+.gestion-padron .padron-formulario {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  padding: 26px;
+  margin: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+  min-width: 0;
+}
+
+.gestion-padron .padron-formulario > div:first-child {
+  grid-column: 1 / -1;
+}
+
+.gestion-padron .padron-formulario > div:nth-child(4) {
+  grid-column: 1 / -1;
+}
+
+.gestion-padron .padron-formulario label {
+  display: block;
+  color: #243b53;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.gestion-padron .padron-formulario input,
+.gestion-padron .padron-formulario select {
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #102d50;
+  font-size: 14px;
+  outline: none;
+}
+
+.gestion-padron .padron-formulario input:focus,
+.gestion-padron .padron-formulario select:focus {
+  border-color: #c49a38;
+  box-shadow: 0 0 0 3px rgba(196, 154, 56, 0.15);
+}
+
+.gestion-padron .padron-formulario > button[type="submit"] {
+  grid-column: 1 / -1;
+  width: 100%;
+  background: #c49a38;
+  color: #102d50;
+  border: none;
+  border-radius: 10px;
+  padding: 15px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 5px;
+}
+
+.gestion-padron .padron-formulario > button[type="submit"]:hover {
+  background: #dfb650;
+}
+
+/* IMPORTACIÓN EXCEL */
+
+.gestion-padron .padron-importacion {
+  margin-top: 30px;
+  padding: 26px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+
+.gestion-padron .padron-importacion h3 {
+  color: #102d50;
+  font-size: 20px;
+  margin: 0 0 14px;
+}
+
+.gestion-padron .padron-importacion p {
+  line-height: 1.6;
+}
+
+.gestion-padron .padron-archivo-fila {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 20px 0;
+}
+
+.gestion-padron .padron-seleccionar {
+  background: #102d50;
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gestion-padron .padron-importar {
+  background: #c49a38;
+  color: #102d50;
+  border: none;
+  padding: 13px 22px;
+  border-radius: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.gestion-padron button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gestion-padron .padron-archivo-nombre {
+  overflow-wrap: anywhere;
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* ADAPTACIÓN A CELULARES */
+
+@media (max-width: 650px) {
+  .gestion-padron {
+    padding: 18px;
+  }
+
+  .gestion-padron .padron-formulario {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .gestion-padron .padron-formulario > div {
+    grid-column: 1 / -1;
+  }
+
+  .gestion-padron .padron-importacion {
+    padding: 18px;
+  }
+
+  .gestion-padron h2 {
+    font-size: 21px;
+  }
+}
+
+
+/* ==========================================
+   AJUSTES FINALES - GESTIÓN DE ESTUDIANTES
+   AZUL MARINO Y DORADO
+========================================== */
+
+/* Contenedor principal */
+.gestion-padron {
+  max-width: 950px;
+  margin: 0 auto;
+  padding: 30px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-top: 5px solid #c49a38;
+  border-radius: 18px;
+  box-shadow: 0 12px 35px rgba(16, 45, 80, 0.08);
+}
+
+/* Encabezado */
+.gestion-padron h2 {
+  color: #102d50;
+  font-size: 25px;
+  font-weight: 800;
+}
+
+/* Botón volver */
+.gestion-padron > div:first-child > button {
+  background: #102d50 !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 9px !important;
+  padding: 11px 20px !important;
+}
+
+/* Formulario */
+.gestion-padron .padron-formulario {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  padding: 26px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+
+.gestion-padron .padron-formulario > div:first-child,
+.gestion-padron .padron-formulario > div:nth-child(4) {
+  grid-column: 1 / -1;
+}
+
+/* Campos de entrada */
+.gestion-padron .padron-formulario input,
+.gestion-padron .padron-formulario select {
+  width: 100% !important;
+  padding: 13px 14px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 9px !important;
+  background: #ffffff;
+  color: #102d50;
+}
+
+.gestion-padron .padron-formulario input:focus,
+.gestion-padron .padron-formulario select:focus {
+  border-color: #c49a38 !important;
+  outline: 2px solid rgba(196, 154, 56, 0.35);
+  outline-offset: 1px;
+}
+
+/* Botón guardar votante */
+.gestion-padron .padron-formulario > button[type="submit"] {
+  grid-column: 1 / -1;
+  width: 100%;
+  padding: 15px !important;
+  margin-top: 5px;
+  background: #c49a38 !important;
+  color: #102d50 !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.gestion-padron .padron-formulario > button[type="submit"]:hover:not(:disabled) {
+  background: #dfb650 !important;
+}
+
+/* Importación Excel */
+.gestion-padron .padron-importacion {
+  margin-top: 30px;
+  padding: 26px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.gestion-padron .padron-importacion h3 {
+  color: #102d50;
+}
+
+/* Botón seleccionar Excel */
+.gestion-padron .padron-seleccionar {
+  background: #102d50;
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  padding: 12px 18px;
+}
+
+/* Botón importar Excel */
+.gestion-padron .padron-importar {
+  background: #c49a38;
+  color: #102d50;
+  border: none;
+  border-radius: 9px;
+  padding: 13px 22px;
+  font-weight: 800;
+}
+
+/* Accesibilidad */
+.gestion-padron button:focus-visible,
+.gestion-padron input:focus-visible,
+.gestion-padron select:focus-visible {
+  outline: 3px solid #c49a38;
+  outline-offset: 3px;
+}
+
+.gestion-padron button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Diseño adaptable */
+@media (max-width: 650px) {
+  .gestion-padron {
+    padding: 18px;
+  }
+
+  .gestion-padron .padron-formulario {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .gestion-padron .padron-formulario > div {
+    grid-column: 1 / -1;
+  }
+
+  .gestion-padron .padron-importacion {
+    padding: 18px;
+  }
+}

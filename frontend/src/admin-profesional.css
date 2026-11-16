@@ -1,0 +1,384 @@
+
+/* PANEL ADMINISTRATIVO PROFESIONAL */
+
+:root {
+  --admin-azul: #102d50;
+  --admin-azul-claro: #c49a38;
+  --admin-fondo: #f3f6fb;
+  --admin-texto: #172b4d;
+  --admin-borde: #e2e8f0;
+}
+
+.admin-panel {
+  background: var(--admin-fondo);
+  min-height: 100vh;
+}
+
+.admin-contenido {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px 24px 50px;
+}
+
+.admin-encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 28px;
+  padding: 22px 26px;
+  background: #fff;
+  border: 1px solid var(--admin-borde);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(20, 50, 90, 0.05);
+}
+
+.admin-usuario {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.admin-acciones {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-boton {
+  padding: 12px 20px;
+  background: var(--admin-azul-claro);
+  color: white;
+  border: 0;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-boton:hover {
+  background: var(--admin-azul);
+  transform: translateY(-2px);
+}
+
+.admin-boton-salir {
+  background: #dc3545;
+}
+
+.admin-boton-salir:hover {
+  background: #b91c1c;
+}
+
+.admin-seccion {
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  border: 1px solid var(--admin-borde);
+  box-shadow: 0 8px 28px rgba(20, 50, 90, 0.05);
+}
+
+.admin-titulo {
+  color: var(--admin-azul);
+  font-size: 26px;
+  font-weight: 750;
+  margin: 0 0 10px;
+}
+
+.admin-descripcion {
+  color: #64748b;
+  margin-bottom: 28px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.admin-tarjeta {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 24px;
+  min-height: 120px;
+  background: #fff;
+  border: 1px solid var(--admin-borde);
+  border-radius: 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.admin-tarjeta:hover {
+  border-color: #93c5fd;
+  background: #f8fbff;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 25px rgba(37, 99, 235, 0.10);
+}
+
+.admin-icono {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 58px;
+  height: 58px;
+  font-size: 27px;
+  background: #eff6ff;
+  border-radius: 15px;
+}
+
+.admin-tarjeta-texto {
+  flex: 1;
+}
+
+.admin-tarjeta-titulo {
+  display: block;
+  color: var(--admin-texto);
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 7px;
+}
+
+.admin-tarjeta-descripcion {
+  display: block;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.admin-flecha {
+  color: var(--admin-azul-claro);
+  font-size: 23px;
+}
+
+@media (max-width: 768px) {
+  .admin-contenido {
+    padding: 18px 12px 30px;
+  }
+
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-seccion {
+    padding: 20px 16px;
+  }
+
+  .admin-tarjeta {
+    padding: 18px;
+  }
+
+  .admin-titulo {
+    font-size: 22px;
+  }
+}
+
+/* MEJORAS VISUALES - MUNICIPIO ESCOLAR */
+
+/* Encabezado */
+.admin-encabezado {
+  border-top: 4px solid #102d50;
+}
+
+/* Títulos */
+.admin-titulo {
+  color: #102d50;
+  letter-spacing: -0.5px;
+}
+
+/* Tarjetas */
+.admin-tarjeta {
+  border-left: 4px solid #c49a38;
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    #f7fafc 100%
+  );
+}
+
+/* Efecto al pasar el mouse */
+.admin-tarjeta:hover {
+  border-color: #c49a38;
+  background: #f0fdf4;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(16, 45, 80, 0.12);
+}
+
+/* Iconos */
+.admin-icono {
+  background: #e8f5ee;
+  color: #c49a38;
+}
+
+/* Flecha de cada tarjeta */
+.admin-flecha {
+  color: #c49a38;
+  font-weight: bold;
+}
+
+/* Botones principales */
+.admin-boton {
+  background: #c49a38;
+  color: #ffffff;
+}
+
+.admin-boton:hover {
+  background: #116747;
+}
+
+/* Botón de salir */
+.admin-boton-salir {
+  background: #dc3545;
+}
+
+.admin-boton-salir:hover {
+  background: #b91c1c;
+}
+
+/* Adaptación para pantallas pequeñas */
+@media (max-width: 600px) {
+  .admin-tarjeta {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .admin-icono {
+    width: 48px;
+    height: 48px;
+    font-size: 23px;
+  }
+
+  .admin-tarjeta-titulo {
+    font-size: 15px;
+  }
+}
+
+/* Encabezado del panel administrativo: azul marino y dorado */
+.admin-contenido {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 26px 18px 42px;
+}
+.admin-encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+  padding: 25px 30px;
+  margin-bottom: 24px;
+  border: 1px solid #e4e9f0;
+  border-top: 5px solid #c49a38;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(16,45,80,.08);
+}
+.admin-etiqueta {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: #98721e;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+}
+.admin-encabezado-titulo {
+  margin: 0 0 8px;
+  color: #102d50;
+  font-size: clamp(22px,3vw,30px);
+  line-height: 1.2;
+}
+.admin-usuario { margin: 0; color: #617188; font-size: 14px; }
+.admin-usuario strong { color: #102d50; }
+.admin-acciones { display: flex; gap: 10px; flex-wrap: wrap; }
+.admin-acciones .admin-boton {
+  background: #c49a38;
+  color: #102d50;
+  border: 1px solid #c49a38;
+  border-radius: 10px;
+  font-weight: 750;
+  padding: 12px 19px;
+}
+.admin-acciones .admin-boton:hover { background: #e0b650; border-color: #e0b650; }
+.admin-acciones .admin-boton-salir {
+  background: #ffffff;
+  border-color: #d6dfeb;
+  color: #102d50;
+}
+.admin-acciones .admin-boton-salir:hover { background: #eef3fa; border-color: #102d50; }
+.admin-tarjeta { border-left-color: #c49a38; }
+.admin-tarjeta:hover { border-color: #c49a38; background: #fffcf5; }
+.admin-icono { color: #98721e; background: #fff3d8; }
+.admin-flecha { color: #98721e; }
+@media (max-width: 600px) {
+  .admin-contenido { padding: 16px 10px 30px; }
+  .admin-encabezado { padding: 20px 16px; }
+  .admin-acciones { width: 100%; }
+  .admin-acciones .admin-boton { flex: 1; }
+}
+
+/* ========================================
+   INSIGNIAS INSTITUCIONALES PREMIUM
+   MUNICIPIO ESCOLAR
+======================================== */
+
+.admin-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  width: 68px;
+  height: 68px;
+
+  background: #102d50;
+  color: #e6bc5b;
+
+  border: 2px solid #c49a38;
+  border-radius: 18px;
+
+  box-shadow:
+    0 5px 14px rgba(16, 45, 80, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+
+  font-size: 30px;
+  transition: transform 0.25s ease,
+              box-shadow 0.25s ease;
+}
+
+.admin-tarjeta:hover .admin-icono {
+  transform: translateY(-3px) scale(1.05);
+
+  box-shadow:
+    0 9px 20px rgba(16, 45, 80, 0.25),
+    0 0 0 3px rgba(196, 154, 56, 0.12);
+}
+
+/* Tarjetas elegantes */
+
+.admin-tarjeta {
+  border-left: 4px solid #c49a38;
+  border-radius: 16px;
+}
+
+.admin-tarjeta:hover {
+  background: #fffcf5;
+  border-color: #c49a38;
+}
+
+/* Flechas */
+
+.admin-flecha {
+  color: #98721e;
+  font-weight: 800;
+}
+
+/* Pantallas pequeñas */
+
+@media (max-width: 600px) {
+  .admin-icono {
+    width: 54px;
+    height: 54px;
+    font-size: 25px;
+    border-radius: 14px;
+  }
+}
