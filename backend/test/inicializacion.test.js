@@ -4,10 +4,11 @@ const { once } = require("node:events");
 const fs = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
+const express = require("express");
 const { crearPoolPGlite } = require("../config/db-pglite");
 const { migrar } = require("../database/migrar");
 const { createApp } = require("../app");
-const { esLoopback } = require("../routes/inicializacion.routes");
+const { createInicializacionRouter, esLoopback } = require("../routes/inicializacion.routes");
 
 const secret = "secreto-de-configuracion-inicial-exclusivo-de-pruebas";
 const password = "Clave inicial de prueba 2026";
@@ -84,4 +85,34 @@ test("el administrador inicial puede iniciar sesión", async () => {
 test("el control de acceso reconoce loopback y rechaza direcciones remotas", () => {
   for (const ip of ["127.0.0.1", "127.8.9.10", "::1", "::ffff:127.0.0.1"]) assert.equal(esLoopback(ip), true);
   for (const ip of ["192.168.1.20", "10.0.0.4", "172.16.0.9", "8.8.8.8", undefined]) assert.equal(esLoopback(ip), false);
+});
+
+test("una conexión LAN recibe 403 en GET y POST aunque envíe Host y X-Forwarded-For de loopback", async t => {
+  let consultas = 0;
+  const app = express();
+  app.use(express.json());
+  app.use((req, res, next) => {
+    Object.defineProperty(req.socket, "remoteAddress", { configurable: true, value: "192.168.1.20" });
+    next();
+  });
+  app.use("/api/instalacion", createInicializacionRouter({
+    async query() { consultas += 1; throw new Error("El bloqueo debe ocurrir antes de consultar la base."); },
+    async connect() { consultas += 1; throw new Error("El bloqueo debe ocurrir antes de insertar."); },
+  }));
+  const servidorLan = app.listen(0, "127.0.0.1");
+  t.after(() => new Promise(resolve => { servidorLan.close(resolve); servidorLan.closeAllConnections(); }));
+  await once(servidorLan, "listening");
+  const base = `http://127.0.0.1:${servidorLan.address().port}`;
+  const cabeceras = { Host: "localhost", "X-Forwarded-For": "127.0.0.1", "Content-Type": "application/json" };
+
+  const estado = await fetch(`${base}/api/instalacion/estado`, { headers: cabeceras });
+  assert.equal(estado.status, 403);
+  assert.deepEqual(await estado.json(), { mensaje: "La configuración inicial solo está disponible en el servidor." });
+
+  const crear = await fetch(`${base}/api/instalacion/administrador-inicial`, {
+    method: "POST", headers: cabeceras, body: JSON.stringify({ usuario: "admin", password }),
+  });
+  assert.equal(crear.status, 403);
+  assert.deepEqual(await crear.json(), { mensaje: "La configuración inicial solo está disponible en el servidor." });
+  assert.equal(consultas, 0, "el GET no revela el estado y el POST no llega a insertar");
 });
