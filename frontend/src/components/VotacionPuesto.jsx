@@ -53,7 +53,7 @@ export default function VotacionPuesto({ onBloqueo }) {
     {error && <p role="alert">{error}</p>}
     {!configuracion && <p role="status">Consultando la disponibilidad de la votación…</p>}
     {configuracion && !configuracion.votacionAbierta && <p role="status">La votación está cerrada. Espera las indicaciones del encargado.</p>}
-    <button type="button" onClick={() => { setError(""); setRevision(v => v + 1); }}>Consultar votación</button>
+    
     {configuracion?.votacionAbierta && <AutenticarVotante key={revision} identificar={apiPuesto.loginEstudiante}
       onAutenticado={setSesion} onSalir={limpiar} onSesionInvalida={sesionInvalida} />}
   </section>;
