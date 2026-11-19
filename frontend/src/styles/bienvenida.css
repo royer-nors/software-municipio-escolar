@@ -532,3 +532,233 @@
     transition: none;
   }
 }
+
+/* =========================================
+   BIENVENIDA - AZUL MARINO Y DORADO
+   ========================================= */
+
+.bv-inicio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 48px;
+  max-width: 1180px;
+  margin: 30px auto;
+  padding: 38px;
+  background: #ffffff;
+  border: 1px solid #e4e9f0;
+  border-radius: 24px;
+  box-shadow: 0 16px 45px rgba(16, 45, 80, 0.08);
+}
+
+/* Ilustración */
+.bv-visual {
+  min-width: 0;
+  text-align: center;
+}
+
+.bv-visual-marco {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 320px;
+  padding: 25px;
+  overflow: hidden;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #eef3fa, #fff8e9);
+}
+
+.bv-ilustracion,
+.bv-fallback {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  max-width: 430px;
+  height: auto;
+  object-fit: contain;
+}
+
+.bv-visual-pie {
+  display: block;
+  margin-top: 18px;
+  color: #617188;
+  font-size: 14px;
+}
+
+/* Contenido */
+.bv-contenido {
+  min-width: 0;
+}
+
+.bv-titulo {
+  margin: 0 0 14px;
+  color: #102d50;
+  font-size: clamp(30px, 3vw, 44px);
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.bv-subtitulo {
+  color: #334b68;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.bv-descripcion {
+  margin: 22px 0 18px;
+  color: #64748b;
+  font-size: 15px;
+}
+
+/* Opciones de acceso */
+.bv-opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bv-opcion {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 94px;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.bv-opcion:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(16, 45, 80, 0.12);
+}
+
+.bv-opcion:focus-visible {
+  outline: 3px solid #c49a38;
+  outline-offset: 3px;
+}
+
+/* Estudiante: azul marino */
+.bv-opcion-estudiante {
+  border-left: 5px solid #102d50;
+}
+
+.bv-opcion-estudiante:hover {
+  border-color: #102d50;
+}
+
+/* Administrador: dorado */
+.bv-opcion-administrador {
+  border-left: 5px solid #c49a38;
+}
+
+.bv-opcion-administrador:hover {
+  border-color: #c49a38;
+  background: #fffcf5;
+}
+
+/* Iconos */
+.bv-opcion-icono {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+}
+
+.bv-opcion-icono svg {
+  width: 29px;
+  height: 29px;
+}
+
+.bv-opcion-icono-estudiante {
+  color: #102d50;
+  background: #e9f0f8;
+}
+
+.bv-opcion-icono-administrador {
+  color: #98721e;
+  background: #fff3d8;
+}
+
+/* Textos de los botones */
+.bv-opcion-texto {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bv-opcion-texto strong {
+  color: #102d50;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.bv-opcion-texto small {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.bv-opcion-flecha {
+  color: #c49a38;
+  font-size: 25px;
+  font-weight: bold;
+}
+
+.bv-nota {
+  margin-top: 22px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Adaptación a celulares */
+@media (max-width: 850px) {
+  .bv-inicio {
+    grid-template-columns: 1fr;
+    gap: 25px;
+    margin: 15px auto;
+    padding: 22px;
+  }
+
+  .bv-visual-marco {
+    min-height: 220px;
+  }
+
+  .bv-titulo {
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .bv-inicio {
+    padding: 16px;
+  }
+
+  .bv-opcion {
+    gap: 12px;
+    padding: 15px;
+  }
+
+  .bv-opcion-icono {
+    width: 46px;
+    height: 46px;
+  }
+
+  .bv-opcion-texto strong {
+    font-size: 14px;
+  }
+}

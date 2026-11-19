@@ -1,0 +1,203 @@
+
+/* LOGIN ADMINISTRATIVO - AZUL MARINO Y DORADO */
+
+.login-admin-fondo {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30px 16px;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    135deg,
+    #081e38 0%,
+    #102d50 55%,
+    #214c75 100%
+  );
+  font-family: Arial, sans-serif;
+}
+
+.login-admin-decoracion {
+  position: absolute;
+  width: 550px;
+  height: 550px;
+  right: -200px;
+  top: -200px;
+  border-radius: 50%;
+  border: 80px solid rgba(196, 154, 56, 0.12);
+  pointer-events: none;
+}
+
+.login-admin-tarjeta {
+  position: relative;
+  z-index: 1;
+  width: 440px;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 36px;
+  border-top: 6px solid #c49a38;
+  box-shadow: 0 25px 65px rgba(0, 0, 0, 0.25);
+}
+
+.login-admin-encabezado {
+  text-align: center;
+}
+
+.login-admin-logo {
+  width: 88px;
+  height: 88px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 15px;
+  background: #f8fafc;
+  border: 2px solid #e8d5a4;
+  border-radius: 50%;
+}
+
+.login-admin-logo img {
+  width: 74px;
+  height: 74px;
+  object-fit: contain;
+}
+
+.login-admin-encabezado h1 {
+  color: #102d50;
+  font-size: 28px;
+  font-weight: 800;
+  margin: 8px 0;
+}
+
+.login-admin-encabezado p {
+  color: #64748b;
+  font-size: 14px;
+  margin: 0;
+}
+
+.login-admin-separador {
+  width: 65px;
+  height: 4px;
+  background: #c49a38;
+  border-radius: 10px;
+  margin: 24px auto;
+}
+
+.login-admin-titulo {
+  color: #102d50;
+  text-align: center;
+  font-size: 23px;
+  margin: 0 0 8px;
+}
+
+.login-admin-descripcion {
+  color: #64748b;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 26px;
+}
+
+.login-admin-campo {
+  margin-bottom: 20px;
+}
+
+.login-admin-campo > label:first-child {
+  display: block;
+  color: #243b53;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 9px;
+}
+
+.login-admin-campo > input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 15px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #102d50;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.login-admin-campo > input:focus {
+  border-color: #c49a38;
+  box-shadow: 0 0 0 3px rgba(196, 154, 56, 0.18);
+}
+
+.login-admin-mostrar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: #64748b;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.login-admin-mostrar input {
+  accent-color: #102d50;
+}
+
+.login-admin-boton {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 10px;
+  background: #c49a38;
+  color: #102d50;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.login-admin-boton:hover:not(:disabled) {
+  background: #e0b650;
+  transform: translateY(-2px);
+}
+
+.login-admin-boton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.login-admin-error {
+  background: #fee4e2;
+  color: #b42318;
+  padding: 12px;
+  border-radius: 9px;
+  font-size: 13px;
+}
+
+.login-admin-aviso {
+  padding: 10px;
+  margin-bottom: 20px;
+  text-align: center;
+  border-radius: 9px;
+  background: #fff4d6;
+  color: #805800;
+}
+
+.login-admin-pie {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 12px;
+  margin: 25px 0 0;
+}
+
+@media (max-width: 480px) {
+  .login-admin-tarjeta {
+    padding: 25px 20px;
+  }
+
+  .login-admin-encabezado h1 {
+    font-size: 24px;
+  }
+}

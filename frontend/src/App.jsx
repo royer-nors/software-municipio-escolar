@@ -1,12 +1,17 @@
 
 import { useEffect, useState } from "react";
 
+import "./admin-profesional.css";
+
 import MarcoPantalla from "./components/MarcoPantalla";
 import MarcoAdministrativo from "./components/MarcoAdministrativo";
-import Bienvenida from "./pages/Bienvenida";
-import LoginAdmin from "./pages/LoginAdmin";
 import PanelAdministrativo from "./components/PanelAdministrativo";
 import NavegacionAdministrativa from "./components/NavegacionAdministrativa";
+
+import Bienvenida from "./pages/Bienvenida";
+import LoginAdmin from "./pages/LoginAdmin";
+import Resultados from "./pages/Resultados";
+import AccesoResultados from "./pages/AccesoResultados";
 
 import AgregarVotante from "./components/AgregarVotante";
 import AgregarCandidatos from "./components/AgregarCandidatos";
@@ -15,21 +20,20 @@ import AutenticarVotante from "./pages/AutenticarVotante";
 import VotanteIdentificado from "./pages/VotanteIdentificado";
 import ListasCandidatos from "./pages/ListasCandidatos";
 
-import Resultados from "./pages/Resultados";
-
 import ConfigurarCentroEducativo from "./components/ConfigurarCentroEducativo";
 import ControlVotacion from "./components/ControlVotacion";
 import ConfigurarVotoBlanco from "./components/ConfigurarVotoBlanco";
 import ConfigurarSeguridad from "./components/ConfigurarSeguridad";
+
 import BorrarDatos from "./components/BorrarDatos";
 import GestionComputadoras from "./components/GestionComputadoras";
-import VincularPuesto from "./pages/VincularPuesto";
-import AccesoResultados from "./pages/AccesoResultados";
 import GestionConsultores from "./components/GestionConsultores";
 import ConfiguracionInicial from "./pages/ConfiguracionInicial";
+import VincularPuesto from "./pages/VincularPuesto";
 
 const API =
-  import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3000/api";
 
 const azul = "#0759b8";
 
@@ -52,8 +56,16 @@ const boton = {
   fontSize: 15,
 };
 
+// Componente principal de la aplicación
 export default function App() {
-  if (window.location.pathname === "/puesto" || new URLSearchParams(window.location.search).get("puesto") === "1") return <VincularPuesto />;
+  const esPuesto =
+    window.location.pathname === "/puesto" ||
+    new URLSearchParams(window.location.search).get("puesto") === "1";
+
+  if (esPuesto) {
+    return <VincularPuesto />;
+  }
+
   return <ComprobarAdministradorInicial />;
 }
 
@@ -67,8 +79,10 @@ function ComprobarAdministradorInicial() {
   }, []);
   if (requiere === null) return <p role="status" style={{ padding: 30 }}>Verificando configuración inicial…</p>;
   return requiere ? <ConfiguracionInicial /> : <AplicacionAdministrativa />;
+
 }
 
+// Administración y navegación del sistema
 function AplicacionAdministrativa() {
   const [avisoSesion, setAvisoSesion] = useState("");
   const [vista, setVista] = useState(() => new URLSearchParams(window.location.search).get("administrador") === "1" ? "acceso" : "inicio");
@@ -77,8 +91,8 @@ function AplicacionAdministrativa() {
 
   const [sesionAdmin, setSesionAdmin] = useState(null);
 
-  const [verificando, setVerificando] = useState(() =>
-    Boolean(sessionStorage.getItem("admin_token"))
+  const [verificando, setVerificando] = useState(
+    () => Boolean(sessionStorage.getItem("admin_token"))
   );
 
   const [mensaje, setMensaje] = useState("");
@@ -89,14 +103,16 @@ function AplicacionAdministrativa() {
   const [sesionEstudiante, setSesionEstudiante] =
     useState(null);
 
-  // Ventana de configuración del centro educativo.
   const [mostrarCentro, setMostrarCentro] =
     useState(false);
 
-  const [mostrarVotoBlanco, setMostrarVotoBlanco] = useState(false);
-  const [mostrarSeguridad, setMostrarSeguridad] = useState(false);
+  const [mostrarVotoBlanco, setMostrarVotoBlanco] =
+    useState(false);
 
-  // Verificar sesión del administrador.
+  const [mostrarSeguridad, setMostrarSeguridad] =
+    useState(false);
+
+  // Verificar sesión administrativa
   useEffect(() => {
     const token = sessionStorage.getItem("admin_token");
 
@@ -132,7 +148,7 @@ function AplicacionAdministrativa() {
       });
   }, []);
 
-  // Finalizar sesión de votación estudiantil.
+  // Finalizar votación estudiantil
   function finalizarVotacion() {
     localStorage.removeItem("tokenEstudiante");
     sessionStorage.removeItem("tokenEstudiante");
@@ -141,7 +157,7 @@ function AplicacionAdministrativa() {
     setPasoVotacion("autenticar");
   }
 
-  // Cambiar entre pantallas.
+  // Cambiar de pantalla
   function ir(nuevaVista) {
     if (
       vista === "votacion" &&
@@ -155,17 +171,23 @@ function AplicacionAdministrativa() {
     setMostrarSeguridad(false);
     setMensaje("");
     setVista(nuevaVista);
-    if (nuevaVista === "configuracion" || nuevaVista === "resultados" || Object.hasOwn(nombresModulos, nuevaVista)) {
+
+    if (
+      nuevaVista === "configuracion" ||
+      nuevaVista === "resultados" ||
+      Object.hasOwn(nombresModulos, nuevaVista)
+    ) {
       window.scrollTo(0, 0);
     }
   }
 
-  // Cerrar sesión administrativa.
+  // Cerrar sesión administrativa
   function cerrarSesionAdmin() {
     sessionStorage.removeItem("admin_token");
 
     setSesionAdmin(null);
     setDestino(null);
+
     setMostrarCentro(false);
     setMostrarVotoBlanco(false);
     setMostrarSeguridad(false);
@@ -174,7 +196,7 @@ function AplicacionAdministrativa() {
     ir("inicio");
   }
 
-  // Ingresar a un módulo.
+  // Ingresar a un módulo del sistema
   function entrarA(modulo) {
     if (modulo === "votacion") {
       finalizarVotacion();
@@ -190,7 +212,7 @@ function AplicacionAdministrativa() {
     }
   }
 
-  // Inicio de sesión correcto.
+  // Inicio de sesión correcto
   function loginCorrecto(datos) {
     if (!datos?.token || !datos?.administrador) {
       throw new Error(
@@ -212,7 +234,7 @@ function AplicacionAdministrativa() {
     ir(siguienteVista);
   }
 
-  // Opciones del panel administrativo.
+  // Seleccionar opciones administrativas
   function seleccionarOpcion(id) {
     if (id === "centro") {
       setMostrarCentro(true);
@@ -222,7 +244,8 @@ function AplicacionAdministrativa() {
 
     if (
       id === "control-votacion" ||
-      id === "computadoras" || id === "consultores" ||
+      id === "computadoras" ||
+      id === "consultores" ||
       id === "padron" ||
       id === "candidatos"
     ) {
@@ -248,19 +271,17 @@ function AplicacionAdministrativa() {
       return;
     }
 
-    if (id !== "borrar") {
-      setMensaje(
-        "Esta opción está pendiente de integración."
-      );
-    }
+    setMensaje(
+      "Esta opción está pendiente de integración."
+    );
   }
 
-
-  // Regresar a la pantalla anterior.
+  // Volver a la pantalla anterior
   function volver() {
     if (
       vista === "control-votacion" ||
-      vista === "computadoras" || vista === "consultores" ||
+      vista === "computadoras" ||
+      vista === "consultores" ||
       vista === "padron" ||
       vista === "candidatos" ||
       vista === "borrar"
@@ -271,7 +292,7 @@ function AplicacionAdministrativa() {
     }
   }
 
-  // Esperar la validación de sesión.
+  // Verificar sesión administrativa
   if (verificando) {
     return (
       <p style={{ padding: 30 }}>
@@ -280,9 +301,16 @@ function AplicacionAdministrativa() {
     );
   }
 
-  if (vista === "consulta-resultados") return <AccesoResultados onSalir={() => ir("inicio")} />;
+  // Consulta pública de resultados
+  if (vista === "consulta-resultados") {
+    return (
+      <AccesoResultados
+        onSalir={() => ir("inicio")}
+      />
+    );
+  }
 
-  // PANTALLA PRINCIPAL
+  // Pantalla principal
   if (vista === "inicio") {
     return (
       <MarcoPantalla
@@ -291,22 +319,32 @@ function AplicacionAdministrativa() {
         onSalir={() => ir("inicio")}
       >
         <Bienvenida
-          onResultados={() => ir("consulta-resultados")}
-          onVotar={() => window.location.assign("?puesto=1")}
+          onResultados={() =>
+            ir("consulta-resultados")
+          }
+          onVotar={() =>
+            window.location.assign("?puesto=1")
+          }
           onAdministrador={() =>
             entrarA("configuracion")
           }
         />
-        <p><a href="?puesto=1">Vincular una computadora de votación</a></p>
+
+        <p>
+          <a href="?puesto=1">
+            Vincular una computadora de votación
+          </a>
+        </p>
       </MarcoPantalla>
     );
   }
 
-  // INICIO DE SESIÓN ADMINISTRATIVO
+  // Inicio de sesión administrativo
   if (vista === "acceso") {
     return (
       <div>
         <button
+          type="button"
           style={{
             ...boton,
             margin: 15,
@@ -319,8 +357,24 @@ function AplicacionAdministrativa() {
           ← Volver al inicio
         </button>
 
-        {avisoSesion && <p role="status" style={{ padding: 16, color: azul }}>{avisoSesion}</p>}
-        <LoginAdmin onLogin={datos => { setAvisoSesion(""); loginCorrecto(datos); }} />
+        {avisoSesion && (
+          <p
+            role="status"
+            style={{
+              padding: 16,
+              color: azul,
+            }}
+          >
+            {avisoSesion}
+          </p>
+        )}
+
+        <LoginAdmin
+          onLogin={(datos) => {
+            setAvisoSesion("");
+            loginCorrecto(datos);
+          }}
+        />
       </div>
     );
   }
@@ -333,9 +387,7 @@ function AplicacionAdministrativa() {
     ) {
       return (
         <VotanteIdentificado
-          estudiante={
-            sesionEstudiante.estudiante
-          }
+          estudiante={sesionEstudiante.estudiante}
           onVotar={() =>
             setPasoVotacion("papeleta")
           }
@@ -351,9 +403,7 @@ function AplicacionAdministrativa() {
       return (
         <ListasCandidatos
           token={sesionEstudiante.token}
-          estudiante={
-            sesionEstudiante.estudiante
-          }
+          estudiante={sesionEstudiante.estudiante}
           onFinalizar={finalizarVotacion}
           onSalir={finalizarVotacion}
         />
@@ -381,8 +431,12 @@ function AplicacionAdministrativa() {
         token={sesionAdmin.token}
         usuario={sesionAdmin.administrador?.usuario}
         onVolver={() => ir("configuracion")}
-        onSeguridad={() => seleccionarOpcion("seguridad")}
-        onConsultores={() => seleccionarOpcion("consultores")}
+        onSeguridad={() =>
+          seleccionarOpcion("seguridad")
+        }
+        onConsultores={() =>
+          seleccionarOpcion("consultores")
+        }
         onSalir={cerrarSesionAdmin}
       />
     );
@@ -392,96 +446,139 @@ function AplicacionAdministrativa() {
   return (
     <MarcoAdministrativo
       usuario={sesionAdmin?.administrador?.usuario}
-      onSeguridad={() => seleccionarOpcion("seguridad")}
-      onConsultores={() => seleccionarOpcion("consultores")}
+      onSeguridad={() =>
+        seleccionarOpcion("seguridad")
+      }
+      onConsultores={() =>
+        seleccionarOpcion("consultores")
+      }
       onCerrarSesion={cerrarSesionAdmin}
     >
-        <div key={vista} className="admin-contenedor admin-transicion">
-          {/* ENCABEZADO ADMINISTRATIVO */}
-          {sesionAdmin &&
-            vista !== "inicio" && vista !== "configuracion" && (
-              <NavegacionAdministrativa
-                onVolver={volver}
-              />
-            )}
+      <div
+        key={vista}
+        className="admin-contenedor admin-transicion"
+      >
+        {/* NAVEGACIÓN ADMINISTRATIVA */}
+        {sesionAdmin &&
+          vista !== "inicio" &&
+          vista !== "configuracion" && (
+            <NavegacionAdministrativa
+              onVolver={volver}
+            />
+          )}
 
-          {/* MENÚ DE CONFIGURACIÓN */}
-          {vista === "configuracion" &&
-            sesionAdmin && (
-              <PanelAdministrativo
-                token={sesionAdmin.token}
-                onSeleccionar={seleccionarOpcion}
-                onResultados={() => entrarA("resultados")}
-                modalAbierto={mostrarCentro || mostrarVotoBlanco || mostrarSeguridad}
-                mensaje={mensaje}
-              />
-            )}
+        {/* MENÚ DE CONFIGURACIÓN */}
+        {vista === "configuracion" &&
+          sesionAdmin && (
+            <PanelAdministrativo
+              token={sesionAdmin.token}
+              onSeleccionar={seleccionarOpcion}
+              onResultados={() =>
+                entrarA("resultados")
+              }
+              modalAbierto={
+                mostrarCentro ||
+                mostrarVotoBlanco ||
+                mostrarSeguridad
+              }
+              mensaje={mensaje}
+            />
+          )}
 
-          {/* CONFIGURAR CENTRO EDUCATIVO */}
-          {vista === "configuracion" &&
-            sesionAdmin &&
-            mostrarCentro && (
-              <ConfigurarCentroEducativo
-                token={sesionAdmin.token}
-                onVolver={() =>
-                  setMostrarCentro(false)
-                }
-              />
-            )}
+        {/* CONFIGURAR CENTRO EDUCATIVO */}
+        {vista === "configuracion" &&
+          sesionAdmin &&
+          mostrarCentro && (
+            <ConfigurarCentroEducativo
+              token={sesionAdmin.token}
+              onVolver={() =>
+                setMostrarCentro(false)
+              }
+            />
+          )}
 
-          {vista === "control-votacion" && sesionAdmin && <ControlVotacion token={sesionAdmin.token} />}
-          {vista === "computadoras" && sesionAdmin && <GestionComputadoras token={sesionAdmin.token} />}
-          {vista === "consultores" && sesionAdmin && <GestionConsultores token={sesionAdmin.token} />}
+        {/* CONTROL DE VOTACIÓN */}
+        {vista === "control-votacion" &&
+          sesionAdmin && (
+            <ControlVotacion
+              token={sesionAdmin.token}
+            />
+          )}
 
-          {vista === "borrar" && sesionAdmin && <BorrarDatos token={sesionAdmin.token} />}
+        {/* GESTIÓN DE COMPUTADORAS */}
+        {vista === "computadoras" &&
+          sesionAdmin && (
+            <GestionComputadoras
+              token={sesionAdmin.token}
+            />
+          )}
 
-          {/* CONFIGURAR VOTO EN BLANCO */}
-          {vista === "configuracion" &&
-            sesionAdmin &&
-            mostrarVotoBlanco && (
-              <ConfigurarVotoBlanco
-                token={sesionAdmin.token}
-                onVolver={() => setMostrarVotoBlanco(false)}
-              />
-            )}
+        {/* CONSULTORES DE RESULTADOS */}
+        {vista === "consultores" &&
+          sesionAdmin && (
+            <GestionConsultores
+              token={sesionAdmin.token}
+            />
+          )}
 
-          {/* SEGURIDAD: CAMBIAR CONTRASEÑA */}
-          {vista === "configuracion" &&
-            sesionAdmin &&
-            mostrarSeguridad && (
-              <ConfigurarSeguridad
-                token={sesionAdmin.token}
-                onPasswordCambiada={() => {
-                  cerrarSesionAdmin();
-                  setAvisoSesion("Contraseña actualizada. Inicia sesión nuevamente con tu nueva contraseña.");
-                  setDestino("configuracion");
-                  setVista("acceso");
-                }}
-                onVolver={() => setMostrarSeguridad(false)}
-              />
-            )}
+        {/* BORRAR DATOS DE PRUEBA */}
+        {vista === "borrar" &&
+          sesionAdmin && (
+            <BorrarDatos
+              token={sesionAdmin.token}
+            />
+          )}
 
-          {/* GESTIÓN DE ESTUDIANTES */}
-          {vista === "padron" &&
-            sesionAdmin && (
-              <AgregarVotante
-                token={
-                  sesionAdmin.token
-                }
-              />
-            )}
+        {/* CONFIGURAR VOTO EN BLANCO */}
+        {vista === "configuracion" &&
+          sesionAdmin &&
+          mostrarVotoBlanco && (
+            <ConfigurarVotoBlanco
+              token={sesionAdmin.token}
+              onVolver={() =>
+                setMostrarVotoBlanco(false)
+              }
+            />
+          )}
 
-          {/* GESTIÓN DE CANDIDATOS */}
-          {vista === "candidatos" &&
-            sesionAdmin && (
-              <AgregarCandidatos
-                token={
-                  sesionAdmin.token
-                }
-              />
-            )}
+        {/* CONFIGURAR SEGURIDAD */}
+        {vista === "configuracion" &&
+          sesionAdmin &&
+          mostrarSeguridad && (
+            <ConfigurarSeguridad
+              token={sesionAdmin.token}
+              onPasswordCambiada={() => {
+                cerrarSesionAdmin();
 
-        </div>
+                setAvisoSesion(
+                  "Contraseña actualizada. Inicia sesión nuevamente con tu nueva contraseña."
+                );
+
+                setDestino("configuracion");
+                setVista("acceso");
+              }}
+              onVolver={() =>
+                setMostrarSeguridad(false)
+              }
+            />
+          )}
+
+        {/* GESTIÓN DE ESTUDIANTES */}
+        {vista === "padron" &&
+          sesionAdmin && (
+            <AgregarVotante
+              token={sesionAdmin.token}
+            />
+          )}
+
+        {/* GESTIÓN DE CANDIDATOS */}
+        {vista === "candidatos" &&
+          sesionAdmin && (
+            <AgregarCandidatos
+              token={sesionAdmin.token}
+            />
+          )}
+      </div>
     </MarcoAdministrativo>
   );
 }

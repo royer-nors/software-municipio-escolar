@@ -37,7 +37,7 @@ export default function AgregarVotante({ token }) {
 
 
   return (
-    <div className="gestion-padron" style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', maxWidth: '600px', margin: 'auto' }}>
+<div className="gestion-padron">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>👤 Registrar Nuevo Votante</h2>
       </div>

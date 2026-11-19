@@ -22,3 +22,224 @@
 .imagen-electoral .imagen-electoral-fallo { display: none; }
 .imagen-electoral > span { font-size: 10px; color: #982b2b; text-align: center; }
 @media(max-width:600px) { .candidatura-formulario { padding: 18px; } .candidatura-imagenes { grid-template-columns: 1fr; } }
+
+/* =========================================
+   CANDIDATOS - DISEÑO INSTITUCIONAL
+   AZUL MARINO Y DORADO
+========================================= */
+
+.candidatura-formulario {
+  width: 100%;
+  max-width: 950px;
+  margin: 0 auto;
+  padding: 32px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-top: 5px solid #c49a38;
+  border-radius: 18px;
+  box-shadow: 0 12px 35px rgba(16, 45, 80, 0.08);
+  color: #102d50;
+}
+
+/* ENCABEZADO */
+
+.candidatura-formulario .candidatura-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.candidatura-formulario h2 {
+  color: #102d50;
+  font-size: 25px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.candidatura-formulario > p {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* BOTONES SECUNDARIOS */
+
+.candidatura-formulario .btn-claro {
+  background: #102d50;
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  padding: 11px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.candidatura-formulario .btn-claro:hover:not(:disabled) {
+  background: #214c75;
+}
+
+/* FORMULARIO */
+
+.candidatura-formulario form {
+  margin-top: 24px;
+}
+
+.candidatura-formulario form fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  margin: 0;
+  padding: 26px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.candidatura-formulario form fieldset > label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  color: #243b53;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.candidatura-formulario form fieldset > label > input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 13px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #102d50;
+  font-size: 14px;
+  font-weight: 400;
+  outline: none;
+}
+
+.candidatura-formulario input:focus {
+  border-color: #c49a38;
+  box-shadow: 0 0 0 3px rgba(196, 154, 56, 0.15);
+}
+
+.candidatura-formulario input[type="file"] {
+  cursor: pointer;
+}
+
+/* LOGO Y FOTOGRAFÍA */
+
+.candidatura-formulario .candidatura-imagenes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.candidatura-formulario .candidatura-imagen-campo {
+  min-width: 0;
+  padding: 22px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 14px;
+  background: #ffffff;
+  text-align: center;
+}
+
+.candidatura-formulario .candidatura-imagen-campo h3 {
+  color: #102d50;
+  font-size: 16px;
+  margin: 0 0 10px;
+}
+
+.candidatura-formulario .candidatura-imagen-campo p {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.candidatura-formulario .candidatura-vista-previa {
+  display: block;
+  max-width: 100%;
+  max-height: 180px;
+  object-fit: contain;
+  margin: 16px auto;
+  border-radius: 10px;
+}
+
+.candidatura-formulario .candidatura-imagen-campo span {
+  display: block;
+  overflow-wrap: anywhere;
+  margin: 10px 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* BOTÓN PRINCIPAL */
+
+.candidatura-formulario .electoral-btn-azul {
+  width: 100%;
+  padding: 15px 20px;
+  border: none;
+  border-radius: 10px;
+  background: #c49a38;
+  color: #102d50;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.candidatura-formulario .electoral-btn-azul:hover:not(:disabled) {
+  background: #dfb650;
+}
+
+.candidatura-formulario button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* MENSAJES */
+
+.candidatura-formulario .candidatura-error {
+  padding: 13px;
+  border-radius: 9px;
+  background: #fff0f0;
+  color: #982b2b;
+  border: 1px solid #e8bcbc;
+}
+
+.candidatura-formulario .candidatura-exito {
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: 12px;
+  background: #eaf7ee;
+  color: #14663e;
+  border: 1px solid #b4dac2;
+}
+
+/* CELULARES */
+
+@media (max-width: 650px) {
+  .candidatura-formulario {
+    padding: 18px;
+  }
+
+  .candidatura-formulario form fieldset {
+    padding: 18px;
+  }
+
+  .candidatura-formulario .candidatura-imagenes {
+    grid-template-columns: 1fr;
+  }
+
+  .candidatura-formulario h2 {
+    font-size: 21px;
+  }
+}
