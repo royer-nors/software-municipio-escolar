@@ -11,7 +11,7 @@ function createPadronRouter({ padronService, autenticarAdministrador, red }) {
   router.use((req, res, next) => {
     const origen = req.get('Origin');
     if (req.method !== 'POST') return next();
-    if (!origen || origen === 'null' || !red.origenes.includes(origen) || req.get('X-Padron-CSRF') !== '1') return res.status(403).json({ mensaje: 'Origen o protección CSRF inválidos.' });
+    if (!origen || origen === 'null' || !(red.origenPermitido?.(origen) ?? red.origenes.includes(origen)) || req.get('X-Padron-CSRF') !== '1') return res.status(403).json({ mensaje: 'Origen o protección CSRF inválidos.' });
     next();
   });
   router.use(createLimiteAcceso({ limit: 20 }));

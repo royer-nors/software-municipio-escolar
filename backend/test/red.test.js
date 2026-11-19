@@ -5,10 +5,13 @@ const { configurarRed } = require("../config/red");
 const { createApp } = require("../app");
 
 test("la configuración conserva localhost y permite host y puerto LAN sin fijar cantidad de equipos", () => {
-  assert.deepEqual(configurarRed(), {
+  const local = configurarRed();
+  assert.deepEqual({ host: local.host, port: local.port, origenes: local.origenes, permitirOrigenNull: local.permitirOrigenNull, modoLan: local.modoLan }, {
     host: "127.0.0.1", port: 3000,
-    origenes: ["http://localhost:5173", "http://127.0.0.1:5173"], permitirOrigenNull: false,
+    origenes: ["http://localhost:5173", "http://127.0.0.1:5173"], permitirOrigenNull: false, modoLan: false,
   });
+  assert.equal(local.origenPermitido("http://localhost:5173"), true);
+  assert.equal(local.origenPermitido("http://192.168.1.20:3000"), false);
   const red = configurarRed({ HOST: "0.0.0.0", PORT: "3001", CORS_ORIGINS: "http://servidor-escolar:5173, https://elecciones.escuela", CORS_ALLOW_NULL_ORIGIN: "true" });
   assert.equal(red.host, "0.0.0.0");
   assert.equal(red.port, 3001);
@@ -62,4 +65,21 @@ test("Electron con origen null requiere habilitación explícita y conserva JWT"
   assert.equal(respuesta.status, 200);
   assert.equal(respuesta.headers.get("access-control-allow-origin"), "null");
   assert.equal((await fetch(`${base}/api/resultados`, { headers: { Origin: "null" } })).status, 401);
+});
+
+test("MODO_LAN acepta solo orígenes HTTP privados/loopback del puerto configurado", async t => {
+  const red = configurarRed({ MODO_LAN: "true", HOST: "0.0.0.0", PORT: "3000" });
+  assert.equal(red.origenPermitido("http://192.168.1.20:3000"), true);
+  assert.equal(red.origenPermitido("http://10.1.2.3:3000"), true);
+  assert.equal(red.origenPermitido("http://172.31.2.3:3000"), true);
+  assert.equal(red.origenPermitido("http://172.32.2.3:3000"), false);
+  assert.equal(red.origenPermitido("http://192.168.1.20:3001"), false);
+  assert.equal(red.origenPermitido("https://192.168.1.20:3000"), false);
+  assert.equal(red.origenPermitido("http://8.8.8.8:3000"), false);
+  const server = createApp({ pool: { query() { throw new Error("No debe consultar PostgreSQL"); } }, jwtSecret: "secreto-lan-aislado-sin-produccion", red }).listen(0, "127.0.0.1");
+  t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));
+  await once(server, "listening");
+  const base = `http://127.0.0.1:${server.address().port}`;
+  assert.equal((await fetch(`${base}/api/estado`, { headers: { Origin: "http://192.168.1.20:3000" } })).status, 200);
+  assert.equal((await fetch(`${base}/api/estado`, { headers: { Origin: "http://8.8.8.8:3000" } })).status, 403);
 });

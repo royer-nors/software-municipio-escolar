@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const fs = require("node:fs");
+const path = require("node:path");
 const { configurarRed } = require("./config/red");
 const { configurarPuesto } = require("./config/puesto");
 const { createVotacionPuestoRouter } = require("./routes/votacion-puesto.routes");
@@ -43,6 +45,7 @@ const { createBorradoDatosRouter } = require("./routes/borrado-datos.routes");
 const { createConsultoresResultadosRepository } = require("./repositories/consultores-resultados.repository");
 const { createConsultoresResultadosService } = require("./services/consultores-resultados.service");
 const { createConsultoresResultadosRouter } = require("./routes/consultores-resultados.routes");
+const { createInicializacionRouter } = require("./routes/inicializacion.routes");
 
 function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createImagenesStorage(), red = configurarRed(), puesto = configurarPuesto() }) {
   const app = express();
@@ -59,7 +62,7 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
   });
   app.use((req, res, next) => {
     const origen = req.get("Origin");
-    if (origen !== undefined && !red.origenes.includes(origen) && !(origen === "null" && red.permitirOrigenNull)) {
+    if (origen !== undefined && !(red.origenPermitido?.(origen) ?? red.origenes.includes(origen)) && !(origen === "null" && red.permitirOrigenNull)) {
       return res.status(403).json({ mensaje: "Origen no autorizado." });
     }
     return next();
@@ -97,6 +100,7 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
     }
   });
   app.use("/api/auth", createAuthRouter({ authService, estudianteAuthService, administradoresService, autenticarAdministrador, limitesAcceso }));
+  app.use("/api/instalacion", createInicializacionRouter(pool));
   app.use("/api/administradores", createUsuariosRouter({ service: administradoresService, autenticarAdministrador, entidad: "administrador" }));
   app.use("/api/estudiantes", createUsuariosRouter({ service: estudiantesService, autenticarAdministrador, entidad: "estudiante" }));
   app.use("/api/computadoras", createComputadorasRouter({
@@ -128,6 +132,20 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
     autenticarAdministrador,
   })
 );
+  const frontendDist = process.env.FRONTEND_DIST;
+  if (frontendDist) {
+    const directorioFrontend = path.isAbsolute(frontendDist) ? frontendDist : path.join(__dirname, frontendDist);
+    if (fs.existsSync(directorioFrontend)) {
+      const servirEstaticos = express.static(directorioFrontend);
+      app.use((req, res, next) => req.path === "/api" || req.path.startsWith("/api/") ? next() : servirEstaticos(req, res, next));
+      app.use((req, res, next) => {
+        if (req.method !== "GET" || req.path === "/api" || req.path.startsWith("/api/")) return next();
+        res.sendFile(path.join(directorioFrontend, "index.html"), error => {
+          if (error && !res.headersSent) next(error);
+        });
+      });
+    }
+  }
   app.use((error, req, res, next) => {
     if (error.type === "entity.parse.failed" || error.type === "entity.too.large") {
       return res.status(error.status).json({ mensaje: "El cuerpo de la solicitud no es válido." });

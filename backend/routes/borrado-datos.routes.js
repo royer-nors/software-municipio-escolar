@@ -16,7 +16,7 @@ function createBorradoDatosRouter({ service, autenticarAdministrador, red }) {
   router.use((req, res, next) => {
     if (req.method !== "POST") return next();
     const origen = req.get("Origin");
-    if (!origen || origen === "null" || !red.origenes.includes(origen) || !req.is("application/json") || req.get("X-Borrado-CSRF") !== "1") return res.status(403).json({ mensaje: "Origen o protección CSRF inválidos." });
+    if (!origen || origen === "null" || !(red.origenPermitido?.(origen) ?? red.origenes.includes(origen)) || !req.is("application/json") || req.get("X-Borrado-CSRF") !== "1") return res.status(403).json({ mensaje: "Origen o protección CSRF inválidos." });
     next();
   });
   const limite = createLimiteAcceso({ limit: 5 });

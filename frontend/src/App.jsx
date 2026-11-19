@@ -28,6 +28,7 @@ import ConfigurarSeguridad from "./components/ConfigurarSeguridad";
 import BorrarDatos from "./components/BorrarDatos";
 import GestionComputadoras from "./components/GestionComputadoras";
 import GestionConsultores from "./components/GestionConsultores";
+import ConfiguracionInicial from "./pages/ConfiguracionInicial";
 import VincularPuesto from "./pages/VincularPuesto";
 
 const API =
@@ -59,20 +60,33 @@ const boton = {
 export default function App() {
   const esPuesto =
     window.location.pathname === "/puesto" ||
-    new URLSearchParams(window.location.search)
-      .get("puesto") === "1";
+    new URLSearchParams(window.location.search).get("puesto") === "1";
 
   if (esPuesto) {
     return <VincularPuesto />;
   }
 
-  return <AplicacionAdministrativa />;
+  return <ComprobarAdministradorInicial />;
+}
+
+function ComprobarAdministradorInicial() {
+  const [requiere, setRequiere] = useState(null);
+  useEffect(() => {
+    fetch(`${API}/instalacion/estado`)
+      .then(respuesta => respuesta.ok ? respuesta.json() : null)
+      .then(datos => setRequiere(datos?.requiereAdministrador === true))
+      .catch(() => setRequiere(false));
+  }, []);
+  if (requiere === null) return <p role="status" style={{ padding: 30 }}>Verificando configuración inicial…</p>;
+  return requiere ? <ConfiguracionInicial /> : <AplicacionAdministrativa />;
+
 }
 
 // Administración y navegación del sistema
 function AplicacionAdministrativa() {
   const [avisoSesion, setAvisoSesion] = useState("");
-  const [vista, setVista] = useState("inicio");
+  const [vista, setVista] = useState(() => new URLSearchParams(window.location.search).get("administrador") === "1" ? "acceso" : "inicio");
+
   const [destino, setDestino] = useState(null);
 
   const [sesionAdmin, setSesionAdmin] = useState(null);
@@ -123,6 +137,7 @@ function AplicacionAdministrativa() {
           token,
           administrador: datos.administrador,
         });
+        if (new URLSearchParams(window.location.search).get("administrador") === "1") setVista("configuracion");
       })
       .catch(() => {
         sessionStorage.removeItem("admin_token");
