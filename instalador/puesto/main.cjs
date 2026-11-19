@@ -1,6 +1,14 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain } = require("electron");
 const fs = require("node:fs/promises");
 const path = require("node:path");
+const { pathToFileURL } = require("node:url");
+const {
+  crearHashClave,
+  crearLimitadorIntentos,
+  normalizarServidorUrl,
+  validarClaveInicial,
+  verificarHashClave,
+} = require("./seguridad-local.cjs");
 
 const ARCHIVO_CONFIG = "puesto-config.json";
 const INTERVALO_REINTENTO_MS = 5000;
@@ -9,10 +17,17 @@ const TIMEOUT_SALUD_MS = 5000;
 
 let ventana;
 let servidorUrl = "";
+let configuracionLocal;
 let fallosConsecutivos = 0;
 let temporizadorSalud;
 let vistaLocal = "configuracion";
 let salirAutorizado = false;
+let configuracionAutorizada = false;
+let ventanaClave;
+let accionClave;
+const intentosClave = crearLimitadorIntentos();
+
+app.setName("software-municipio-escolar-puesto");
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -32,21 +47,51 @@ if (!app.requestSingleInstanceLock()) {
     if (BrowserWindow.getAllWindows().length === 0) crearVentana();
   });
 
-  ipcMain.handle("puesto:estado", () => ({
-    vista: vistaLocal,
-    servidorUrl,
-  }));
-  ipcMain.handle("puesto:guardar-servidor", async (_event, valor) => {
-    const base = normalizarServidorUrl(valor);
-    await verificarServidor(base);
-    await guardarConfiguracion(base);
-    servidorUrl = base;
-    fallosConsecutivos = 0;
-    await abrirPuesto();
-    iniciarMonitoreo();
-    return { ok: true };
+  ipcMain.handle("puesto:estado", event => {
+    if (!esVistaLocal(event, "configuracion.html")) return { vista: "puesto", servidorUrl: "" };
+    return { vista: vistaLocal, servidorUrl, requiereClave: !configuracionLocal?.claveHash };
   });
-  ipcMain.handle("puesto:reintentar", () => reintentarConexion());
+  ipcMain.handle("puesto:guardar-servidor", async (event, datos) => {
+    if (!esVistaLocal(event, "configuracion.html") || vistaLocal !== "configuracion" || !configuracionAutorizada) {
+      return { ok: false, mensaje: "Para cambiar la configuración, solicita la clave de salida o reconfiguración." };
+    }
+    let normalizado;
+    try {
+      normalizado = normalizarServidorUrl(datos?.servidorUrl);
+      if (normalizado.aviso) {
+        await dialog.showMessageBox(ventana, {
+          type: "info",
+          title: "Dirección ajustada",
+          message: normalizado.aviso,
+          buttons: ["Continuar"],
+          defaultId: 0,
+          noLink: true,
+        });
+      }
+      if (!configuracionLocal?.claveHash) {
+        validarClaveInicial(datos?.clave, datos?.confirmacion);
+      }
+      await verificarServidor(normalizado.url);
+      const claveHash = configuracionLocal?.claveHash || crearHashClave(datos.clave);
+      await guardarConfiguracion({ servidorUrl: normalizado.url, claveHash });
+      configuracionLocal = { servidorUrl: normalizado.url, claveHash };
+      servidorUrl = normalizado.url;
+      configuracionAutorizada = false;
+      fallosConsecutivos = 0;
+      await abrirPuesto();
+      iniciarMonitoreo();
+      return { ok: true, aviso: normalizado.aviso };
+    } catch (error) {
+      return { ok: false, mensaje: mensajeAmigable(error), aviso: normalizado?.aviso || "", url: normalizado?.url || "" };
+    }
+  });
+  ipcMain.handle("puesto:reintentar", event => esVistaLocal(event, "configuracion.html") ? reintentarConexion() : { ok: false, mensaje: "No se pudo reintentar la conexión." });
+  ipcMain.handle("puesto:validar-clave", (event, clave) => validarClave(event, clave));
+  ipcMain.handle("puesto:cancelar-clave", event => {
+    if (!esVentanaClave(event)) return false;
+    ventanaClave?.close();
+    return true;
+  });
 
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin" && salirAutorizado) app.quit();
@@ -55,7 +100,9 @@ if (!app.requestSingleInstanceLock()) {
 
 async function iniciar() {
   crearVentana();
-  servidorUrl = await leerConfiguracion();
+  configuracionLocal = await leerConfiguracion();
+  servidorUrl = configuracionLocal?.servidorUrl || "";
+  configuracionAutorizada = !configuracionLocal?.claveHash;
   if (!servidorUrl) {
     mostrarVistaLocal("configuracion");
     return;
@@ -91,7 +138,7 @@ function crearVentana() {
   ventana.on("closed", () => { ventana = undefined; });
   ventana.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   ventana.webContents.on("will-navigate", (event, destino) => {
-    if (destino.startsWith("file://")) return;
+    if (esArchivoLocal(destino, "configuracion.html") || esArchivoLocal(destino, "clave.html")) return;
     let mismaOrigen = false;
     try { mismaOrigen = new URL(destino).origin === new URL(servidorUrl).origin; } catch {}
     if (!mismaOrigen) event.preventDefault();
@@ -99,10 +146,15 @@ function crearVentana() {
   ventana.webContents.on("before-input-event", (event, input) => {
     if (input.type !== "keyDown") return;
     const tecla = input.key.toLowerCase();
-    const reconfigurar = input.control && input.shift && tecla === "f12";
-    if (reconfigurar) {
+    if (input.control && input.shift && tecla === "f10") {
       event.preventDefault();
-      mostrarVistaLocal("configuracion");
+      abrirDialogoClave("salir");
+      return;
+    }
+    if (input.control && input.shift && tecla === "f12") {
+      event.preventDefault();
+      if (configuracionLocal?.claveHash) abrirDialogoClave("reconfigurar");
+      else mostrarVistaLocal("configuracion");
       return;
     }
     const atajoBloqueado = input.alt && tecla === "f4"
@@ -120,20 +172,6 @@ function crearVentana() {
   ventana.on("close", event => {
     if (!salirAutorizado) event.preventDefault();
   });
-  mostrarVistaLocal("configuracion");
-}
-
-function normalizarServidorUrl(valor) {
-  if (typeof valor !== "string" || !valor.trim()) throw new Error("Escribe la IP o URL del servidor.");
-  let entrada = valor.trim();
-  if (!/^[a-z][a-z\d+.-]*:\/\//i.test(entrada)) entrada = `http://${entrada}`;
-  let url;
-  try { url = new URL(entrada); } catch { throw new Error("La IP o URL no tiene un formato válido."); }
-  if (url.protocol !== "http:" || url.username || url.password || !["", "/"].includes(url.pathname) || url.search || url.hash) {
-    throw new Error("Usa una dirección HTTP del servidor, por ejemplo http://192.168.1.20:3000.");
-  }
-  if (!url.port) url.port = "3000";
-  return url.origin;
 }
 
 async function verificarServidor(base) {
@@ -145,7 +183,7 @@ async function verificarServidor(base) {
     if (!respuesta.ok || datos?.estado !== "activo") throw new Error("El servidor no confirmó que está activo.");
   } catch (error) {
     if (error.name === "AbortError") throw new Error("Se agotó el tiempo de conexión con el servidor.");
-    throw new Error(`No se pudo conectar con ${base}. Verifica la IP y que ambos equipos estén en la misma red.`);
+    throw new Error("No se pudo conectar con el servidor. Verifica la dirección, que esté encendido y que ambos equipos estén en la misma red.");
   } finally {
     clearTimeout(temporizador);
   }
@@ -155,17 +193,24 @@ async function leerConfiguracion() {
   try {
     const contenido = await fs.readFile(archivoConfiguracion(), "utf8");
     const datos = JSON.parse(contenido);
-    return normalizarServidorUrl(datos.servidorUrl);
+    const servidor = normalizarServidorUrl(datos.servidorUrl);
+    return { servidorUrl: servidor.url, claveHash: credencialValida(datos.claveHash) ? datos.claveHash : null };
   } catch (error) {
     if (error.code !== "ENOENT") await fs.rename(archivoConfiguracion(), `${archivoConfiguracion()}.invalido`).catch(() => {});
-    return "";
+    return null;
   }
 }
 
-async function guardarConfiguracion(base) {
+function credencialValida(credencial) {
+  return credencial?.algoritmo === "scrypt"
+    && /^[a-f0-9]{32}$/i.test(credencial.salt || "")
+    && /^[a-f0-9]{128}$/i.test(credencial.hash || "");
+}
+
+async function guardarConfiguracion(configuracion) {
   const archivo = archivoConfiguracion();
   const temporal = `${archivo}.tmp`;
-  await fs.writeFile(temporal, `${JSON.stringify({ servidorUrl: base }, null, 2)}\n`, "utf8");
+  await fs.writeFile(temporal, `${JSON.stringify(configuracion, null, 2)}\n`, "utf8");
   await fs.rename(temporal, archivo);
 }
 
@@ -176,7 +221,86 @@ function archivoConfiguracion() {
 function mostrarVistaLocal(vista) {
   if (!ventana) return;
   vistaLocal = vista;
+  configuracionAutorizada = true;
   ventana.loadFile(path.join(__dirname, "configuracion.html"), { query: { vista } });
+}
+
+function abrirDialogoClave(accion) {
+  if (ventanaClave || !ventana || !configuracionLocal?.claveHash) return;
+  accionClave = accion;
+  ventanaClave = new BrowserWindow({
+    parent: ventana,
+    modal: true,
+    width: 500,
+    height: 340,
+    resizable: false,
+    show: false,
+    autoHideMenuBar: true,
+    frame: false,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+    },
+  });
+  ventanaClave.setMenu(null);
+  ventanaClave.once("ready-to-show", () => ventanaClave.show());
+  ventanaClave.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  ventanaClave.webContents.on("before-input-event", (event, input) => {
+    if (input.type !== "keyDown") return;
+    const tecla = input.key.toLowerCase();
+    if (input.key === "Escape") { event.preventDefault(); ventanaClave?.close(); }
+    if (input.alt && tecla === "f4" || input.control && ["w", "q", "r"].includes(tecla)) event.preventDefault();
+  });
+  ventanaClave.on("closed", () => { ventanaClave = undefined; accionClave = undefined; });
+  ventanaClave.loadFile(path.join(__dirname, "clave.html"), { query: { accion } });
+}
+
+function esVistaLocal(event, archivo) {
+  if (!ventana || event.sender !== ventana.webContents) return false;
+  try { return esArchivoLocal(event.senderFrame.url, archivo); }
+  catch { return false; }
+}
+
+function esVentanaClave(event) {
+  if (!ventanaClave || event.sender !== ventanaClave.webContents) return false;
+  try { return esArchivoLocal(event.senderFrame.url, "clave.html"); }
+  catch { return false; }
+}
+
+function esArchivoLocal(valor, archivo) {
+  const actual = new URL(valor);
+  const esperado = new URL(pathToFileURL(path.join(__dirname, archivo)));
+  return actual.protocol === "file:" && actual.hostname === esperado.hostname && actual.pathname === esperado.pathname;
+}
+
+function validarClave(event, clave) {
+  if (!esVentanaClave(event) || typeof clave !== "string") return { ok: false, mensaje: "No se pudo verificar la clave." };
+  const estado = intentosClave.consultar();
+  if (!estado.permitido) return { ok: false, mensaje: `Demasiados intentos. Espera ${Math.ceil(estado.restanteMs / 1000)} segundos para volver a intentar.` };
+  if (!verificarHashClave(clave, configuracionLocal?.claveHash)) {
+    const fallo = intentosClave.registrarFallo();
+    if (!fallo.permitido) return { ok: false, mensaje: "Clave incorrecta. Se bloquearon los intentos durante 30 segundos." };
+    return { ok: false, mensaje: "La clave es incorrecta." };
+  }
+  intentosClave.registrarExito();
+  const accion = accionClave;
+  ventanaClave?.close();
+  if (accion === "salir") {
+    salirAutorizado = true;
+    app.quit();
+  } else if (accion === "reconfigurar") {
+    mostrarVistaLocal("configuracion");
+  }
+  return { ok: true };
+}
+
+function mensajeAmigable(error) {
+  const conocidos = ["Escribe", "La dirección", "Usa", "El servidor", "La clave", "Las claves", "No se pudo conectar", "Se agotó"];
+  return conocidos.some(inicio => error.message.startsWith(inicio))
+    ? error.message
+    : "No se pudo guardar la configuración. Revisa los datos e inténtalo otra vez.";
 }
 
 async function abrirPuesto() {

@@ -7,6 +7,8 @@ let ventana;
 let backend;
 let cierreAutorizado = false;
 let cierrePendiente;
+let confirmacionCierrePendiente = false;
+let cierreConfirmadoPorUsuario = false;
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -35,10 +37,34 @@ if (!app.requestSingleInstanceLock()) {
     if (BrowserWindow.getAllWindows().length === 0 && backend) crearVentana();
   });
 
+  app.on("window-all-closed", () => {
+    if (process.platform !== "darwin" && cierreAutorizado) app.quit();
+  });
+
   app.on("before-quit", event => {
     if (cierreAutorizado) return;
     event.preventDefault();
     if (cierrePendiente) return;
+    if (!cierreConfirmadoPorUsuario) {
+      if (confirmacionCierrePendiente) return;
+      confirmacionCierrePendiente = true;
+      dialog.showMessageBox(ventana, {
+        type: "warning",
+        title: "Cerrar servidor",
+        message: "Si cierras el servidor, los puestos dejarán de funcionar. ¿Cerrar?",
+        buttons: ["Cancelar", "Cerrar servidor"],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
+      }).then(({ response }) => {
+        confirmacionCierrePendiente = false;
+        if (response === 1) {
+          cierreConfirmadoPorUsuario = true;
+          app.quit();
+        }
+      }).catch(() => { confirmacionCierrePendiente = false; });
+      return;
+    }
     cierrePendiente = cerrarBackend().catch(error => {
       console.error(`No se pudo cerrar limpiamente el backend: ${error.message}`);
     }).finally(() => {
@@ -47,9 +73,6 @@ if (!app.requestSingleInstanceLock()) {
     });
   });
 
-  app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") app.quit();
-  });
 }
 
 function proyectoRoot() {
@@ -157,6 +180,11 @@ function crearVentana() {
   });
   ventana.once("ready-to-show", () => ventana.show());
   ventana.on("closed", () => { ventana = undefined; });
+  ventana.on("close", event => {
+    if (cierreAutorizado) return;
+    event.preventDefault();
+    app.quit();
+  });
   ventana.loadFile(path.join(__dirname, "index.html"));
 }
 

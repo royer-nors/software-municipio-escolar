@@ -2,7 +2,7 @@ module.exports = {
   appId: "pe.softwaremunicipioescolar.puesto",
   productName: "Municipio Escolar Puesto",
   directories: { output: "release/puesto" },
-  files: ["puesto/**/*", "package.json"],
+  files: ["puesto/main.cjs", "puesto/preload.cjs", "puesto/*.html", "puesto/*.cjs", "package.json"],
   extraMetadata: {
     name: "software-municipio-escolar-puesto",
     main: "puesto/main.cjs",

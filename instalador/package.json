@@ -7,6 +7,7 @@
   "scripts": {
     "start": "electron .",
     "start:puesto": "electron puesto/main.cjs",
+    "test:puesto": "node --test puesto/test/*.test.cjs",
     "pack:servidor": "electron-builder --dir --config electron-builder.cjs",
     "pack:puesto": "electron-builder --win nsis --config electron-builder.puesto.cjs"
   },

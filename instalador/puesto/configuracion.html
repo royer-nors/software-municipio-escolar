@@ -15,7 +15,8 @@
       input { width: 100%; padding: 15px; border: 1px solid #a8bed8; border-radius: 8px; font-size: 20px; }
       button { margin-top: 16px; padding: 14px 20px; border: 0; border-radius: 8px; background: #0759b8; color: white; font-size: 18px; font-weight: 700; cursor: pointer; }
       button:disabled { opacity: .55; cursor: wait; }
-      [role="alert"], [role="status"] { min-height: 1.5em; color: #9b1c1c; }
+      [role="alert"] { min-height: 1.5em; color: #9b1c1c; }
+      [role="status"] { min-height: 1.5em; color: #0759b8; }
       .ayuda { color: #536b83; font-size: 15px; }
       [hidden] { display: none !important; }
     </style>
@@ -28,9 +29,17 @@
         <form id="formulario-servidor">
           <label for="servidor-url">IP o URL del servidor</label>
           <input id="servidor-url" name="servidorUrl" type="text" inputmode="url" autocomplete="url" placeholder="http://192.168.1.20:3000" required>
+          <div id="grupo-clave">
+            <label for="clave">Clave para salir o reconfigurar</label>
+            <input id="clave" name="clave" type="password" autocomplete="new-password" minlength="4">
+            <label for="confirmacion">Confirma la clave</label>
+            <input id="confirmacion" name="confirmacion" type="password" autocomplete="new-password" minlength="4">
+          </div>
           <button id="guardar" type="submit">Conectar con el servidor</button>
         </form>
-        <p class="ayuda">Esta dirección se guarda en esta computadora. La app abrirá la pantalla de vinculación para ingresar el código del administrador.</p>
+        <p id="ayuda-clave" class="ayuda">La clave se guarda protegida en esta computadora. Anótala y consérvala: será necesaria para salir o cambiar la dirección del servidor.</p>
+        <p class="ayuda">Al conectar, la app abrirá la pantalla de vinculación para ingresar el código del administrador.</p>
+        <p id="aviso" role="status" aria-live="polite"></p>
       </section>
       <section id="sin-conexion" hidden>
         <h1>Sin conexión con el servidor</h1>
