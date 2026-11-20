@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { esInterfazServidor, escucharInterfazServidor } from "../utils/interfaz-servidor";
 import "../styles/bienvenida.css";
 
 function IconoUrna() {
@@ -19,6 +20,15 @@ function IconoAdministrador() {
       <path d="M8 10V7a4 4 0 0 1 8 0v3" />
       <circle cx="12" cy="15" r="1" />
       <path d="M12 16v2" />
+    </svg>
+  );
+}
+
+function IconoResultados() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 3v18h18" />
+      <path d="M7 17v-5M12 17V7M17 17V4" />
     </svg>
   );
 }
@@ -50,6 +60,7 @@ function IlustracionAlternativa() {
  */
 export default function Bienvenida({ onVotar, onAdministrador, onResultados }) {
   const [imagenNoDisponible, setImagenNoDisponible] = useState(false);
+  const servidorElectron = useSyncExternalStore(escucharInterfazServidor, esInterfazServidor, esInterfazServidor);
 
   return (
     <section className="bv-inicio" aria-labelledby="bv-titulo">
@@ -77,14 +88,14 @@ export default function Bienvenida({ onVotar, onAdministrador, onResultados }) {
         <p className="bv-descripcion">Selecciona una opción para continuar:</p>
 
         <div className="bv-opciones" role="group" aria-label="Tipo de acceso">
-          <button type="button" className="bv-opcion bv-opcion-estudiante" onClick={onVotar}>
+          {!servidorElectron && <button type="button" className="bv-opcion bv-opcion-estudiante" onClick={onVotar}>
             <span className="bv-opcion-icono bv-opcion-icono-estudiante"><IconoUrna /></span>
             <span className="bv-opcion-texto">
               <strong>Ingresar como estudiante</strong>
               <small>Identifícate y emite tu voto</small>
             </span>
             <span className="bv-opcion-flecha" aria-hidden="true">→</span>
-          </button>
+          </button>}
 
           <button type="button" className="bv-opcion bv-opcion-administrador" onClick={onAdministrador}>
             <span className="bv-opcion-icono bv-opcion-icono-administrador"><IconoAdministrador /></span>
@@ -97,6 +108,7 @@ export default function Bienvenida({ onVotar, onAdministrador, onResultados }) {
         </div>
 
         <button type="button" className="bv-opcion bv-opcion-resultados" onClick={onResultados}>
+          {servidorElectron && <span className="bv-opcion-icono bv-opcion-icono-administrador"><IconoResultados /></span>}
           <span className="bv-opcion-texto"><strong>Resultados</strong><small>Acceso de consultores autorizados</small></span>
         </button>
         <p className="bv-nota">Si eres estudiante, ten a mano tu DNI para identificarte.</p>

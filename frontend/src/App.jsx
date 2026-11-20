@@ -28,7 +28,7 @@ import ConfigurarSeguridad from "./components/ConfigurarSeguridad";
 import BorrarDatos from "./components/BorrarDatos";
 import GestionComputadoras from "./components/GestionComputadoras";
 import GestionConsultores from "./components/GestionConsultores";
-import ConfiguracionInicial from "./pages/ConfiguracionInicial";
+import ComprobarAdministradorInicial from "./components/ComprobarAdministradorInicial";
 import VincularPuesto from "./pages/VincularPuesto";
 
 const API =
@@ -66,20 +66,7 @@ export default function App() {
     return <VincularPuesto />;
   }
 
-  return <ComprobarAdministradorInicial />;
-}
-
-function ComprobarAdministradorInicial() {
-  const [requiere, setRequiere] = useState(null);
-  useEffect(() => {
-    fetch(`${API}/instalacion/estado`)
-      .then(respuesta => respuesta.ok ? respuesta.json() : null)
-      .then(datos => setRequiere(datos?.requiereAdministrador === true))
-      .catch(() => setRequiere(false));
-  }, []);
-  if (requiere === null) return <p role="status" style={{ padding: 30 }}>Verificando configuración inicial…</p>;
-  return requiere ? <ConfiguracionInicial /> : <AplicacionAdministrativa />;
-
+  return <ComprobarAdministradorInicial><AplicacionAdministrativa /></ComprobarAdministradorInicial>;
 }
 
 // Administración y navegación del sistema

@@ -37,12 +37,15 @@ async function pedir(ruta, opciones = {}) {
 
 export async function loginEstudiante(dni, puesto = false) {
   if (typeof dni !== "string" || !/^\d{8}$/.test(dni)) throw new ErrorApi(400, "El DNI debe tener ocho dígitos.");
+  const ventana = puesto && globalThis.window?.puestoVentana;
+  if (ventana && !(await ventana.iniciarAutenticacion())?.ok) throw new ErrorApi(0, "No se pudo proteger la ventana del puesto. Avisa al encargado.");
   const datos = await pedir(puesto ? "/puesto/identificar" : "/auth/estudiante", {
     method: "POST", headers: { "Content-Type": "application/json", ...(puesto ? { "X-Puesto-CSRF": "1" } : {}) }, body: JSON.stringify({ dni }), ...(puesto ? { credentials: "include" } : {}),
   });
   if (!datos.token || !datos.estudiante?.nombre || datos.estudiante.dni !== dni || datos.habilitadoParaVotar !== true) {
     throw new ErrorApi(502, "No se recibió una identificación válida. Avisa al encargado.");
   }
+  if (ventana && !(await ventana.registrarSesion(datos.token))?.ok) throw new ErrorApi(0, "No se pudo verificar la sesión del puesto. Avisa al encargado.");
   return datos;
 }
 export async function obtenerListas(token, signal, puesto = false) {

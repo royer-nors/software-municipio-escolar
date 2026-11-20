@@ -51,7 +51,7 @@ before(async () => {
 });
 beforeEach(async () => {
   // Exclusivamente instancia en memoria o esquema aleatorio NUEVO de la base de pruebas.
-  await db.exec("TRUNCATE vinculaciones_puesto, autorizaciones_puesto, computadoras, administradores RESTART IDENTITY;");
+  await db.exec("TRUNCATE sesiones_votacion_puesto, vinculaciones_puesto, autorizaciones_puesto, computadoras, administradores RESTART IDENTITY;");
   await db.query("INSERT INTO administradores (usuario,password_hash) VALUES ('admin-fixture','no-es-una-clave-real')");
   await db.query("INSERT INTO computadoras (identificador,nombre,grado) VALUES ('PC-01','Aula A',3),('PC-02','Aula B',3)");
   admin = jwt.sign({ rol: "administrador", usuario: "admin-fixture", version_token: 0 }, secret, { issuer: JWT_ISSUER, audience: JWT_AUDIENCE, subject: "1", expiresIn: 3600 });

@@ -17,8 +17,8 @@ try {
   await n.esperar(s, "Boolean(document.getElementById('usuario'))");
   await n.escribir(s, "usuario", "admin-demo"); await n.escribir(s, "password", "SoloPruebas2026!");
   await n.evaluar(s, "document.querySelector('form').requestSubmit()");
-  await n.esperar(s, "document.body.innerText.includes('Borrar datos')");
-  await n.evaluar(s, "Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Borrar datos')).click()");
+  await n.esperar(s, "Boolean(document.querySelector('.admin-panel .admin-datos button'))");
+  await n.evaluar(s, "document.querySelector('.admin-panel .admin-datos button').click()");
   await n.esperar(s, "Boolean(document.getElementById('borrar-operacion')) && document.body.innerText.includes('Excel identificados')");
   assert.equal(await n.evaluar(s, "Boolean(document.getElementById('borrar-autorizacion'))"), false);
   await n.evaluar(s, "(()=>{const e=document.getElementById('borrar-operacion');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(e,'reinicio_pruebas');e.dispatchEvent(new Event('change',{bubbles:true}));})()");

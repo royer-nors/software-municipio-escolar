@@ -47,7 +47,7 @@ async function iniciarInstalador() {
     await migrar(pool);
     const { createApp } = require("./app");
     const red = configurarRed(process.env);
-    const app = createApp({ pool, jwtSecret, red, puesto: configurarPuesto(process.env) });
+    const app = createApp({ pool, jwtSecret, red, modoInstalador: true, puesto: configurarPuesto(process.env) });
     servidor = app.listen(red.port, red.host, () => console.log(`Servidor escuchando en ${red.host}:${red.port}`));
     const cerrar = () => servidor.close(async () => { await pool.close(); });
     process.once("SIGINT", cerrar);

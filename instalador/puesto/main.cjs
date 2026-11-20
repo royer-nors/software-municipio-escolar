@@ -1,4 +1,5 @@
-const { app, BrowserWindow, dialog, ipcMain } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, safeStorage } = require("electron");
+const { ControlVentanaPuesto } = require("./control-ventana.cjs");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
@@ -25,6 +26,7 @@ let salirAutorizado = false;
 let configuracionAutorizada = false;
 let ventanaClave;
 let accionClave;
+let controlVentana;
 const intentosClave = crearLimitadorIntentos();
 
 app.setName("software-municipio-escolar-puesto");
@@ -38,7 +40,8 @@ if (!app.requestSingleInstanceLock()) {
     if (ventana) ventana.focus();
   });
 
-  app.on("before-quit", () => {
+  app.on("before-quit", event => {
+    if (controlVentana?.pendiente && !salirAutorizado) { event.preventDefault(); return; }
     salirAutorizado = true;
     clearInterval(temporizadorSalud);
   });
@@ -92,6 +95,14 @@ if (!app.requestSingleInstanceLock()) {
     ventanaClave?.close();
     return true;
   });
+  const operarVentana = fn => async (event, ...args) => {
+    if (!esPaginaPuesto(event)) return { ok: false };
+    try { return await fn(...args); }
+    catch { controlVentana?.marcarIncierto(); return { ok: false, mensaje: "No se pudo verificar la sesión. La ventana permanece protegida." }; }
+  };
+  ipcMain.handle("puesto:iniciar-autenticacion", operarVentana(() => controlVentana.iniciar(servidorUrl)));
+  ipcMain.handle("puesto:registrar-sesion", operarVentana(token => controlVentana.registrar(token, servidorUrl)));
+  ipcMain.handle("puesto:finalizar-sesion", operarVentana(() => controlVentana.resolver(servidorUrl, true)));
 
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin" && salirAutorizado) app.quit();
@@ -99,10 +110,16 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 async function iniciar() {
-  crearVentana();
   configuracionLocal = await leerConfiguracion();
   servidorUrl = configuracionLocal?.servidorUrl || "";
   configuracionAutorizada = !configuracionLocal?.claveHash;
+  controlVentana = new ControlVentanaPuesto({
+    archivo: path.join(app.getPath("userData"), "puesto-sesion-pendiente.json"), safeStorage,
+    consultar: consultarSesionVentana,
+    reiniciarVista: () => ventana.loadURL(new URL("/puesto", servidorUrl).toString()),
+  });
+  await controlVentana.cargar();
+  crearVentana();
   if (!servidorUrl) {
     mostrarVistaLocal("configuracion");
     return;
@@ -110,6 +127,7 @@ async function iniciar() {
   try {
     await verificarServidor(servidorUrl);
     await abrirPuesto();
+    await controlVentana.resolver(servidorUrl);
   } catch {
     mostrarVistaLocal("sin-conexion");
   }
@@ -122,10 +140,10 @@ function crearVentana() {
     width: 1280,
     height: 800,
     show: false,
-    kiosk: true,
-    fullscreen: true,
+    kiosk: controlVentana?.pendiente || false,
+    fullscreen: controlVentana?.pendiente || false,
     autoHideMenuBar: true,
-    frame: false,
+    frame: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       nodeIntegration: false,
@@ -134,10 +152,13 @@ function crearVentana() {
     },
   });
   ventana.setMenu(null);
+  controlVentana?.conectar(ventana);
+  vigilarSolicitudesPuesto();
   ventana.once("ready-to-show", () => ventana.show());
   ventana.on("closed", () => { ventana = undefined; });
   ventana.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   ventana.webContents.on("will-navigate", (event, destino) => {
+    controlVentana?.marcarIncierto();
     if (esArchivoLocal(destino, "configuracion.html") || esArchivoLocal(destino, "clave.html")) return;
     let mismaOrigen = false;
     try { mismaOrigen = new URL(destino).origin === new URL(servidorUrl).origin; } catch {}
@@ -157,21 +178,61 @@ function crearVentana() {
       else mostrarVistaLocal("configuracion");
       return;
     }
-    const atajoBloqueado = input.alt && tecla === "f4"
-      || input.control && ["w", "q", "r", "i", "j", "u"].includes(tecla)
-      || tecla === "f5" || tecla === "f11" || tecla === "f12";
+    const atajoBloqueado = input.control && ["i", "j", "u"].includes(tecla) || tecla === "f12"
+      || controlVentana?.pendiente && (input.alt && tecla === "f4"
+      || input.control && ["w", "q", "r"].includes(tecla) || tecla === "f5" || tecla === "f11");
     if (atajoBloqueado) event.preventDefault();
   });
   ventana.webContents.on("did-fail-load", (_event, codigo, _descripcion, _url, esMarcoPrincipal) => {
     if (esMarcoPrincipal && codigo !== -3 && servidorUrl) {
+      controlVentana?.marcarIncierto();
       fallosConsecutivos = FALLOS_ANTES_DE_MOSTRAR_OFFLINE;
       mostrarVistaLocal("sin-conexion");
       iniciarMonitoreo();
     }
   });
   ventana.on("close", event => {
-    if (!salirAutorizado) event.preventDefault();
+    if (controlVentana?.pendiente && !salirAutorizado) { event.preventDefault(); return; }
+    salirAutorizado = true; clearInterval(temporizadorSalud);
   });
+  ventana.webContents.on("did-start-navigation", (_e, _url, _inPlace, principal) => {
+    if (principal) controlVentana?.marcarIncierto();
+  });
+  ventana.webContents.on("render-process-gone", () => controlVentana?.marcarIncierto());
+}
+
+function esPaginaPuesto(event) {
+  if (!ventana || event.sender !== ventana.webContents || event.senderFrame !== ventana.webContents.mainFrame) return false;
+  try {
+    const u = new URL(event.senderFrame.url);
+    return u.origin === servidorUrl && (u.pathname === "/puesto" || u.pathname.startsWith("/puesto/"));
+  } catch { return false; }
+}
+
+function vigilarSolicitudesPuesto() {
+  const wr = ventana.webContents.session.webRequest;
+  const esSolicitud = d => {
+    try { return d.webContentsId === ventana.webContents.id && new URL(d.url).origin === servidorUrl; }
+    catch { return false; }
+  };
+  wr.onBeforeRequest({ urls: ["http://*/*"] }, (d, continuar) => {
+    if (esSolicitud(d) && d.method === "POST" && ["/api/puesto/identificar", "/api/puesto/votos"].includes(new URL(d.url).pathname)) {
+      controlVentana.iniciar(servidorUrl).then(() => continuar({}), () => continuar({ cancel: true }));
+    } else continuar({});
+  });
+  wr.onErrorOccurred({ urls: ["http://*/*"] }, d => { if (esSolicitud(d)) controlVentana?.marcarIncierto(); });
+}
+
+async function consultarSesionVentana(token, origen) {
+  if (origen !== servidorUrl || !ventana) throw Error("Servidor diferente");
+  const r = await ventana.webContents.session.fetch(`${origen}/api/puesto/sesion-ventana`, {
+    credentials: "include", cache: "no-store", signal: AbortSignal.timeout(5000),
+    headers: { Origin: origen, Authorization: `Bearer ${token}` },
+  });
+  if (!r.ok) throw Error("No se pudo verificar la sesión");
+  const d = await r.json();
+  if (!["activa", "registrada", "vencida"].includes(d.estado) || !/^[a-f0-9]{64}$/.test(d.referencia || "") || !Number.isSafeInteger(d.pendientes) || d.pendientes < 0) throw Error("Estado de sesión inválido");
+  return d;
 }
 
 async function verificarServidor(base) {
@@ -317,7 +378,9 @@ function iniciarMonitoreo() {
       await verificarServidor(servidorUrl);
       fallosConsecutivos = 0;
       if (vistaLocal === "sin-conexion") await abrirPuesto();
+      await controlVentana?.resolver(servidorUrl);
     } catch {
+      controlVentana?.marcarIncierto();
       fallosConsecutivos += 1;
       if (fallosConsecutivos >= FALLOS_ANTES_DE_MOSTRAR_OFFLINE && vistaLocal === "puesto") {
         mostrarVistaLocal("sin-conexion");

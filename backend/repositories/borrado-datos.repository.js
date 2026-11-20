@@ -7,6 +7,13 @@ async function resumen(client) {
     (SELECT COUNT(*)::int FROM listas) AS listas,(SELECT COUNT(*)::int FROM candidatos) AS candidatos,
     (SELECT COUNT(*)::int FROM votos) AS votos,
     (SELECT COUNT(*)::int FROM estudiantes WHERE ya_voto=TRUE) AS estudiantes_marcados_ya_voto,
+    (SELECT COUNT(*)::int FROM sesiones_votacion_puesto s
+      JOIN estudiantes e ON e.id=s.estudiante_id
+      JOIN vinculaciones_puesto v ON v.id=s.vinculacion_id
+      JOIN computadoras c ON c.id=v.computadora_id
+      WHERE s.finalizada_en IS NULL AND s.vence_en>clock_timestamp()
+        AND e.activo AND NOT e.ya_voto AND c.activo
+        AND v.revocada_en IS NULL AND v.vence_en>clock_timestamp()) AS sesiones_votacion_activas,
     EXISTS(SELECT 1 FROM configuracion_votacion WHERE id=1) AS configuracion_disponible,
     COALESCE((SELECT estado_votacion(c)='Abierta' FROM configuracion_votacion c WHERE id=1),FALSE) AS votacion_abierta,
     encode(sha256(convert_to(concat_ws('|',
@@ -37,7 +44,7 @@ function createBorradoDatosRepository(pool) {
         // si hay trabajo concurrente se rechaza sin borrar parcialmente.
         await client.query("LOCK TABLE computadoras IN SHARE ROW EXCLUSIVE MODE NOWAIT");
         await client.query("SELECT id FROM computadoras ORDER BY id FOR UPDATE NOWAIT");
-        await client.query("LOCK TABLE estudiantes,votos,listas,candidatos IN SHARE ROW EXCLUSIVE MODE NOWAIT");
+        await client.query("LOCK TABLE estudiantes,votos,listas,candidatos,sesiones_votacion_puesto IN SHARE ROW EXCLUSIVE MODE NOWAIT");
         await client.query("SELECT id FROM configuracion_votacion WHERE id=1 FOR UPDATE NOWAIT");
         const a = (await client.query("SELECT id,usuario,password_hash,activo FROM administradores WHERE id=$1 FOR SHARE NOWAIT", [administrador.id])).rows[0];
         if (!a?.activo || !(await verificarPassword(a.password_hash))) throw new BorradoDatosError(401, "La contraseña administrativa es incorrecta o la cuenta está inactiva.");
@@ -66,6 +73,7 @@ function createBorradoDatosRepository(pool) {
         if (["solo_listas", "candidatos_listas", "reinicio_pruebas"].includes(operacion)) await borrar("DELETE FROM listas", "listas");
         if (["estudiantes", "reinicio_pruebas"].includes(operacion)) await borrar("DELETE FROM estudiantes", "estudiantes");
         if (operacion === "estudiantes_importados") await borrar("DELETE FROM estudiantes WHERE origen_registro='excel'", "estudiantes");
+        await client.query("UPDATE sesiones_votacion_puesto SET finalizada_en=clock_timestamp() WHERE finalizada_en IS NULL");
         // Conserva los identificadores referenciados por auditoría, pero retira
         // el padrón temporal y evita reutilizar preparaciones de otra elección.
         const vistas = await client.query("UPDATE vistas_previas_padron SET estudiantes=NULL,consumida_en=clock_timestamp() WHERE consumida_en IS NULL");

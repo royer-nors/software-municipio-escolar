@@ -22,6 +22,38 @@ async function vincular(id = 1) {
 const identificar = (cookie, dni = "01234567") => request("/api/puesto/identificar", { method: "POST", cookie, body: { dni } });
 const votar = (cookie, token, listaId = 10) => request("/api/puesto/votos", { method: "POST", cookie, token, body: { listaId } });
 const total = async () => (await db.query("SELECT count(*)::int AS n FROM votos")).rows[0].n;
+test("comprobante de ventana exige cookie y JWT vinculados; solo lee estado sin revelar el voto", async () => {
+  const cookie = await vincular(), otra = await vincular(2), s = await identificar(cookie);
+  const consultar = opciones => request("/api/puesto/sesion-ventana", opciones);
+  for (const opciones of [{}, { cookie }, { token: s.body.token }, { cookie, token: admin }, { cookie: otra, token: s.body.token }, { cookie, token: "falso" }]) {
+    assert.equal((await consultar(opciones)).status, 401);
+  }
+  const antes = await db.query("SELECT * FROM sesiones_votacion_puesto ORDER BY token_hash");
+  const activa = await consultar({ cookie, token: s.body.token });
+  assert.equal(activa.status, 200); assert.equal(activa.cache, "no-store");
+  assert.deepEqual(Object.keys(activa.body).sort(), ["estado", "pendientes", "referencia"]);
+  assert.equal(activa.body.estado, "activa"); assert.equal(activa.body.pendientes, 1);
+  assert.match(activa.body.referencia, /^[a-f0-9]{64}$/);
+  assert.deepEqual(await db.query("SELECT * FROM sesiones_votacion_puesto ORDER BY token_hash"), antes);
+  assert.equal(await total(), 0);
+  assert.equal((await votar(cookie, s.body.token)).status, 201);
+  const fin = await consultar({ cookie, token: s.body.token });
+  assert.deepEqual(fin.body, { estado: "registrada", pendientes: 0, referencia: activa.body.referencia });
+  assert.equal(await total(), 1);
+});
+test("un JWT vencido solo permite comprobar el cierre, nunca votar; revocación bloquea el comprobante", async () => {
+  const cookie = await vincular(), s = await identificar(cookie);
+  const claims = jwt.verify(s.body.token, secret);
+  const vencido = jwt.sign({ rol: "estudiante", vinculacionId: claims.vinculacionId }, secret,
+    { issuer: JWT_ISSUER, audience: STUDENT_JWT_AUDIENCE, subject: claims.sub, expiresIn: -1 });
+  const estado = await request("/api/puesto/sesion-ventana", { cookie, token: vencido });
+  assert.equal(estado.status, 200); assert.equal(estado.body.estado, "vencida");
+  assert.equal(estado.body.pendientes, 1);
+  assert.equal((await votar(cookie, vencido)).status, 401);
+  await request("/api/computadoras/1/revocar", { method: "POST", token: admin, body: {} });
+  assert.equal((await request("/api/puesto/sesion-ventana", { cookie, token: s.body.token })).status, 401);
+  assert.equal(await total(), 0);
+});
 before(async () => { entorno = await crearEntorno(); db = entorno.db; });
 beforeEach(async () => {
   // Solo base en memoria o esquema aleatorio nuevo, nunca public de PostgreSQL instalado.

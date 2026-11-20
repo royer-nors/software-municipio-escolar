@@ -1,4 +1,5 @@
 const { app, BrowserWindow, clipboard, dialog, ipcMain } = require("electron");
+const { conectarInterfazServidor } = require("./interfaz-bienvenida.cjs");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -179,6 +180,7 @@ function crearVentana() {
     },
   });
   ventana.once("ready-to-show", () => ventana.show());
+  conectarInterfazServidor(ventana);
   ventana.on("closed", () => { ventana = undefined; });
   ventana.on("close", event => {
     if (cierreAutorizado) return;

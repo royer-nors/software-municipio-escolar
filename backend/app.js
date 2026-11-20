@@ -46,9 +46,14 @@ const { createConsultoresResultadosRepository } = require("./repositories/consul
 const { createConsultoresResultadosService } = require("./services/consultores-resultados.service");
 const { createConsultoresResultadosRouter } = require("./routes/consultores-resultados.routes");
 const { createInicializacionRouter } = require("./routes/inicializacion.routes");
+const { createEstadoSesionPuestoRouter } = require("./routes/estado-sesion-puesto.routes");
+const { directorioPoolPGlite } = require("./config/db-pglite");
+const { createHash } = require("node:crypto");
 
-function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createImagenesStorage(), red = configurarRed(), puesto = configurarPuesto() }) {
+function createApp({ pool, jwtSecret, limitesAcceso, modoInstalador = false, imagenesStorage = createImagenesStorage(), red = configurarRed(), puesto = configurarPuesto() }) {
   const app = express();
+  const directorio = modoInstalador && directorioPoolPGlite(pool);
+  const reinicioInstalador = directorio ? { tipo: "pglite-instalador", almacenamiento: createHash("sha256").update(directorio).digest("hex") } : undefined;
   if (puesto.proxyLoopback) app.set("trust proxy", "loopback");
   const administradorRepository = createAdministradorRepository(pool);
   const authService = createAuthService({ administradorRepository, jwtSecret });
@@ -110,8 +115,9 @@ function createApp({ pool, jwtSecret, limitesAcceso, imagenesStorage = createIma
   app.use("/api/computadoras", createVinculacionAdminRouter({ service: vinculacionService, autenticarAdministrador }));
   app.use("/api/puesto", createPuestoRouter({ service: vinculacionService, red, config: puesto, limite: limitesAcceso?.vinculacion }));
   app.use("/api/puesto", createVotacionPuestoRouter({ pool, jwtSecret, red, config: puesto, limite: limitesAcceso?.estudiante }));
+  app.use("/api/puesto", createEstadoSesionPuestoRouter({ pool, jwtSecret, red, config: puesto }));
   app.use("/api/borrado-datos", createBorradoDatosRouter({
-    service: createBorradoDatosService(createBorradoDatosRepository(pool), administradorRepository), autenticarAdministrador, red,
+    service: createBorradoDatosService(createBorradoDatosRepository(pool), administradorRepository, process.env, reinicioInstalador), autenticarAdministrador, red,
   }));
   const resultadosService = createResultadosService(createResultadosRepository(pool));
   app.use("/api/resultados", createResultadosRouter({ resultadosService, autenticarAdministrador }));

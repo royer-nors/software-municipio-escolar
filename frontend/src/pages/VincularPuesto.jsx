@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import VotacionPuesto from "../components/VotacionPuesto";
-import { consultarPuesto, vincularPuesto, etiquetasVinculacion } from "../api/vinculacion";
+import { consultarPuesto, vincularPuesto } from "../api/vinculacion";
 import "../styles/control-votacion.css";
 import "../styles/padron.css";
 import "../styles/computadoras.css";

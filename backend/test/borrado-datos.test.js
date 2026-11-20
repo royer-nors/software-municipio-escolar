@@ -190,6 +190,8 @@ test("borrado revoca credenciales, conserva computadoras y no reactiva sesiones 
   r = await fetch(url + "/api/puesto/vincular", { method: "POST", headers, body: JSON.stringify({ codigo }) }); const cookie = r.headers.get("set-cookie").split(";")[0]; await r.json();
   r = await fetch(url + "/api/puesto/identificar", { method: "POST", headers: { ...headers, Cookie: cookie }, body: JSON.stringify({ dni: "12345678" }) }); const sesion = await r.json(); assert.equal(r.status, 200);
   await db.query("UPDATE configuracion_votacion SET votacion_abierta=FALSE");
+  assert.equal((await ejecutar("solo_votos")).status, 409, "una sesión activa impide el borrado aunque se cierre la elección");
+  r = await fetch(url + "/api/computadoras/1/revocar", { method: "POST", headers, body: "{}" }); assert.equal(r.status, 200); await r.json();
   assert.equal((await ejecutar("solo_votos")).status, 200);
   await db.query("UPDATE configuracion_votacion SET votacion_abierta=TRUE");
   r = await fetch(url + "/api/puesto/listas", { headers: { ...headers, Cookie: cookie, Authorization: `Bearer ${sesion.token}` } }); assert.equal(r.status, 401); await r.json();

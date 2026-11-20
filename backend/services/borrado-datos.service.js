@@ -2,8 +2,8 @@ const bcrypt = require("bcryptjs");
 const { evaluarReinicio } = require("../config/reinicio-electoral");
 const modelo = require("./borrado-datos.modelo");
 const { OPERACIONES, BorradoDatosError, FRASE_CONFIRMACION, FRASE_REINICIO, crearProyeccion, obtenerBloqueos } = modelo;
-function createBorradoDatosService(repository, administradorRepository, config = process.env) {
-  const politica = nombre => evaluarReinicio(config, nombre);
+function createBorradoDatosService(repository, administradorRepository, config = process.env, instalador) {
+  const politica = nombre => evaluarReinicio(config, nombre, instalador);
   const auditar = (administrador, operacion, modo, resultado, detalle) => repository.registrarIntento({
     administradorId: Number.isSafeInteger(administrador?.id) ? administrador.id : null,
     administradorUsuario: administrador?.usuario || "(sin autenticar)", operacion: OPERACIONES.includes(operacion) ? operacion : null, modo, resultado, detalle,
@@ -49,6 +49,7 @@ function createBorradoDatosService(repository, administradorRepository, config =
         listas: r.listas, candidatos: r.candidatos, votos: r.votos, estudiantesMarcadosYaVoto: r.estudiantes_marcados_ya_voto,
         configuracionDisponible: r.configuracion_disponible, votacionAbierta: r.votacion_abierta,
         votosRegistrados: r.votos > 0, estudiantesYaVotaron: r.estudiantes_marcados_ya_voto > 0,
+        sesionesVotacionActivas: r.sesiones_votacion_activas,
         habilitado: politica(r.nombre_base).habilitado, motivoEntorno: politica(r.nombre_base).motivo, autorizacionReinicio: politica(r.nombre_base).autorizacion };
     },
     simular, ejecutar,

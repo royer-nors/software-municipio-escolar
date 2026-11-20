@@ -17,6 +17,7 @@ function obtenerBloqueos(op, r) {
   const b = [];
   if (!r.configuracion_disponible) b.push("La configuración de votación no está disponible.");
   if (r.votacion_abierta) b.push("Cierra la votación antes de borrar datos.");
+  if (r.sesiones_votacion_activas > 0) b.push("Hay sesiones de votación activas. Espera a que finalicen o venzan antes de borrar datos.");
   if (!["solo_votos", "candidatos_listas", "reinicio_pruebas"].includes(op) && (r.votos > 0 || r.estudiantes_marcados_ya_voto > 0)) b.push("Elimina primero los votos y sus marcas, o selecciona reinicio completo.");
   if (op === "solo_listas" && r.candidatos > 0) b.push("Existen candidatos asociados. Elige candidatos y listas, o elimina antes los candidatos.");
   return b;

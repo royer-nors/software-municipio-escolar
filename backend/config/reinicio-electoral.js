@@ -1,6 +1,11 @@
 const { createHash } = require("node:crypto");
-function evaluarReinicio(config, nombre) {
+function evaluarReinicio(config, nombre, instalador) {
   const bloquear = motivo => ({ habilitado: false, motivo, autorizacion: null });
+  if (instalador?.tipo === "pglite-instalador" && /^[a-f0-9]{64}$/.test(instalador.almacenamiento || "")) {
+    const autorizacion = { tipo: "instalador", almacenamiento: instalador.almacenamiento };
+    return { habilitado: true, motivo: null, autorizacion,
+      huella: createHash("sha256").update(JSON.stringify(autorizacion)).digest("hex") };
+  }
   if (nombre === "db_municipio_escolar") {
     if (config.REINICIO_ELECTORAL_HABILITADO !== "true" || config.REINICIO_ELECTORAL_BASE !== nombre)
       return bloquear("El reinicio real requiere REINICIO_ELECTORAL_HABILITADO=true y REINICIO_ELECTORAL_BASE=db_municipio_escolar en el servidor.");

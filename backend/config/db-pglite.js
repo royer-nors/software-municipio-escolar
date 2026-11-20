@@ -1,6 +1,7 @@
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { PGlite } = require("@electric-sql/pglite");
+const directorios = new WeakMap();
 
 async function crearPoolPGlite({ dataDir } = {}) {
   if (!dataDir) throw new Error("DATA_DIR es obligatorio para la base PGlite persistente.");
@@ -33,7 +34,7 @@ async function crearPoolPGlite({ dataDir } = {}) {
     return cerrando;
   }
 
-  return {
+  const pool = {
     async query(sql, values) {
       const liberar = await tomar();
       try { return await ejecutar(sql, values); } finally { liberar(); }
@@ -49,6 +50,10 @@ async function crearPoolPGlite({ dataDir } = {}) {
     close,
     end: close,
   };
+  directorios.set(pool, path.resolve(dataDir));
+  return pool;
 }
 
-module.exports = { crearPoolPGlite };
+// Solo reconoce adaptadores creados por esta fábrica; no acepta etiquetas del cliente.
+function directorioPoolPGlite(pool) { return directorios.get(pool); }
+module.exports = { crearPoolPGlite, directorioPoolPGlite };

@@ -11,6 +11,7 @@ const { createVotosService } = require("../services/votos.service");
 const { createAutenticacionEstudianteMiddleware } = require("../middleware/autenticacion");
 const { createLimiteAcceso } = require("../middleware/limite-acceso");
 const { credencial, validarSolicitudPuesto } = require("./vinculacion.routes");
+const { registrarSesion, validarSesion, finalizarSesiones } = require("../repositories/sesiones-votacion.repository");
 
 function createVotacionPuestoRouter({ pool, jwtSecret, red, config, limite }) {
   const router = Router();
@@ -43,11 +44,13 @@ function createVotacionPuestoRouter({ pool, jwtSecret, red, config, limite }) {
     if (!resultado) throw new ComputadorasError(401, "El DNI no se encuentra habilitado en el padrón.");
     if (resultado.estado === "ya_voto") throw new ComputadorasError(409, "El estudiante ya emitió su voto.");
     if (resultado.estado === "fuera_horario") throw new ComputadorasError(409, resultado.mensaje);
+    await registrarSesion(client, puesto, resultado.sesion);
     return resultado.sesion;
   }));
   router.get("/configuracion", ejecutar((req, client) => createVotacionConfiguracionRepository(client).obtener()));
   router.get("/listas", autenticar, ejecutar(async (req, client, puesto) => {
     await repository.estudiante(client, puesto, req.estudiante);
+    await validarSesion(client, req, puesto);
     const resultado = await createListasService(createListasRepository(client)).obtenerListas(req.estudiante.id);
     if (resultado.estado !== "habilitado") throw new ComputadorasError(409, "El estudiante no está habilitado para votar.");
     return { listas: resultado.listas };
@@ -62,12 +65,14 @@ function createVotacionPuestoRouter({ pool, jwtSecret, red, config, limite }) {
     // de bloquear filas, conservando el orden usado por la gestión existente.
     await client.query("LOCK TABLE estudiantes, votos IN ROW EXCLUSIVE MODE");
     await repository.estudiante(client, puesto, req.estudiante, true);
+    await validarSesion(client, req, puesto);
     await client.query("SELECT id FROM configuracion_votacion WHERE id=1 FOR SHARE");
     const v = (await client.query("SELECT vence_en>clock_timestamp() AS vigente FROM vinculaciones_puesto WHERE id=$1", [puesto.vinculacionId])).rows[0];
     if (!v?.vigente) throw errorPuesto();
     const resultado = await createVotosService(createVotosRepository(client)).registrar(req.estudiante.id, body.listaId);
     const errores = { votacion_cerrada: [409, "La votación está cerrada."], voto_blanco_deshabilitado: [409, "El voto en blanco está deshabilitado."], no_habilitado: [409, "El estudiante no está habilitado o ya emitió su voto."], lista_invalida: [400, "La lista seleccionada no existe."] };
     if (errores[resultado]) throw new ComputadorasError(...errores[resultado]);
+    await finalizarSesiones(client, req.estudiante.id);
     return { mensaje: "Voto registrado correctamente.", sesionFinalizada: true };
   }, 201));
   return router;

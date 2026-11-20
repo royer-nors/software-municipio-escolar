@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { consultarEstadoInstalacion } from "../api/inicializacion";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -9,19 +10,19 @@ export default function ConfiguracionInicial() {
   const [estado, setEstado] = useState("verificando");
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [revision, setRevision] = useState(0);
 
   useEffect(() => {
-    let activo = true;
-    fetch(`${API}/instalacion/estado`)
-      .then(async respuesta => {
-        const datos = await respuesta.json();
-        if (!respuesta.ok) throw new Error(datos.mensaje || "La configuración inicial solo está disponible en el servidor.");
+    const controller = new AbortController();
+    consultarEstadoInstalacion(controller.signal)
+      .then(datos => {
+        if (controller.signal.aborted) return;
         if (datos.requiereAdministrador) setEstado("lista");
         else window.location.replace("/?administrador=1");
       })
-      .catch(e => { if (activo) { setError(e.message); setEstado("error"); } });
-    return () => { activo = false; };
-  }, []);
+      .catch(e => { if (!controller.signal.aborted) { setError(e.message); setEstado("error"); } });
+    return () => controller.abort();
+  }, [revision]);
 
   async function crear(e) {
     e.preventDefault();
@@ -50,7 +51,10 @@ export default function ConfiguracionInicial() {
   return <main style={fondo}><section style={tarjeta} aria-busy={estado === "verificando" || guardando}>
     <h1 style={{ color: "#003b80", marginTop: 0 }}>Configuración inicial</h1>
     {estado === "verificando" && <p role="status">Verificando si se necesita crear el administrador…</p>}
-    {estado === "error" && <p role="alert" style={{ color: "#b42318" }}>{error}</p>}
+    {estado === "error" && <>
+      <p role="alert" style={{ color: "#b42318" }}>{error}</p>
+      <button type="button" onClick={() => { setError(""); setEstado("verificando"); setRevision(v => v + 1); }}>Reintentar</button>
+    </>}
     {estado === "lista" && <>
       <p>Crea la cuenta que administrará el sistema electoral.</p>
       <form onSubmit={crear}>

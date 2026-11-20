@@ -108,13 +108,14 @@ async function tablasIdentidad() {
     computadoras: (await db.query("SELECT * FROM computadoras ORDER BY id")).rows };
 }
 test("validación integral aislada de migraciones, consultores y reinicio electoral", async t => {
-  await t.test("001–014 ordenadas conservan registros anteriores, checksums e idempotencia", async () => {
-    assert.deepEqual(entorno.aplicadas, ["012_reinicio_electoral.sql", "013_consultores_resultados.sql", "014_importacion_padron_grados.sql"]);
+  await t.test("migraciones ordenadas conservan registros anteriores, checksums e idempotencia", async () => {
+    const archivos = (await readdir(directorio)).filter(n => /^\d{3}_[a-z0-9_]+\.sql$/.test(n)).sort();
+    assert.deepEqual(entorno.aplicadas, archivos.filter(n => Number(n.slice(0, 3)) >= 12));
     const registros = (await db.query("SELECT version,checksum FROM esquema_migraciones ORDER BY version")).rows;
-    assert.equal(registros.length, 14);
+    assert.deepEqual(registros.map(r => r.version), archivos);
     const fresco = await crearEntorno({ real });
     try {
-      assert.deepEqual(fresco.aplicadas, registros.map(r => r.version), "El ejecutor instala 001–014 también desde cero");
+      assert.deepEqual(fresco.aplicadas, registros.map(r => r.version), "El ejecutor instala todas las migraciones disponibles también desde cero");
       assert.deepEqual(await migrar(fresco.pool), []);
     } finally { await fresco.cerrar(); }
     for (const r of registros) assert.equal(r.checksum, sha((await readFile(path.join(directorio, r.version), "utf8")).replace(/\r\n/g, "\n")));
