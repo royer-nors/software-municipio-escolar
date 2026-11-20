@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import "./LoginAdmin.css";
+import { iniciarSesionAdministrador } from "../api/auth";
 
 // Mantener autenticación real con el backend.
 const MODO_PRUEBA = false;
@@ -33,26 +34,7 @@ export default function LoginAdmin({ onLogin }) {
         return;
       }
 
-      const api =
-        import.meta.env.VITE_API_URL ||
-        "http://localhost:3000/api";
-
-      const respuesta = await fetch(`${api}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ usuario, password })
-      });
-
-      const datos = await respuesta.json();
-
-      if (!respuesta.ok) {
-        throw new Error(
-          datos.mensaje ||
-          "Usuario o contraseña incorrectos"
-        );
-      }
+      const datos = await iniciarSesionAdministrador(usuario, password);
 
       onLogin(datos);
     } catch (err) {
