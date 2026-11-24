@@ -5,6 +5,7 @@ const os = require("node:os");
 const path = require("node:path");
 const net = require("node:net");
 const { once } = require("node:events");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { crearPoolPGlite } = require("../config/db-pglite");
 const { migrar } = require("../database/migrar");
@@ -49,8 +50,55 @@ test("el adaptador de producción migra, serializa conexiones y conserva datos a
   await pool.close();
 });
 
-test("MODO_INSTALADOR inicia con migraciones sin .env y conserva el JWT_SECRET generado", async t => {
+test("MODO_INSTALADOR actualiza una base con la 001 de Git y conserva datos, autenticación y JWT_SECRET", async t => {
   const dataDir = await temporal(t);
+  const version = "001_estructura_inicial.sql";
+  const migrations = path.join(__dirname, "../../database/migrations");
+  const copia = await temporal(t);
+  const directorioSql = path.join(copia, "database/migrations");
+  const directorioRunner = path.join(copia, "backend/database");
+  await fs.mkdir(directorioSql, { recursive: true });
+  await fs.mkdir(directorioRunner, { recursive: true });
+  const runner = path.join(directorioRunner, "migrar.js");
+  await fs.copyFile(require.resolve("../database/migrar"), runner);
+  const migrarCopia = require(runner).migrar;
+  const sqlActual = (await fs.readFile(path.join(migrations, version), "utf8")).replace(/\r\n/g, "\n");
+  await fs.writeFile(path.join(directorioSql, version), sqlActual.slice(0, -2));
+  const segunda = "002_listas_y_dni.sql";
+  await fs.copyFile(path.join(migrations, segunda), path.join(directorioSql, segunda));
+
+  const poolAnterior = await crearPoolPGlite({ dataDir: path.join(dataDir, "database") });
+  const registros = pool => pool.query("SELECT * FROM esquema_migraciones ORDER BY version");
+  const datos = pool => pool.query(`
+    SELECT e.codigo, e.ya_voto, l.nombre AS lista, c.nombre AS candidato, v.id AS voto
+    FROM estudiantes e CROSS JOIN votos v
+    JOIN candidatos c ON c.id = v.candidato_id
+    JOIN listas l ON l.id = v.lista_id
+  `);
+  let historial;
+  let datosAnteriores;
+  const password = "Clave histórica de prueba";
+  try {
+    assert.deepEqual(await migrarCopia(poolAnterior), [version, segunda]);
+    historial = (await registros(poolAnterior)).rows;
+    assert.equal(historial[0].checksum, "45f7468a10a36b6f7d00f8472f287b7da78e11f72b0ecca8de1dc783d71cb497");
+    await poolAnterior.query(`
+      INSERT INTO estudiantes (codigo, nombre, ya_voto) VALUES ('01234567', 'Ana', TRUE);
+      INSERT INTO listas (nombre) VALUES ('Lista anterior');
+      INSERT INTO candidatos (nombre, lista_id) VALUES ('Candidato anterior', 1);
+      INSERT INTO votos (candidato_id, lista_id) VALUES (1, 1);
+    `);
+    await poolAnterior.query("INSERT INTO administradores (usuario, password_hash) VALUES ($1, $2)",
+      ["admin-anterior", bcrypt.hashSync(password, 4)]);
+    datosAnteriores = (await datos(poolAnterior)).rows;
+    assert.equal(datosAnteriores.length, 1);
+
+    await fs.writeFile(path.join(directorioSql, version), sqlActual + "SELECT 1;\n");
+    await assert.rejects(migrarCopia(poolAnterior), /001_estructura_inicial\.sql cambió después de aplicarse/);
+    assert.deepEqual((await registros(poolAnterior)).rows, historial);
+  } finally {
+    await poolAnterior.close();
+  }
   const variables = ["MODO_INSTALADOR", "MODO_LAN", "DATA_DIR", "MEDIA_ROOT", "JWT_SECRET", "HOST", "PORT", "NODE_ENV", "FRONTEND_DIST", "CORS_ORIGINS", "CORS_ALLOW_NULL_ORIGIN", "PUESTO_COOKIE_SECURE", "PUESTO_PROXY_LOOPBACK"];
   const previas = Object.fromEntries(variables.map(key => [key, process.env[key]]));
   const pruebaPuerto = net.createServer();
@@ -80,6 +128,16 @@ test("MODO_INSTALADOR inicia con migraciones sin .env y conserva el JWT_SECRET g
   instance = await iniciarInstalador();
   await once(instance.server, "listening");
   assert.equal((await fetch(`http://127.0.0.1:${port}/api/database`)).status, 200);
+  assert.deepEqual((await registros(instance.pool)).rows.slice(0, historial.length), historial);
+  assert.deepEqual((await datos(instance.pool)).rows, datosAnteriores);
+  assert.deepEqual(await migrar(instance.pool), []);
+  const login = await fetch(`http://127.0.0.1:${port}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ usuario: "admin-anterior", password }),
+  });
+  assert.equal(login.status, 200);
+  assert.equal((await login.json()).administrador.usuario, "admin-anterior");
   const secret = (await fs.readFile(secretPath, "utf8")).trim();
   assert.match(secret, /^[a-f0-9]{96}$/);
   await new Promise(resolve => { instance.server.close(resolve); instance.server.closeAllConnections(); });
@@ -119,6 +177,14 @@ test("LAN con PGlite completa vinculación, DNI y voto; solicitudes simultáneas
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
 
+  const salud = await pedir("/api/estado");
+  assert.equal(salud.status, 200);
+  assert.equal((await salud.json()).estado, "activo");
+  const puestoSinVincular = await pedir("/api/puesto/estado");
+  assert.equal(puestoSinVincular.status, 401);
+  assert.equal((await puestoSinVincular.json()).estado, "sin_vincular");
+  assert.equal((await pedir("/api/puesto/identificar", { method: "POST", body: { dni: "01234567" } })).status, 401);
+
   const autorizacion = await pedir("/api/computadoras/1/autorizaciones", { method: "POST", body: {}, token: admin });
   assert.equal(autorizacion.status, 201);
   const vinculacion = await pedir("/api/puesto/vincular", { method: "POST", body: { codigo: (await autorizacion.json()).codigo } });
@@ -127,9 +193,13 @@ test("LAN con PGlite completa vinculación, DNI y voto; solicitudes simultáneas
   assert.match(setCookie, /HttpOnly/);
   assert.doesNotMatch(setCookie, /; Secure/i);
   const cookie = setCookie.split(";")[0];
+  const puestoVinculado = await pedir("/api/puesto/estado", { cookie });
+  assert.equal(puestoVinculado.status, 200);
+  assert.equal((await puestoVinculado.json()).estado, "vinculada");
   const login = await pedir("/api/puesto/identificar", { method: "POST", body: { dni: "01234567" }, cookie });
   assert.equal(login.status, 200);
   const { token } = await login.json();
+  assert.equal((await pedir("/api/puesto/votos", { method: "POST", body: { listaId: 10 }, token })).status, 401);
   const respuestas = await Promise.all([
     pedir("/api/puesto/votos", { method: "POST", body: { listaId: 10 }, cookie, token }),
     pedir("/api/puesto/votos", { method: "POST", body: { listaId: 20 }, cookie, token }),

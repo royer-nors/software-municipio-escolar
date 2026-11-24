@@ -5,7 +5,6 @@ const {
   crearHashClave,
   crearLimitadorIntentos,
   normalizarServidorUrl,
-  validarClaveInicial,
   verificarHashClave,
 } = require("../seguridad-local.cjs");
 
@@ -17,12 +16,6 @@ test("la clave se guarda como hash scrypt y solo coincide con la clave correcta"
   assert.equal(verificarHashClave(clave, credencial), true);
   assert.equal(verificarHashClave("otra clave", credencial), false);
   assert.equal(verificarHashClave(clave, { algoritmo: "otro", salt: "", hash: "" }), false);
-});
-
-test("exige cuatro caracteres y confirmación exacta de la clave inicial", () => {
-  assert.doesNotThrow(() => validarClaveInicial("abcd", "abcd"));
-  assert.throws(() => validarClaveInicial("abc", "abc"), /al menos 4/);
-  assert.throws(() => validarClaveInicial("abcd", "abce"), /no coinciden/);
 });
 
 test("bloquea 30 segundos después del quinto intento fallido", () => {

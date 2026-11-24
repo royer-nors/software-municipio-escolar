@@ -24,21 +24,14 @@
   <body>
     <main>
       <section id="configuracion" hidden>
-        <h1>Configurar puesto de votación</h1>
-        <p>Escribe la dirección LAN que muestra la aplicación del servidor.</p>
+        <h1>Conectar al Servidor</h1>
+        <p>Pega la dirección LAN que copiaste del Servidor.</p>
         <form id="formulario-servidor">
           <label for="servidor-url">IP o URL del servidor</label>
           <input id="servidor-url" name="servidorUrl" type="text" inputmode="url" autocomplete="url" placeholder="http://192.168.1.20:3000" required>
-          <div id="grupo-clave">
-            <label for="clave">Clave para salir o reconfigurar</label>
-            <input id="clave" name="clave" type="password" autocomplete="new-password" minlength="4">
-            <label for="confirmacion">Confirma la clave</label>
-            <input id="confirmacion" name="confirmacion" type="password" autocomplete="new-password" minlength="4">
-          </div>
-          <button id="guardar" type="submit">Conectar con el servidor</button>
+          <button id="guardar" type="submit">Conectar al Servidor</button>
+          <button id="continuar" type="button" hidden>Continuar</button>
         </form>
-        <p id="ayuda-clave" class="ayuda">La clave se guarda protegida en esta computadora. Anótala y consérvala: será necesaria para salir o cambiar la dirección del servidor.</p>
-        <p class="ayuda">Al conectar, la app abrirá la pantalla de vinculación para ingresar el código del administrador.</p>
         <p id="aviso" role="status" aria-live="polite"></p>
       </section>
       <section id="sin-conexion" hidden>
@@ -46,7 +39,13 @@
         <p id="direccion-guardada"></p>
         <p>Comprueba que el servidor esté encendido y que este puesto esté conectado a la misma red.</p>
         <button id="reintentar" type="button">Reintentar ahora</button>
+        <button id="editar-direccion" type="button" hidden>Cambiar dirección del servidor</button>
         <p class="ayuda">La aplicación volverá a intentar conectarse automáticamente.</p>
+      </section>
+      <section id="finalizar-sesion" hidden>
+        <h1>Finalizar sesión de votación</h1>
+        <p>El Servidor confirmó que la sesión anterior terminó. Pulsa Finalizar para volver a la pantalla de espera.</p>
+        <button id="finalizar" type="button">Finalizar</button>
       </section>
       <p id="mensaje" role="alert" aria-live="polite"></p>
       <p id="estado" role="status" aria-live="polite"></p>

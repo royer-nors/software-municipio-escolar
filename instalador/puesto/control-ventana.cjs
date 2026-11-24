@@ -1,11 +1,12 @@
 const fs = require("node:fs/promises");
-const path = require("node:path");
 
 class ControlVentanaPuesto {
   constructor({ archivo, safeStorage, consultar, reiniciarVista }) {
     Object.assign(this, { archivo, safeStorage, consultar, reiniciarVista });
     this.pendiente = false; this.incierto = false; this.cola = Promise.resolve(); this.datos = null;
+    this.eleccionProtegida = false;
   }
+  get protegida() { return this.eleccionProtegida || this.pendiente || this.incierto; }
   enSerie(fn) { const r = this.cola.then(fn); this.cola = r.catch(() => {}); return r; }
   async cargar() {
     try {
@@ -20,14 +21,34 @@ class ControlVentanaPuesto {
   }
   conectar(ventana) {
     this.ventana = ventana;
-    ventana.on("leave-full-screen", () => { if (this.pendiente) this.aplicarBloqueo(); });
-    ventana.on("minimize", () => { if (this.pendiente) { ventana.restore(); this.aplicarBloqueo(); } });
-    if (this.pendiente) this.aplicarBloqueo();
+    ventana.on("leave-full-screen", () => { if (this.protegida) this.aplicarBloqueo(); });
+    ventana.on("minimize", () => { if (this.protegida) { ventana.restore(); this.aplicarBloqueo(); } });
+    if (this.protegida) this.aplicarBloqueo();
+  }
+  actualizarEleccion(proteger) {
+    const anterior = this.protegida;
+    if (!anterior && proteger) this.capturarVentana();
+    this.eleccionProtegida = proteger;
+    if (!anterior && this.protegida) this.aplicarBloqueo();
+    if (anterior && !this.protegida) this.restaurarVentana();
+  }
+  capturarVentana() {
+    this.bounds = this.ventana?.getNormalBounds();
+    this.maximizada = this.ventana?.isMaximized();
+  }
+  restaurarVentana() {
+    const w = this.ventana;
+    if (!w || w.isDestroyed()) return;
+    w.setKiosk(false); w.setFullScreen(false);
+    w.setClosable(true); w.setMinimizable(true); w.setMaximizable(true);
+    if (this.bounds) w.setBounds(this.bounds);
+    if (this.maximizada) w.maximize();
+    this.bounds = undefined; this.maximizada = false;
   }
   aplicarBloqueo() {
     const w = this.ventana; if (!w || w.isDestroyed()) return;
-    w.setClosable(false); w.setMinimizable(false); w.setMaximizable(false);
     w.setKiosk(true); w.setFullScreen(true);
+    w.setClosable(false); w.setMinimizable(false); w.setMaximizable(false);
   }
   async guardar(datos) {
     const temporal = this.archivo + ".tmp";
@@ -36,14 +57,17 @@ class ControlVentanaPuesto {
     await fs.rename(temporal, this.archivo); this.datos = datos;
   }
   iniciar(origen) {
+    const nueva = !this.pendiente;
+    if (nueva) {
+      if (!this.protegida) this.capturarVentana();
+      this.pendiente = true;
+    }
+    this.aplicarBloqueo();
     return this.enSerie(async () => {
-      if (this.pendiente) {
-        this.aplicarBloqueo();
+      if (!nueva) {
         if (!this.datos || this.datos.origen !== origen) throw Error("Estado pendiente no verificable");
         return { ok: true };
       }
-      this.bounds = this.ventana?.getNormalBounds(); this.maximizada = this.ventana?.isMaximized();
-      this.pendiente = true; this.aplicarBloqueo();
       try { await this.guardar({ version: 1, pendiente: true, origen }); }
       catch (e) { this.incierto = true; throw e; }
       return { ok: true };
@@ -62,24 +86,26 @@ class ControlVentanaPuesto {
     });
   }
   marcarIncierto() { if (this.pendiente) { this.incierto = true; this.aplicarBloqueo(); } }
-  resolver(origen, forzar = false) {
+  resolver(origen, finalizar = false) {
     return this.enSerie(async () => {
       if (!this.pendiente) return { ok: true };
-      if ((!forzar && !this.incierto) || !this.token || origen !== this.datos?.origen) return { ok: false };
+      if (!this.token || origen !== this.datos?.origen) return { ok: false };
+      if (!finalizar && !this.incierto && this.datos.finalizacionSolicitada !== true) return { ok: false };
       try {
+        if (finalizar && this.datos.finalizacionSolicitada !== true) {
+          await this.guardar({ ...this.datos, finalizacionSolicitada: true });
+        }
         const d = await this.consultar(this.token, origen);
-        if (!["registrada", "vencida"].includes(d.estado) || d.referencia !== this.datos.referencia || d.pendientes !== 0) return { ok: false };
+        if (d.estado !== "registrada" && this.datos.finalizacionSolicitada === true) {
+          await this.guardar({ ...this.datos, finalizacionSolicitada: false });
+        }
+        if (d.estado !== "registrada" || d.referencia !== this.datos.referencia || d.pendientes !== 0) return { ok: false };
+        if (this.datos.finalizacionSolicitada !== true) return { ok: false, requiereFinalizar: true };
         // Retirar el DOM anterior antes de volver a habilitar los botones nativos.
         await this.reiniciarVista();
         await fs.unlink(this.archivo);
         this.pendiente = false; this.incierto = false; this.token = null; this.datos = null;
-        const w = this.ventana;
-        if (w && !w.isDestroyed()) {
-          w.setKiosk(false); w.setFullScreen(false);
-          w.setClosable(true); w.setMinimizable(true); w.setMaximizable(true);
-          if (this.bounds) w.setBounds(this.bounds);
-          if (this.maximizada) w.maximize();
-        }
+        if (!this.protegida) this.restaurarVentana();
         return { ok: true };
       } catch { this.marcarIncierto(); return { ok: false }; }
     });

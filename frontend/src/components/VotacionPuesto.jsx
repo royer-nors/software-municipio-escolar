@@ -21,6 +21,12 @@ export default function VotacionPuesto({ onBloqueo }) {
     async function leer() {
       try {
         const c = await apiPuesto.obtenerConfiguracion(controller.signal);
+        if (controller.signal.aborted) return;
+        const confirmar = window.puestoVentana?.confirmarEleccionAbierta;
+        if (c.votacionAbierta && confirmar && !(await confirmar())?.ok) {
+          if (!controller.signal.aborted) setConfiguracion(null);
+          return;
+        }
         if (!controller.signal.aborted) { setConfiguracion(c); }
       } catch (e) {
         if (!controller.signal.aborted) {
@@ -45,7 +51,15 @@ export default function VotacionPuesto({ onBloqueo }) {
       window.removeEventListener("popstate", ocultar);
     };
   }, [limpiar]);
-  if (terminado) return <VotoRegistrado onFinalizar={limpiar} />;
+  const ventana = window.puestoVentana;
+  async function finalizar() {
+    if (!ventana?.finalizarSesion) { limpiar(); return; }
+    try {
+      if ((await ventana.finalizarSesion())?.ok) return;
+    } catch {}
+    setError("El Puesto sigue protegido. Espera la conexión con el Servidor o vuelve a intentar.");
+  }
+  if (terminado) return <VotoRegistrado onFinalizar={finalizar} error={error} finalizacionElectron={Boolean(ventana?.finalizarSesion)} />;
   if (sesion) return <ListasCandidatos token={sesion.token} estudiante={sesion.estudiante} api={apiPuesto}
     onFinalizar={limpiar} onSalir={limpiar} onSesionInvalida={sesionInvalida}
     onRegistrado={() => { setSesion(null); setTerminado(true); setError(""); }} />;

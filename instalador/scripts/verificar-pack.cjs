@@ -50,21 +50,33 @@ function verificarServidor() {
   console.log("Servidor: backend, producción, PGlite/WASM, bcryptjs, migraciones y frontend presentes fuera de asar.");
 }
 
-function verificarPuesto() {
-  const archivoAsar = path.join(instaladorRoot, "release", "puesto", "win-unpacked", "resources", "app.asar");
+function verificarPuesto(archivoAsar = path.join(instaladorRoot, "release", "puesto", "win-unpacked", "resources", "app.asar")) {
   exigirExiste(archivoAsar, "app.asar del puesto");
-  const archivos = asar.listPackage(archivoAsar);
-  for (const requerido of ["puesto\\main.cjs", "puesto\\clave.html", "puesto\\seguridad-local.cjs"]) {
-    if (!archivos.includes(`\\${requerido}`)) throw new Error(`Falta ${requerido} en app.asar del puesto.`);
+  const metadatos = JSON.parse(asar.extractFile(archivoAsar, "package.json"));
+  if (metadatos.main !== "puesto/main.cjs" || metadatos.name !== "software-municipio-escolar-puesto") {
+    throw new Error("El app.asar no declara el ejecutable del Puesto.");
+  }
+  const origen = path.join(instaladorRoot, "puesto");
+  const desactualizados = fs.readdirSync(origen, { withFileTypes: true })
+    .filter(archivo => archivo.isFile() && /\.(cjs|html)$/.test(archivo.name))
+    .filter(archivo => {
+      try {
+        return !asar.extractFile(archivoAsar, path.join("puesto", archivo.name)).equals(fs.readFileSync(path.join(origen, archivo.name)));
+      } catch {
+        return true;
+      }
+    });
+  if (desactualizados.length) {
+    throw new Error(`El app.asar del Puesto contiene archivos ausentes o desactualizados: ${desactualizados.map(archivo => archivo.name).join(", ")}`);
   }
   exigirAusente(path.join(instaladorRoot, "release", "win-unpacked"), "win-unpacked suelto en release");
-  console.log("Puesto: app.asar contiene main, pantalla de clave y funciones de configuración.");
+  console.log("Puesto: punto de entrada y archivos de app.asar verificados contra el código fuente.");
 }
 
 try {
   const producto = process.argv[2];
   if (producto === "servidor") verificarServidor();
-  else if (producto === "puesto") verificarPuesto();
+  else if (producto === "puesto") verificarPuesto(process.argv[3]);
   else throw new Error("Indica el producto servidor o puesto.");
 } catch (error) {
   console.error(`Verificación del paquete fallida: ${error.message}`);

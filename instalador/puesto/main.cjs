@@ -4,14 +4,13 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const {
-  crearHashClave,
   crearLimitadorIntentos,
   normalizarServidorUrl,
-  validarClaveInicial,
   verificarHashClave,
 } = require("./seguridad-local.cjs");
 
 const ARCHIVO_CONFIG = "puesto-config.json";
+const TITULO_PUESTO = "Software Municipio Escolar — Puesto de Votación";
 const INTERVALO_REINTENTO_MS = 5000;
 const FALLOS_ANTES_DE_MOSTRAR_OFFLINE = 3;
 const TIMEOUT_SALUD_MS = 5000;
@@ -21,11 +20,14 @@ let servidorUrl = "";
 let configuracionLocal;
 let fallosConsecutivos = 0;
 let temporizadorSalud;
+let temporizadorEleccion;
+let consultaEleccion;
 let vistaLocal = "configuracion";
 let salirAutorizado = false;
-let configuracionAutorizada = false;
+let conexionComprobada;
+let comprobandoConexion = false;
+let continuandoConexion = false;
 let ventanaClave;
-let accionClave;
 let controlVentana;
 const intentosClave = crearLimitadorIntentos();
 
@@ -41,9 +43,10 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.on("before-quit", event => {
-    if (controlVentana?.pendiente && !salirAutorizado) { event.preventDefault(); return; }
+    if (controlVentana?.protegida && !salirAutorizado) { event.preventDefault(); return; }
     salirAutorizado = true;
     clearInterval(temporizadorSalud);
+    clearInterval(temporizadorEleccion);
   });
 
   app.on("activate", () => {
@@ -52,12 +55,15 @@ if (!app.requestSingleInstanceLock()) {
 
   ipcMain.handle("puesto:estado", event => {
     if (!esVistaLocal(event, "configuracion.html")) return { vista: "puesto", servidorUrl: "" };
-    return { vista: vistaLocal, servidorUrl, requiereClave: !configuracionLocal?.claveHash };
+    return { vista: vistaLocal, servidorUrl, pendiente: !esSeguroCambiarDireccion() };
   });
-  ipcMain.handle("puesto:guardar-servidor", async (event, datos) => {
-    if (!esVistaLocal(event, "configuracion.html") || vistaLocal !== "configuracion" || !configuracionAutorizada) {
-      return { ok: false, mensaje: "Para cambiar la configuración, solicita la clave de salida o reconfiguración." };
+  ipcMain.handle("puesto:comprobar-servidor", async (event, datos) => {
+    if (!esVistaLocal(event, "configuracion.html") || !puedeConfigurar() ||
+        comprobandoConexion || continuandoConexion || ventanaClave) {
+      return { ok: false, mensaje: "La configuración no está disponible en este momento." };
     }
+    conexionComprobada = undefined;
+    comprobandoConexion = true;
     let normalizado;
     try {
       normalizado = normalizarServidorUrl(datos?.servidorUrl);
@@ -71,24 +77,32 @@ if (!app.requestSingleInstanceLock()) {
           noLink: true,
         });
       }
-      if (!configuracionLocal?.claveHash) {
-        validarClaveInicial(datos?.clave, datos?.confirmacion);
-      }
       await verificarServidor(normalizado.url);
-      const claveHash = configuracionLocal?.claveHash || crearHashClave(datos.clave);
-      await guardarConfiguracion({ servidorUrl: normalizado.url, claveHash });
-      configuracionLocal = { servidorUrl: normalizado.url, claveHash };
-      servidorUrl = normalizado.url;
-      configuracionAutorizada = false;
-      fallosConsecutivos = 0;
-      await abrirPuesto();
-      iniciarMonitoreo();
-      return { ok: true, aviso: normalizado.aviso };
+      if (!puedeConfigurar() || !esVistaLocal(event, "configuracion.html")) {
+        return { ok: false, mensaje: "La configuración no está disponible en este momento." };
+      }
+      conexionComprobada = normalizado.url;
+      return { ok: true, url: normalizado.url, aviso: normalizado.aviso };
     } catch (error) {
       return { ok: false, mensaje: mensajeAmigable(error), aviso: normalizado?.aviso || "", url: normalizado?.url || "" };
+    } finally {
+      comprobandoConexion = false;
     }
   });
-  ipcMain.handle("puesto:reintentar", event => esVistaLocal(event, "configuracion.html") ? reintentarConexion() : { ok: false, mensaje: "No se pudo reintentar la conexión." });
+  ipcMain.handle("puesto:continuar", event => {
+    if (!esVistaLocal(event, "configuracion.html") || !puedeConfigurar() ||
+        !conexionComprobada || continuandoConexion || ventanaClave) {
+      return { ok: false, mensaje: "Comprueba la conexión antes de continuar." };
+    }
+    return continuarConexion();
+  });
+  ipcMain.handle("puesto:reintentar", event => esVistaLocal(event, "configuracion.html") && vistaLocal === "sin-conexion"
+    ? reintentarConexion() : { ok: false, mensaje: "No se pudo reintentar la conexión." });
+  ipcMain.handle("puesto:editar-direccion", event => {
+    if (esVistaLocal(event, "configuracion.html") && vistaLocal === "sin-conexion" && esSeguroCambiarDireccion()) {
+      mostrarVistaLocal("configuracion");
+    }
+  });
   ipcMain.handle("puesto:validar-clave", (event, clave) => validarClave(event, clave));
   ipcMain.handle("puesto:cancelar-clave", event => {
     if (!esVentanaClave(event)) return false;
@@ -101,8 +115,15 @@ if (!app.requestSingleInstanceLock()) {
     catch { controlVentana?.marcarIncierto(); return { ok: false, mensaje: "No se pudo verificar la sesión. La ventana permanece protegida." }; }
   };
   ipcMain.handle("puesto:iniciar-autenticacion", operarVentana(() => controlVentana.iniciar(servidorUrl)));
+  ipcMain.handle("puesto:confirmar-eleccion-abierta", operarVentana(async () => ({
+    ok: await actualizarEleccion({ protegerSiFalla: true }) === true,
+  })));
   ipcMain.handle("puesto:registrar-sesion", operarVentana(token => controlVentana.registrar(token, servidorUrl)));
-  ipcMain.handle("puesto:finalizar-sesion", operarVentana(() => controlVentana.resolver(servidorUrl, true)));
+  ipcMain.handle("puesto:finalizar-sesion", event => {
+    if (!esPaginaPuesto(event) &&
+        !(vistaLocal === "finalizar-sesion" && esVistaLocal(event, "configuracion.html"))) return { ok: false };
+    return controlVentana.resolver(servidorUrl, true);
+  });
 
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin" && salirAutorizado) app.quit();
@@ -112,22 +133,25 @@ if (!app.requestSingleInstanceLock()) {
 async function iniciar() {
   configuracionLocal = await leerConfiguracion();
   servidorUrl = configuracionLocal?.servidorUrl || "";
-  configuracionAutorizada = !configuracionLocal?.claveHash;
   controlVentana = new ControlVentanaPuesto({
     archivo: path.join(app.getPath("userData"), "puesto-sesion-pendiente.json"), safeStorage,
     consultar: consultarSesionVentana,
-    reiniciarVista: () => ventana.loadURL(new URL("/puesto", servidorUrl).toString()),
+    reiniciarVista: abrirPuesto,
   });
   await controlVentana.cargar();
   crearVentana();
-  if (!servidorUrl) {
+  if (!controlVentana.pendiente) {
     mostrarVistaLocal("configuracion");
+    return;
+  }
+  if (!servidorUrl) {
+    mostrarVistaLocal("sin-conexion");
     return;
   }
   try {
     await verificarServidor(servidorUrl);
     await abrirPuesto();
-    await controlVentana.resolver(servidorUrl);
+    await revisarSesionProtegida();
   } catch {
     mostrarVistaLocal("sin-conexion");
   }
@@ -140,8 +164,9 @@ function crearVentana() {
     width: 1280,
     height: 800,
     show: false,
-    kiosk: controlVentana?.pendiente || false,
-    fullscreen: controlVentana?.pendiente || false,
+    title: TITULO_PUESTO,
+    kiosk: controlVentana?.protegida || false,
+    fullscreen: controlVentana?.protegida || false,
     autoHideMenuBar: true,
     frame: true,
     webPreferences: {
@@ -152,6 +177,7 @@ function crearVentana() {
     },
   });
   ventana.setMenu(null);
+  ventana.on("page-title-updated", event => event.preventDefault());
   controlVentana?.conectar(ventana);
   vigilarSolicitudesPuesto();
   ventana.once("ready-to-show", () => ventana.show());
@@ -169,17 +195,16 @@ function crearVentana() {
     const tecla = input.key.toLowerCase();
     if (input.control && input.shift && tecla === "f10") {
       event.preventDefault();
-      abrirDialogoClave("salir");
+      abrirDialogoSalida();
       return;
     }
     if (input.control && input.shift && tecla === "f12") {
       event.preventDefault();
-      if (configuracionLocal?.claveHash) abrirDialogoClave("reconfigurar");
-      else mostrarVistaLocal("configuracion");
+      if (esSeguroCambiarDireccion() && vistaLocal !== "configuracion") mostrarVistaLocal("configuracion");
       return;
     }
     const atajoBloqueado = input.control && ["i", "j", "u"].includes(tecla) || tecla === "f12"
-      || controlVentana?.pendiente && (input.alt && tecla === "f4"
+      || controlVentana?.protegida && (input.alt && ["f4", " "].includes(tecla)
       || input.control && ["w", "q", "r"].includes(tecla) || tecla === "f5" || tecla === "f11");
     if (atajoBloqueado) event.preventDefault();
   });
@@ -192,8 +217,12 @@ function crearVentana() {
     }
   });
   ventana.on("close", event => {
-    if (controlVentana?.pendiente && !salirAutorizado) { event.preventDefault(); return; }
-    salirAutorizado = true; clearInterval(temporizadorSalud);
+    if (controlVentana?.protegida && !salirAutorizado) {
+      event.preventDefault();
+      controlVentana.aplicarBloqueo();
+      return;
+    }
+    salirAutorizado = true; clearInterval(temporizadorSalud); clearInterval(temporizadorEleccion);
   });
   ventana.webContents.on("did-start-navigation", (_e, _url, _inPlace, principal) => {
     if (principal) controlVentana?.marcarIncierto();
@@ -202,7 +231,7 @@ function crearVentana() {
 }
 
 function esPaginaPuesto(event) {
-  if (!ventana || event.sender !== ventana.webContents || event.senderFrame !== ventana.webContents.mainFrame) return false;
+  if (vistaLocal !== "puesto" || !ventana || event.sender !== ventana.webContents || event.senderFrame !== ventana.webContents.mainFrame) return false;
   try {
     const u = new URL(event.senderFrame.url);
     return u.origin === servidorUrl && (u.pathname === "/puesto" || u.pathname.startsWith("/puesto/"));
@@ -217,6 +246,7 @@ function vigilarSolicitudesPuesto() {
   };
   wr.onBeforeRequest({ urls: ["http://*/*"] }, (d, continuar) => {
     if (esSolicitud(d) && d.method === "POST" && ["/api/puesto/identificar", "/api/puesto/votos"].includes(new URL(d.url).pathname)) {
+      if (vistaLocal !== "puesto") { continuar({ cancel: true }); return; }
       controlVentana.iniciar(servidorUrl).then(() => continuar({}), () => continuar({ cancel: true }));
     } else continuar({});
   });
@@ -226,7 +256,7 @@ function vigilarSolicitudesPuesto() {
 async function consultarSesionVentana(token, origen) {
   if (origen !== servidorUrl || !ventana) throw Error("Servidor diferente");
   const r = await ventana.webContents.session.fetch(`${origen}/api/puesto/sesion-ventana`, {
-    credentials: "include", cache: "no-store", signal: AbortSignal.timeout(5000),
+    credentials: "include", cache: "no-store", redirect: "error", signal: AbortSignal.timeout(5000),
     headers: { Origin: origen, Authorization: `Bearer ${token}` },
   });
   if (!r.ok) throw Error("No se pudo verificar la sesión");
@@ -239,7 +269,7 @@ async function verificarServidor(base) {
   const controlador = new AbortController();
   const temporizador = setTimeout(() => controlador.abort(), TIMEOUT_SALUD_MS);
   try {
-    const respuesta = await fetch(`${base}/api/estado`, { signal: controlador.signal, cache: "no-store" });
+    const respuesta = await fetch(`${base}/api/estado`, { signal: controlador.signal, cache: "no-store", redirect: "error" });
     const datos = await respuesta.json();
     if (!respuesta.ok || datos?.estado !== "activo") throw new Error("El servidor no confirmó que está activo.");
   } catch (error) {
@@ -281,14 +311,51 @@ function archivoConfiguracion() {
 
 function mostrarVistaLocal(vista) {
   if (!ventana) return;
+  if (vista !== "finalizar-sesion") clearInterval(temporizadorSalud);
+  if (vista === "configuracion") clearInterval(temporizadorEleccion);
   vistaLocal = vista;
-  configuracionAutorizada = true;
+  conexionComprobada = undefined;
   ventana.loadFile(path.join(__dirname, "configuracion.html"), { query: { vista } });
 }
 
-function abrirDialogoClave(accion) {
+function esSeguroCambiarDireccion() {
+  return controlVentana?.protegida === false;
+}
+
+function puedeConfigurar() {
+  return vistaLocal === "configuracion" && esSeguroCambiarDireccion();
+}
+
+async function continuarConexion() {
+  if (!puedeConfigurar() || !conexionComprobada || continuandoConexion) {
+    return { ok: false, mensaje: "Comprueba la conexión antes de continuar." };
+  }
+  continuandoConexion = true;
+  try {
+    const comprobada = { ...configuracionLocal, servidorUrl: conexionComprobada };
+    if (comprobada.servidorUrl !== servidorUrl) {
+      await guardarConfiguracion(comprobada);
+    }
+    configuracionLocal = comprobada;
+    servidorUrl = comprobada.servidorUrl;
+    conexionComprobada = undefined;
+    fallosConsecutivos = 0;
+    try {
+      await abrirPuesto();
+    } catch {
+      mostrarVistaLocal("sin-conexion");
+    }
+    iniciarMonitoreo();
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, mensaje: mensajeAmigable(error) };
+  } finally {
+    continuandoConexion = false;
+  }
+}
+
+function abrirDialogoSalida() {
   if (ventanaClave || !ventana || !configuracionLocal?.claveHash) return;
-  accionClave = accion;
   ventanaClave = new BrowserWindow({
     parent: ventana,
     modal: true,
@@ -314,12 +381,12 @@ function abrirDialogoClave(accion) {
     if (input.key === "Escape") { event.preventDefault(); ventanaClave?.close(); }
     if (input.alt && tecla === "f4" || input.control && ["w", "q", "r"].includes(tecla)) event.preventDefault();
   });
-  ventanaClave.on("closed", () => { ventanaClave = undefined; accionClave = undefined; });
-  ventanaClave.loadFile(path.join(__dirname, "clave.html"), { query: { accion } });
+  ventanaClave.on("closed", () => { ventanaClave = undefined; });
+  ventanaClave.loadFile(path.join(__dirname, "clave.html"));
 }
 
 function esVistaLocal(event, archivo) {
-  if (!ventana || event.sender !== ventana.webContents) return false;
+  if (!ventana || event.sender !== ventana.webContents || event.senderFrame !== ventana.webContents.mainFrame) return false;
   try { return esArchivoLocal(event.senderFrame.url, archivo); }
   catch { return false; }
 }
@@ -346,19 +413,14 @@ function validarClave(event, clave) {
     return { ok: false, mensaje: "La clave es incorrecta." };
   }
   intentosClave.registrarExito();
-  const accion = accionClave;
   ventanaClave?.close();
-  if (accion === "salir") {
-    salirAutorizado = true;
-    app.quit();
-  } else if (accion === "reconfigurar") {
-    mostrarVistaLocal("configuracion");
-  }
+  salirAutorizado = true;
+  app.quit();
   return { ok: true };
 }
 
 function mensajeAmigable(error) {
-  const conocidos = ["Escribe", "La dirección", "Usa", "El servidor", "La clave", "Las claves", "No se pudo conectar", "Se agotó"];
+  const conocidos = ["Escribe", "La dirección", "Usa", "El servidor", "No se pudo conectar", "Se agotó"];
   return conocidos.some(inicio => error.message.startsWith(inicio))
     ? error.message
     : "No se pudo guardar la configuración. Revisa los datos e inténtalo otra vez.";
@@ -367,23 +429,63 @@ function mensajeAmigable(error) {
 async function abrirPuesto() {
   if (!ventana || !servidorUrl) return;
   vistaLocal = "puesto";
+  await actualizarEleccion({ protegerSiFalla: true });
   await ventana.loadURL(new URL("/puesto", servidorUrl).toString());
+}
+
+async function actualizarEleccion({ protegerSiFalla = false } = {}) {
+  const origen = servidorUrl;
+  if (!origen || vistaLocal === "configuracion") return;
+  if (protegerSiFalla) controlVentana.actualizarEleccion(true);
+  if (consultaEleccion?.origen === origen) return consultaEleccion.resultado;
+  const consulta = { origen };
+  consultaEleccion = consulta;
+  consulta.resultado = (async () => {
+    try {
+      const respuesta = await fetch(`${origen}/api/votacion/configuracion`, {
+        cache: "no-store", redirect: "error", signal: AbortSignal.timeout(TIMEOUT_SALUD_MS),
+      });
+      const datos = await respuesta.json();
+      if (!respuesta.ok || typeof datos?.votacionAbierta !== "boolean") return;
+      if (servidorUrl !== origen || vistaLocal === "configuracion") return;
+      controlVentana.actualizarEleccion(datos.votacionAbierta);
+      return datos.votacionAbierta;
+    } catch {
+      // Una respuesta fallida conserva la última protección aplicada.
+    } finally {
+      if (consultaEleccion === consulta) consultaEleccion = undefined;
+    }
+  })();
+  return consulta.resultado;
+}
+
+async function revisarSesionProtegida() {
+  const resultado = await controlVentana.resolver(servidorUrl);
+  if (resultado.requiereFinalizar && vistaLocal === "puesto" && controlVentana.pendiente) {
+    mostrarVistaLocal("finalizar-sesion");
+  }
 }
 
 function iniciarMonitoreo() {
   clearInterval(temporizadorSalud);
+  clearInterval(temporizadorEleccion);
   if (!servidorUrl) return;
+  temporizadorEleccion = setInterval(() => actualizarEleccion(), 1000);
   temporizadorSalud = setInterval(async () => {
+    const origen = servidorUrl;
     try {
-      await verificarServidor(servidorUrl);
+      await verificarServidor(origen);
+      if (origen !== servidorUrl || vistaLocal === "configuracion") return;
       fallosConsecutivos = 0;
       if (vistaLocal === "sin-conexion") await abrirPuesto();
-      await controlVentana?.resolver(servidorUrl);
+      await revisarSesionProtegida();
     } catch {
+      if (origen !== servidorUrl || vistaLocal === "configuracion") return;
       controlVentana?.marcarIncierto();
       fallosConsecutivos += 1;
       if (fallosConsecutivos >= FALLOS_ANTES_DE_MOSTRAR_OFFLINE && vistaLocal === "puesto") {
         mostrarVistaLocal("sin-conexion");
+        iniciarMonitoreo();
       }
     }
   }, INTERVALO_REINTENTO_MS);
@@ -392,9 +494,12 @@ function iniciarMonitoreo() {
 async function reintentarConexion() {
   if (!servidorUrl) return { ok: false, mensaje: "Configura la URL del servidor primero." };
   try {
-    await verificarServidor(servidorUrl);
+    const origen = servidorUrl;
+    await verificarServidor(origen);
+    if (vistaLocal !== "sin-conexion" || origen !== servidorUrl) return { ok: false };
     fallosConsecutivos = 0;
     await abrirPuesto();
+    await revisarSesionProtegida();
     iniciarMonitoreo();
     return { ok: true };
   } catch (error) {
@@ -404,5 +509,5 @@ async function reintentarConexion() {
 
 function mostrarErrorFatal(error) {
   console.error(`No se pudo iniciar la aplicación de puesto: ${error.message}`);
-  if (ventana) mostrarVistaLocal("configuracion");
+  if (ventana) mostrarVistaLocal(controlVentana?.pendiente ? "sin-conexion" : "configuracion");
 }

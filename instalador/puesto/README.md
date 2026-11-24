@@ -2,11 +2,11 @@
 
 ## Configuración
 
-En el primer inicio, escribe la dirección LAN que aparece en la aplicación del servidor y define y confirma una **Clave para salir o reconfigurar** de al menos cuatro caracteres. La app comprueba `GET /api/estado` y guarda la URL y el hash scrypt de la clave en su carpeta de datos de usuario. Luego abre `/puesto` directamente en el origen del servidor.
+En cada inicio normal aparece **Conectar al Servidor**. Pega la dirección LAN que muestra el Servidor. La dirección guardada aparece precargada. Pulsa **Conectar al Servidor** para comprobar `GET /api/estado`. Tras una respuesta válida, pulsa **Continuar** para guardar la dirección y abrir `/puesto` en el origen verificado.
 
-La clave nunca se guarda en texto plano. `Ctrl+Shift+F10` solicita esa clave para cerrar la app y `Ctrl+Shift+F12` la solicita para cambiar la dirección del servidor. Tras cinco intentos fallidos, la entrada se bloquea 30 segundos.
+`Ctrl+Shift+F12` abre el formulario cuando es seguro cambiar la dirección. Si el Puesto conserva una clave de salida de una instalación anterior, `Ctrl+Shift+F10` permite usarla exclusivamente para el cierre de emergencia.
 
-Si cambia la dirección del servidor, usa `Ctrl+Shift+F12` para volver a la pantalla de configuración. Si el servidor está apagado o no se puede alcanzar, la app muestra **Sin conexión con el servidor** y reintenta automáticamente; también puedes pulsar **Reintentar ahora**.
+Después de continuar, si se pierde la conexión, la app reintenta automáticamente y ofrece **Reintentar ahora**. Con una sesión activa, pendiente o incierta, la dirección queda bloqueada. Si se reinicia con una sesión pendiente, el Puesto intenta recuperarla con la dirección guardada.
 
 ## Vincular cada puesto
 
@@ -17,4 +17,4 @@ Si cambia la dirección del servidor, usa `Ctrl+Shift+F12` para volver a la pant
 
 No pulses **Revocar** mientras el estado sea **Pendiente**: revoca la autorización y anula el código. Si ya se revocó o venció, genera uno nuevo. Si se necesita trasladar una computadora ya **Vinculada** a otro navegador, primero revoca la vinculación anterior y luego genera una autorización nueva; el navegador anterior pierde acceso de inmediato.
 
-La app bloquea los atajos habituales de cierre mientras muestra la votación. Si la app deja de responder y no se puede cerrar con `Ctrl+Shift+F10` y la clave, el Administrador de tareas de Windows queda como último recurso para finalizar **Municipio Escolar Puesto**.
+La app bloquea los atajos habituales de cierre mientras hay una sesión de votación protegida.

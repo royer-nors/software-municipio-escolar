@@ -48,6 +48,18 @@ test("voto registrado y ninguna sesión pendiente retira el DOM y restaura boton
   assert.equal(e.w.bounds.width, 1200);
   await assert.rejects(fs.access(e.args.archivo));
 });
+test("finalizar el voto mantiene el bloqueo si la elección sigue abierta", async t => {
+  const e = await entorno(t), origen = "http://192.168.1.40:3000";
+  e.c.actualizarEleccion(true);
+  await e.c.iniciar(origen);
+  await e.c.registrar("jwt-ficticio", origen);
+  e.responder({ estado: "registrada", pendientes: 0 });
+  assert.equal((await e.c.resolver(origen, true)).ok, true);
+  assert.equal(e.c.pendiente, false);
+  assert.equal(e.w.closable, false);
+  e.c.actualizarEleccion(false);
+  assert.equal(e.w.closable, true);
+});
 test("recarga, navegación y desconexión no desbloquean; restablecer solo /api/estado tampoco", async t => {
   const e = await entorno(t), origen = "http://192.168.1.40:3000";
   await e.c.iniciar(origen); await e.c.registrar("jwt-ficticio", origen);
@@ -62,7 +74,10 @@ test("reinicio recupera bloqueo y token cifrado; solo vuelve a normal tras verif
   const nuevo = new ControlVentanaPuesto(e.args), w = ventanaFicticia(); await nuevo.cargar(); nuevo.conectar(w);
   assert.equal(w.kiosk, true); assert.equal(w.closable, false);
   assert.equal((await nuevo.resolver(origen)).ok, false);
-  e.responder({ estado: "registrada", pendientes: 0 }); assert.equal((await nuevo.resolver(origen)).ok, true);
+  e.responder({ estado: "registrada", pendientes: 0 });
+  assert.deepEqual(await nuevo.resolver(origen), { ok: false, requiereFinalizar: true });
+  assert.equal(w.closable, false);
+  assert.equal((await nuevo.resolver(origen, true)).ok, true);
   assert.equal(w.closable, true);
 });
 test("estado ilegible, servidor distinto, otra identidad o token no confirmado no permiten salida", async t => {
@@ -74,10 +89,11 @@ test("estado ilegible, servidor distinto, otra identidad o token no confirmado n
   e.responder({ referencia: "b".repeat(64) }); await assert.rejects(e.c.registrar("otro-token", origen));
   e.responder({ estado: "registrada", pendientes: 0 }); assert.equal((await e.c.resolver(origen, true)).ok, false);
 });
-test("una sesión vencida confirmada sin pendientes puede volver a espera; otros pendientes impiden hacerlo", async t => {
+test("una sesión vencida u otros pendientes impiden volver a espera", async t => {
   const e = await entorno(t), origen = "http://192.168.1.40:3000";
   await e.c.iniciar(origen); await e.c.registrar("jwt-ficticio", origen);
-  e.responder({ estado: "vencida", pendientes: 1 }); assert.equal((await e.c.resolver(origen, true)).ok, false);
+  e.responder({ estado: "vencida", pendientes: 0 }); assert.equal((await e.c.resolver(origen, true)).ok, false);
+  e.responder({ estado: "registrada", pendientes: 1 }); assert.equal((await e.c.resolver(origen, true)).ok, false);
   e.responder({ pendientes: 0 }); assert.equal((await e.c.resolver(origen, true)).ok, true);
 });
 test("un fallo de persistencia cancela también los siguientes intentos de autenticación", async t => {

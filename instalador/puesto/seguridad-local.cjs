@@ -31,13 +31,6 @@ function normalizarServidorUrl(valor) {
   return { url: url.origin, aviso };
 }
 
-function validarClaveInicial(clave, confirmacion) {
-  if (typeof clave !== "string" || clave.length < 4) {
-    throw new Error("La clave debe tener al menos 4 caracteres.");
-  }
-  if (clave !== confirmacion) throw new Error("Las claves no coinciden.");
-}
-
 function crearHashClave(clave) {
   const salt = randomBytes(16);
   const hash = scryptSync(clave, salt, 64);
@@ -82,6 +75,5 @@ module.exports = {
   crearHashClave,
   crearLimitadorIntentos,
   normalizarServidorUrl,
-  validarClaveInicial,
   verificarHashClave,
 };

@@ -1,9 +1,3 @@
-const accion = new URLSearchParams(window.location.search).get("accion");
-const salida = accion === "salir";
-document.getElementById("titulo").textContent = salida ? "Cerrar puesto de votación" : "Reconfigurar servidor";
-document.getElementById("descripcion").textContent = salida
-  ? "Escribe la clave para cerrar la aplicación."
-  : "Escribe la clave para cambiar la dirección del servidor.";
 const formulario = document.getElementById("formulario");
 const clave = document.getElementById("clave");
 const error = document.getElementById("error");

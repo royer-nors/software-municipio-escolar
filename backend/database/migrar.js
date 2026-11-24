@@ -2,6 +2,15 @@ const { readdir, readFile } = require("node:fs/promises");
 const path = require("node:path");
 const { createHash } = require("node:crypto");
 
+function coincideChecksum(archivo, registrado, actual) {
+  if (registrado === actual) return true;
+
+  // 7a35422 y la copia empaquetada solo difieren en dos LF al final.
+  return archivo === "001_estructura_inicial.sql"
+    && registrado === "45f7468a10a36b6f7d00f8472f287b7da78e11f72b0ecca8de1dc783d71cb497"
+    && actual === "be482e2345666e411bc32f1691115451cfd0464e00dac5944228c8e3eb6f44e7";
+}
+
 async function migrar(pool) {
   const directorio = path.join(__dirname, "../../database/migrations");
   const archivos = (await readdir(directorio)).filter(nombre => /^\d{3}_[a-z0-9_]+\.sql$/.test(nombre)).sort();
@@ -20,7 +29,9 @@ async function migrar(pool) {
       const checksum = createHash("sha256").update(sql).digest("hex");
       const previo = await client.query("SELECT checksum FROM esquema_migraciones WHERE version = $1", [archivo]);
       if (previo.rows.length) {
-        if (previo.rows[0].checksum !== checksum) throw new Error(`La migración ${archivo} cambió después de aplicarse.`);
+        if (!coincideChecksum(archivo, previo.rows[0].checksum, checksum)) {
+          throw new Error(`La migración ${archivo} cambió después de aplicarse.`);
+        }
         continue;
       }
       await client.query(sql);
